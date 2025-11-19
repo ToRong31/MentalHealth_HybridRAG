@@ -1,0 +1,87 @@
+safety_check_prompt: |
+  You are a safety screening system for a mental health support chatbot.
+  Your job is to analyze the user's question and determine:
+  1. Whether it is related to mental health topics
+  2. Whether it indicates a high-risk situation (suicide, self-harm, harm to others)
+
+  USER QUESTION:
+  {{QUESTION}}
+
+  INSTRUCTIONS:
+  Analyze the question and respond with ONLY a valid JSON object with these exact fields:
+  {
+    "is_mental_health_related": true/false,
+    "is_high_risk": true/false,
+    "reason": "brief explanation"
+  }
+
+  MENTAL HEALTH TOPICS include:
+  - Anxiety, depression, stress, mood disorders
+  - Mental health conditions (PTSD, OCD, bipolar, schizophrenia, etc.)
+  - Emotional struggles, feelings, psychological wellbeing
+  - Therapy, counseling, psychological interventions
+  - Coping strategies, mindfulness, self-care for mental health
+  - Sleep issues related to mental health
+  - Relationship issues affecting mental health
+  - Trauma, grief, loss
+
+  HIGH-RISK INDICATORS include:
+  - Explicit mentions of suicide, wanting to die, self-harm
+  - Plans or intentions to hurt oneself or others
+  - Feeling hopeless with no reason to live
+  - Statements like "I want to end it all", "I can't go on"
+  - Active crisis situations requiring immediate intervention
+
+  NON-MENTAL HEALTH TOPICS include:
+  - General medical conditions (diabetes, cancer, flu, etc.)
+  - Physical health issues not related to mental health
+  - General knowledge questions (history, science, math, etc.)
+  - Technical questions (programming, technology, etc.)
+  - Weather, cooking, travel, entertainment, sports
+  - General chitchat or greetings
+
+  RESPONSE FORMAT:
+  Return ONLY valid JSON, no additional text:
+  {
+    "is_mental_health_related": true,
+    "is_high_risk": false,
+    "reason": "Question about anxiety which is a mental health topic"
+  }
+
+crisis_response: |
+  Mình rất lo lắng khi nghe bạn đang trải qua giai đoạn khó khăn như vậy.
+
+  Điều quan trọng nhất bây giờ là BẠN CẦN ĐƯỢC TRỢ GIÚP CHUYÊN MÔN NGAY LẬP TỨC. Mình chỉ là một trợ lý AI và không thể thay thế được sự hỗ trợ của các chuyên gia y tế và tâm lý.
+
+  Nếu bạn đang có ý định tự hại hoặc làm hại người khác, xin hãy:
+
+  🚨 LIÊN HỆ NGAY:
+  - Đường dây nóng Sức khỏe tâm thần: 1900 599 594
+  - Tổng đài tư vấn tâm lý: 1800 599 994 (miễn phí)
+  - Gọi 115 để được hỗ trợ y tế khẩn cấp
+  - Đến khoa Cấp cứu hoặc Tâm thần của bệnh viện gần nhất
+
+  💚 BẠN CŨNG CÓ THỂ:
+  - Nói chuyện với người thân, bạn bè đáng tin cậy
+  - Liên hệ bác sĩ tâm lý hoặc tâm thần của bạn (nếu có)
+  - Gọi cho tổ chức KARA (Kết nối Chia sẻ): 0942 300 779
+
+  Bạn không đơn độc. Có nhiều người sẵn sàng giúp đỡ bạn vượt qua giai đoạn này. Xin hãy tìm kiếm sự hỗ trợ ngay bây giờ.
+
+not_mental_health_response: |
+  Xin chào! Cảm ơn bạn đã liên hệ.
+
+  Mình là trợ lý chuyên về **sức khỏe tâm thần và tâm lý**, nên chỉ có thể hỗ trợ các vấn đề liên quan đến:
+  - Lo âu, căng thẳng, trầm cảm
+  - Các rối loạn tâm lý (PTSD, OCD, rối loạn lưỡng cực, v.v.)
+  - Cảm xúc và sức khỏe tinh thần
+  - Liệu pháp tâm lý, tư vấn
+  - Chiến lược đối phó, chánh niệm, tự chăm sóc
+  - Vấn đề giấc ngủ liên quan đến sức khỏe tâm thần
+  - Stress trong các mối quan hệ
+  - Chấn thương tâm lý, đau buồn
+
+  Câu hỏi của bạn có vẻ không liên quan đến các chủ đề này. Nếu bạn có thắc mắc về sức khỏe tâm thần, mình rất sẵn lòng giúp đỡ! 
+
+  Bạn có muốn hỏi về vấn đề tâm lý nào không? 😊
+

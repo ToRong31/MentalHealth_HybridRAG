@@ -1,4 +1,6 @@
 import yaml
+import json
+import re
 from typing import List, Dict, Any
 
 from .state import KGState
@@ -7,7 +9,12 @@ from .milvus_client import milvus_search
 from .neo4j_client import get_node_names_from_neo4j, expand_subgraph
 from .reranker import reranker
 from .llm_gemini import llm
-from .prompts import therapist_prompt
+from .prompts import (
+    therapist_prompt, 
+    safety_check_prompt,
+    crisis_response,
+    not_mental_health_response,
+)
 
 
 def build_subgraph_context(nodes, rels, anchors) -> str:
@@ -95,6 +102,62 @@ def build_subgraph_context(nodes, rels, anchors) -> str:
 
 # --- LangGraph node functions ---
 
+def safety_check_node(state: KGState) -> KGState:
+    """
+    Kiểm tra xem câu hỏi có liên quan đến mental health và có phải high-risk không.
+    Sử dụng Gemini 2.5 Flash Lite để phân tích.
+    """
+    q = state["question"]
+    
+    # Tạo prompt với câu hỏi của user
+    prompt = safety_check_prompt.replace("{{QUESTION}}", q)
+    
+    # Gọi LLM để phân tích
+    try:
+        response = llm.invoke(prompt)
+        
+        # Parse JSON response
+        # Tìm JSON trong response (phòng trường hợp LLM trả về text thêm)
+        json_match = re.search(r'\{[^{}]*"is_mental_health_related"[^{}]*\}', response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            result = json.loads(json_str)
+            
+            state["is_mental_health_related"] = result.get("is_mental_health_related", True)
+            state["is_high_risk"] = result.get("is_high_risk", False)
+        else:
+            # Fallback: nếu không parse được JSON, mặc định là mental health related
+            print(f"Warning: Could not parse JSON from LLM response: {response}")
+            state["is_mental_health_related"] = True
+            state["is_high_risk"] = False
+            
+    except Exception as e:
+        print(f"Error in safety_check_node: {e}")
+        # Fallback an toàn: cho phép tiếp tục
+        state["is_mental_health_related"] = True
+        state["is_high_risk"] = False
+    
+    return state
+
+
+def crisis_response_node(state: KGState) -> KGState:
+    """
+    Trả về thông báo khẩn cấp cho các trường hợp high-risk.
+    """
+    state["answer"] = crisis_response
+    state["done"] = True
+    return state
+
+
+def not_mental_health_node(state: KGState) -> KGState:
+    """
+    Trả về thông báo chỉ hỗ trợ mental health cho các câu hỏi không liên quan.
+    """
+    state["answer"] = not_mental_health_response
+    state["done"] = True
+    return state
+
+
 def encode_node(state: KGState) -> KGState:
     q = state["question"]
     emb = encode_e5([f"query: {q}"])[0]
@@ -106,7 +169,7 @@ def milvus_rerank_node(state: KGState) -> KGState:
     question = state["question"]
     q_vec = state["query_embedding"]
 
-    candidates = milvus_search(q_vec, limit=10, threshold=0.3)
+    candidates = milvus_search(q_vec, limit=10, threshold=0.8)
     if not candidates:
         state["anchors"] = []
         return state
