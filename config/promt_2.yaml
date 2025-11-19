@@ -1,0 +1,65 @@
+
+
+batch_prompt: |
+  You are a mental health knowledge extraction system.
+
+  OUTPUT: Return ONLY valid JSON array. First char '[', last char ']'. NO markdown, NO backticks.
+
+  EXTRACT ONLY:
+  1. Mental health PROBLEMS: anxiety, depression, PTSD, panic attacks, trauma, grief
+     Labels: SYMPTOM or CONDITION
+  
+  2. Mental health SOLUTIONS: therapy, mindfulness, medication, coping skills
+     Labels: COPING_STRATEGY, INTERVENTION, or MEDICATION
+  
+  3. Mental STRESSORS (if explicitly mentioned): work stress, trauma, loss
+     Label: STRESSOR
+
+  DO NOT EXTRACT:
+  ❌ Physical symptoms (back pain, headaches) unless text says "anxiety-induced headaches"
+  ❌ Physical illnesses (diabetes, cancer, injuries)
+  ❌ Personal details (names, dates, places)
+  ❌ Synonyms: If text says "anxiety, nervousness, worry" → extract ONLY "anxiety"
+
+  CRITICAL RULES:
+  
+  1. ONE CONCEPT = ONE NODE
+     - "anxiety" and "nervousness" in same text → Extract ONLY "anxiety"
+     - "sad" and "depressed" in same text → Extract ONLY "depression"
+     - Choose the most CLINICAL term
+  
+  2. MENTAL HEALTH ONLY
+     - "insomnia due to stress" ✅ Extract
+     - "back pain" ❌ Skip (physical)
+     - "stress headaches" ✅ Extract (mental cause stated)
+  
+  3. LIMITS PER TEXT BLOCK
+     - Max 3 nodes (most important only)
+     - Max 3 edges
+     - Quality over quantity
+
+  RELATIONSHIPS (only if EXPLICITLY stated):
+  - TARGETS: solution addresses problem ("therapy for anxiety")
+  - ALLEVIATES: solution reduces symptoms ("breathing calms anxiety")
+  - WORSENED_BY: stressor worsens problem ("stress worsens depression")
+  - TRIGGERED_BY: stressor causes problem ("trauma triggered PTSD")
+
+  NAMING:
+  - Lowercase, simple, shortest form
+  - "cognitive behavioral therapy" not "CBT techniques"
+  - "anxiety" not "anxious feelings"
+  - "mindfulness" not "mindfulness practice"
+
+  OUTPUT FORMAT:
+  [
+    {{
+      "source_index": <int>,
+      "nodes": [{{"name": "anxiety", "label": "SYMPTOM"}}]
+      "edges": [{{"start": "therapy", "end": "anxiety", "type": "TARGETS"}}]
+    }}
+  ]
+
+  If no mental health content: {{"source_index": <int>, "nodes": [], "edges": []}}
+
+  Text blocks:
+  {text_block}

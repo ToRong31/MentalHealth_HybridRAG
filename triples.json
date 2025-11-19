@@ -1,0 +1,142 @@
+[
+  {
+    "subject": "seek assistance",
+    "predicate": "TARGETS",
+    "object": "back pain"
+  },
+  {
+    "subject": "caregiving responsibilities",
+    "predicate": "WORSENED_BY",
+    "object": "back pain"
+  },
+  {
+    "subject": "caregiving responsibilities",
+    "predicate": "WORSENED_BY",
+    "object": "exhaustion"
+  },
+  {
+    "subject": "respite care",
+    "predicate": "TARGETS",
+    "object": "caregiving responsibilities"
+  },
+  {
+    "subject": "delegating tasks",
+    "predicate": "TARGETS",
+    "object": "caregiving responsibilities"
+  },
+  {
+    "subject": "alternative caregiving arrangements",
+    "predicate": "TARGETS",
+    "object": "caregiving responsibilities"
+  },
+  {
+    "subject": "pain",
+    "predicate": "WORSENED_BY",
+    "object": "caregiving responsibilities"
+  },
+  {
+    "subject": "managing pain effectively",
+    "predicate": "TARGETS",
+    "object": "pain"
+  },
+  {
+    "subject": "meditation",
+    "predicate": "TARGETS",
+    "object": "managing pain effectively"
+  },
+  {
+    "subject": "self-care",
+    "predicate": "TARGETS",
+    "object": "managing pain effectively"
+  },
+  {
+    "subject": "deep breathing exercises",
+    "predicate": "TARGETS",
+    "object": "managing pain effectively"
+  },
+  {
+    "subject": "pain management techniques",
+    "predicate": "TARGETS",
+    "object": "managing pain effectively"
+  },
+  {
+    "subject": "physical therapy",
+    "predicate": "TARGETS",
+    "object": "managing pain effectively"
+  },
+  {
+    "subject": "pain",
+    "predicate": "TARGETS",
+    "object": "cognitive restructuring"
+  },
+  {
+    "subject": "pain",
+    "predicate": "TARGETS",
+    "object": "cognitive behavioral techniques"
+  },
+  {
+    "subject": "relaxation techniques",
+    "predicate": "TARGETS",
+    "object": "pain"
+  },
+  {
+    "subject": "counseling",
+    "predicate": "TARGETS",
+    "object": "pain"
+  },
+  {
+    "subject": "self care",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "mindfulness practices",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "grief",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "coping strategies",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "pain management",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "massage",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "aromatherapy",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "supportive relationships",
+    "predicate": "ALLEVIATES",
+    "object": "pain"
+  },
+  {
+    "subject": "physical therapy",
+    "predicate": "ALLEVIATES",
+    "object": "back discomfort"
+  },
+  {
+    "subject": "physical therapy",
+    "predicate": "ALLEVIATES",
+    "object": "overwhelm"
+  },
+  {
+    "subject": "physical therapy",
+    "predicate": "ALLEVIATES",
+    "object": "helplessness"
+  }
+]

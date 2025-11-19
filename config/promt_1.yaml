@@ -1,0 +1,183 @@
+batch_prompt: |
+  You are an information extraction system for mental-health counseling.
+
+  You MUST follow these formatting rules:
+
+  - Return ONLY valid JSON.
+
+  - NO markdown, NO code fences, NO backticks, NO commentary.
+
+  - The VERY FIRST character of your output MUST be '['.
+
+  - The VERY LAST character must be ']'.
+
+  - Do not wrap JSON in ```json or any other formatting.
+
+  CORE TASK: PROBLEMS & SOLUTIONS ONLY
+
+  Extract ONLY the main mental health PROBLEMS and their SOLUTIONS.
+
+  Focus on: "What is wrong?" and "What helps?"
+
+  WHAT TO EXTRACT (PRIORITY ORDER):
+
+  1️⃣ PROBLEMS (Highest Priority)
+
+     - Mental/emotional symptoms: anxiety, depression, stress, anger, guilt
+
+     - Mental health conditions: PTSD, panic disorder, bipolar disorder
+
+     - Use labels: {{SYMPTOM}} or {{CONDITION}}
+
+     
+
+  2️⃣ SOLUTIONS (Highest Priority)
+
+     - Coping strategies: deep breathing, mindfulness, journaling
+
+     - Professional interventions: cognitive behavioral therapy, counseling
+
+     - Psychiatric medications: antidepressants, mood stabilizers
+
+     - Use labels: {{COPING_STRATEGY}}, {{INTERVENTION}}, or {{MEDICATION}}
+
+  3️⃣ STRESSORS (Low Priority - only if directly mentioned)
+
+     - Only extract if explicitly stated as causing/worsening mental health
+
+     - Normalize to generic terms: family conflict, work stress, financial problems
+
+     - Use label: {{STRESSOR}}
+
+  DO NOT EXTRACT:
+
+  ❌ Physical health conditions (diabetes, cancer, injuries)
+
+  ❌ Personal details (names, relationships, specific events)
+
+  ❌ General life advice not related to mental health
+
+  ❌ Descriptive words that are just variations of the same concept
+
+  🚨 CRITICAL: ONE CONCEPT = ONE NODE
+
+  The BIGGEST mistake is extracting the SAME concept multiple times with different words.
+
+  EXAMPLES OF DUPLICATES (Extract ONLY ONCE):
+
+  ❌ BAD (3 nodes for same concept):
+
+  - "anxiety"
+
+  - "anxious feelings"  
+
+  - "feeling anxious"
+
+  ✅ GOOD (1 node):
+
+  - "anxiety"
+
+  HOW TO AVOID DUPLICATES:
+
+  STEP 1: Read the ENTIRE sentence first
+
+  STEP 2: Identify the CORE CONCEPTS (not every word)
+
+  STEP 3: For each concept, ask:
+
+     - "Have I seen this concept before in this sentence?"
+
+     - "Is this just a different way of saying something I already extracted?"
+
+     - If YES → DO NOT extract again, use the SAME name
+
+  STEP 4: Extract each unique concept EXACTLY ONCE
+
+  Naming Rules:
+
+  - Lowercase, with spaces (not underscores)
+
+  - Simple and clear
+
+  - Remove redundant words: "exercises", "techniques", "practice", "with yourself"
+
+  - Remove articles: "the", "a", "an"
+
+  - Expand abbreviations: CBT → "cognitive behavioral therapy"
+
+  - Choose the SHORTEST, clearest form
+
+  Examples:
+
+  ✅ "anxiety" (not "feelings of anxiety", "anxious thoughts")
+
+  ✅ "deep breathing" (not "deep breathing exercise", "breathing technique")
+
+  ✅ "mindfulness" (not "mindfulness practice", "practicing mindfulness")
+
+  ✅ "setting boundaries" (not "set boundaries", "boundary setting")
+
+  ✅ "self care" (not "self-care activities", "taking care of yourself")
+
+  EXTRACTION LIMITS
+
+  For EACH text block "- [idx] <text>":
+
+  - Maximum 3 nodes (ONLY the most important problems and solutions)
+
+  - Maximum 3 edges
+
+  - Quality over quantity
+
+  - If text has no clear mental health problem/solution → return empty arrays
+
+  RELATIONS (Only if explicitly stated)
+
+  - TARGETS — solution directly addresses a problem (e.g., "therapy for anxiety")
+
+  - ALLEVIATES — solution reduces symptoms (e.g., "breathing helps calm anxiety")
+
+  - WORSENED_BY — stressor makes problem worse (e.g., "stress worsens depression")
+
+  - TRIGGERED_BY — stressor causes problem (e.g., "trauma triggered PTSD")
+
+  Rules:
+
+  - Only create relations if the connection is EXPLICITLY stated in the text
+
+  - Don't infer or assume relations
+
+  - Relations must connect mental health concepts only
+
+  OUTPUT FORMAT (STRICT JSON)
+
+  Return ONLY a JSON array. For each input block "- [idx] <text>":
+
+  {{
+    "source_index": <int>,
+    "nodes": [ {{ "name": "...", "label": "..." }} ],  // MAX 3, unique concepts only
+    "edges": [ {{ "start": "...", "end": "...", "type": "..." }} ]  // MAX 3
+  }}
+
+  ⚠️ CRITICAL CHECKS BEFORE EXTRACTING:
+
+  1. Is this a mental health PROBLEM or SOLUTION? (If NO → skip)
+
+  2. Did I already extract this concept in this sentence? (If YES → DON'T extract again)
+
+  3. Am I using the simplest, shortest name? (If NO → simplify)
+
+  4. Am I creating a duplicate with slightly different wording? (If YES → STOP, use existing name)
+
+  REMEMBER: Each unique concept appears EXACTLY ONCE per sentence.
+
+  If no mental health extraction: {{"source_index": <int>, "nodes": [], "edges": []}}
+
+  Do NOT include any text outside the JSON array.
+
+  The output MUST be valid JSON.
+
+  Text blocks:
+
+  {text_block}
+
