@@ -1,10 +1,7 @@
-# Input files (API Keys and data)
-Input/api.txt
-Input/input.json
-
-# Output directory
-Output/
-!Output/.gitkeep
+# data
+data/
+data/processed/
+data/raw/
 
 # Python
 __pycache__/
@@ -30,6 +27,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+run_ingestion_pipeline.py
 
 # IDE
 .vscode/
