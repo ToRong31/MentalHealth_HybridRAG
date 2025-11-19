@@ -15,5 +15,6 @@ NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "torong31102005")
 
 # Gemini
-GEMINI_API_KEY = "AIzaSyDz3qLxjUX4G1RkMd8j27Pivyj5Ms4ctfw"
+# Note: GEMINI_API_KEY không còn được sử dụng - giờ dùng API Key Manager với multiple keys
+# GEMINI_API_KEY = "AIzaSyD634mILnnetcT5JsP-AMtyq7rF9B9Rr0c"
 GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
