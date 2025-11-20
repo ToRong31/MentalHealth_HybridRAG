@@ -83,10 +83,10 @@ class APIKeyManager:
         self.min_delay = min_delay_between_calls
         self.banned_keys = set()
         
-        if not self.keys:
-            raise ValueError("No API keys provided")
-        
-        logger.info(f"Initialized API Key Manager with {len(self.keys)} keys")
+        if self.keys:
+            logger.info(f"Initialized API Key Manager with {len(self.keys)} keys")
+        else:
+            logger.warning("API Key Manager initialized with no keys (OK if not doing extraction)")
     
     def get_next_key(self) -> str:
         """
@@ -100,8 +100,15 @@ class APIKeyManager:
             API key string
         
         Raises:
-            RuntimeError: If no active keys available
+            RuntimeError: If no active keys available or no keys provided
         """
+        if not self.keys:
+            raise RuntimeError(
+                "No API keys available. "
+                "API keys are required for LLM extraction operations. "
+                "Please provide API keys in api_key.txt file."
+            )
+        
         attempts = 0
         max_attempts = len(self.keys)
         

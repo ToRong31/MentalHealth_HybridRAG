@@ -5,9 +5,9 @@ Refactored to use modular components
 from typing import Dict, Any
 
 from .state import KGState
-from kg_therapist.vectors.embeddings import encode_e5
-from kg_therapist.retrieval.graph_retrieval import graph_retrieval
-from kg_therapist.llm.answer_nodes import (
+from src.vectors.embeddings import encode_e5
+from src.retrieval.graph_retrieval import graph_retrieval
+from src.llm.answer_nodes import (
     safety_check_node,
     crisis_response_node,
     not_mental_health_node,

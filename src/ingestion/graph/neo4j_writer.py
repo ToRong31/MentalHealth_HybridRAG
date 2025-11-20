@@ -62,11 +62,12 @@ class Neo4jWriter:
         
         # Initialize Neo4j driver using shared pattern
         try:
+            logger.debug(f"Connecting to Neo4j: URI={self.neo4j_uri}, User={self.neo4j_user}, Pass={'*' * len(self.neo4j_password)}")
             self.driver = GraphDatabase.driver(
                 self.neo4j_uri,
                 auth=(self.neo4j_user, self.neo4j_password)
             )
-            logger.info(f"✅ Connected to Neo4j at {self.neo4j_uri}")
+            logger.info(f"[OK] Connected to Neo4j at {self.neo4j_uri}")
         except Exception as e:
             logger.error(f"Cannot connect to Neo4j: {e}")
             raise

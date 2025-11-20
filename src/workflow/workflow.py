@@ -7,19 +7,17 @@ from .graph_nodes import (
     crisis_response_node,
     not_mental_health_node,
     encode_node,
-    milvus_rerank_node,
-    neo4j_subgraph_node,
-    build_subgraph_context_node,
-    answer_node,
+    graph_retrieval_node,
+    answer_with_graph_node,
 )
 
 
-def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_mental_health", "encode"]:
+def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_mental_health", "graph_retrieval"]:
     """
     Routing logic sau khi check safety:
     - Nếu high-risk -> crisis_response
     - Nếu không phải mental health -> not_mental_health
-    - Nếu OK -> tiếp tục encode
+    - Nếu OK -> tiếp tục graph_retrieval
     """
     if state.get("is_high_risk", False):
         return "crisis_response"
@@ -27,45 +25,55 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_
     if not state.get("is_mental_health_related", True):
         return "not_mental_health"
     
-    return "encode"
+    return "graph_retrieval"
 
 
 def build_kg_graph():
+    """
+    Build Knowledge Graph RAG workflow
+    
+    Workflow:
+    1. safety_check -> Route based on risk/relevance
+    2a. If high-risk -> crisis_response -> END
+    2b. If not mental health -> not_mental_health -> END  
+    2c. If safe & relevant -> graph_retrieval -> answer -> END
+    
+    Graph retrieval integrates:
+    - Encode query to embedding
+    - Milvus vector search for anchor nodes
+    - Rerank anchors
+    - Expand subgraph in Neo4j
+    - Build context string
+    """
     builder = StateGraph(KGState)
 
-    # Thêm các node
+    # Add nodes
     builder.add_node("safety_check", safety_check_node)
     builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
-    builder.add_node("encode", encode_node)
-    builder.add_node("milvus_rerank", milvus_rerank_node)
-    builder.add_node("neo4j_subgraph", neo4j_subgraph_node)
-    builder.add_node("build_subgraph_context", build_subgraph_context_node)
-    builder.add_node("answer", answer_node)
+    builder.add_node("graph_retrieval", graph_retrieval_node)
+    builder.add_node("answer", answer_with_graph_node)
 
-    # Entry point là safety check
+    # Entry point
     builder.set_entry_point("safety_check")
 
-    # Routing sau safety check
+    # Conditional routing after safety check
     builder.add_conditional_edges(
         "safety_check",
         route_after_safety_check,
         {
             "crisis_response": "crisis_response",
             "not_mental_health": "not_mental_health",
-            "encode": "encode",
+            "graph_retrieval": "graph_retrieval",
         },
     )
 
-    # Crisis response và not mental health kết thúc luôn
+    # Crisis and non-relevant queries end immediately
     builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
-    # Normal flow tiếp tục như cũ
-    builder.add_edge("encode", "milvus_rerank")
-    builder.add_edge("milvus_rerank", "neo4j_subgraph")
-    builder.add_edge("neo4j_subgraph", "build_subgraph_context")
-    builder.add_edge("build_subgraph_context", "answer")
+    # Normal flow: retrieval -> answer
+    builder.add_edge("graph_retrieval", "answer")
     builder.add_edge("answer", END)
 
     return builder.compile()

@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 # Đường dẫn tới file API keys
 API_KEY_FILE = os.path.join(
-    os.path.dirname(__file__), 
-    "manage_apikey", 
-    "respone", 
+    os.path.dirname(os.path.dirname(__file__)), 
+    "api_key_manager", 
+    "response", 
     "api_key.txt"
 )
 
@@ -37,57 +37,79 @@ class LLMClient:
         self.key_manager = key_manager
         logger.info(f"Initialized LLMClient with model: {model_name}")
     
-    def invoke(self, prompt: str) -> str:
+    def invoke(self, prompt: str, max_retries: int = 3) -> str:
         """
-        Gọi Gemini API với automatic key rotation
+        Gọi Gemini API với automatic key rotation và retry
         
-        Key rotation xảy ra TỰ ĐỘNG sau mỗi lần gọi, bất kể thành công hay thất bại.
+        Nếu gặp lỗi, sẽ tự động retry với key khác.
+        Key rotation xảy ra TỰ ĐỘNG sau mỗi lần gọi.
         
         Args:
             prompt: Prompt để gửi tới LLM
+            max_retries: Số lần retry tối đa (mặc định 3)
             
         Returns:
             Response text từ LLM
+            
+        Raises:
+            RuntimeError: Nếu tất cả retries đều thất bại
         """
-        # Lấy key tiếp theo (tự động rotate)
-        current_key = self.key_manager.get_next_key()
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
         
-        try:
-            # Configure Gemini với key hiện tại
-            genai.configure(api_key=current_key)
-            model = genai.GenerativeModel(self.model_name)
-            
-            # Gọi API
-            response = model.generate_content(prompt)
-            
-            if not response or not response.text:
-                logger.warning("Empty response from Gemini API")
-                return "Based on the information available, I don't know. Could you provide more details about your situation?"
-            
-            # Đánh dấu thành công
-            self.key_manager.mark_success(current_key)
-            
-            return response.text
-            
-        except Exception as e:
-            # Log lỗi và xử lý error
-            error_message = str(e)
-            logger.error(f"Error calling Gemini API: {error_message}")
-            
-            # Cố gắng parse status code từ error message
-            status_code = 0
-            if "429" in error_message:
-                status_code = 429
-            elif "401" in error_message or "unauthorized" in error_message.lower():
-                status_code = 401
-            elif "403" in error_message or "forbidden" in error_message.lower():
-                status_code = 403
-            
-            # Báo lỗi cho key manager
-            self.key_manager.handle_error(current_key, status_code, error_message)
-            
-            # Trả về response mặc định
-            return "Based on the information available, I don't know. Could you provide more details about your situation?"
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                # Lấy key tiếp theo (tự động rotate)
+                current_key = self.key_manager.get_next_key()
+                
+                # Configure Gemini với key hiện tại
+                genai.configure(api_key=current_key)
+                model = genai.GenerativeModel(self.model_name)
+                
+                # Gọi API
+                response = model.generate_content(prompt)
+                
+                if not response or not response.text:
+                    logger.warning(f"Empty response from Gemini API (attempt {attempt + 1}/{max_retries})")
+                    last_error = "Empty response from API"
+                    continue
+                
+                # Đánh dấu thành công
+                self.key_manager.mark_success(current_key)
+                
+                return response.text
+                
+            except Exception as e:
+                # Log lỗi
+                error_message = str(e)
+                logger.error(f"Error calling Gemini API (attempt {attempt + 1}/{max_retries}): {error_message}")
+                
+                # Parse status code
+                status_code = 0
+                if "429" in error_message:
+                    status_code = 429
+                elif "401" in error_message or "unauthorized" in error_message.lower():
+                    status_code = 401
+                elif "403" in error_message or "forbidden" in error_message.lower():
+                    status_code = 403
+                
+                # Báo lỗi cho key manager
+                self.key_manager.handle_error(current_key, status_code, error_message)
+                
+                last_error = error_message
+                
+                # Nếu đây là lần thử cuối, raise exception
+                if attempt == max_retries - 1:
+                    break
+                
+                logger.info(f"Retrying with next API key...")
+        
+        # Tất cả retries đều thất bại
+        error_msg = f"All {max_retries} attempts failed. Last error: {last_error}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
     
     def get_stats(self):
         """Lấy thống kê sử dụng API keys"""
