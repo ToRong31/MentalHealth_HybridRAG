@@ -138,7 +138,7 @@ class Neo4jWriter:
                 CREATE CONSTRAINT entity_id_unique IF NOT EXISTS
                 FOR (e:Entity) REQUIRE e.id IS UNIQUE
             """)
-            logger.info("✅ Constraints created")
+            logger.info("[OK] Constraints created")
         except Exception as e:
             logger.warning(f"Constraint error: {e}")
     
@@ -147,10 +147,10 @@ class Neo4jWriter:
         Clear all nodes and relationships from the database
         WARNING: This will delete all data!
         """
-        logger.warning("⚠️  Clearing all data from Neo4j database...")
+        logger.warning("[WARN] Clearing all data from Neo4j database...")
         try:
             self._run_query("MATCH (n) DETACH DELETE n")
-            logger.info("✅ Database cleared")
+            logger.info("[OK] Database cleared")
         except Exception as e:
             logger.error(f"Failed to clear database: {e}")
             raise
@@ -271,7 +271,7 @@ class Neo4jWriter:
                 total += len(batch)
                 logger.info(f"[NODES] Imported {total}/{len(nodes)}")
             
-            logger.info(f"✅ Successfully wrote {total} nodes")
+            logger.info(f"[OK] Successfully wrote {total} nodes")
             return True
             
         except Exception as e:
@@ -367,7 +367,7 @@ class Neo4jWriter:
                 total += len(batch)
                 logger.info(f"[EDGES] Imported {total}/{len(edges)}")
             
-            logger.info(f"✅ Successfully wrote {total} edges")
+            logger.info(f"[OK] Successfully wrote {total} edges")
             return True
             
         except Exception as e:

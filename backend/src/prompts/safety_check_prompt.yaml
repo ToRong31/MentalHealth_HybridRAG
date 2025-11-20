@@ -8,44 +8,59 @@ safety_check_prompt: |
   {{QUESTION}}
 
   INSTRUCTIONS:
-  Analyze the question and respond with ONLY a valid JSON object with these exact fields:
-  {
-    "is_mental_health_related": true/false,
-    "is_high_risk": true/false,
-    "reason": "brief explanation"
-  }
+  Carefully read the question and decide based on the user's MAIN INTENT.
 
-  MENTAL HEALTH TOPICS include:
+  - Mark "is_mental_health_related": true ONLY IF:
+    - The user is clearly asking for help, advice, or support about their emotions, thoughts, or mental state
+    - OR the main problem they want help with is about mental health or psychological wellbeing.
+
+  - If emotional words (e.g., "anxious", "depressed", "stressed", "crazy") are used casually or metaphorically,
+    BUT the main intent is about something else (technology, product choice, money, school, etc.),
+    then set "is_mental_health_related": false.
+
+  - Examples of NON-mental-health questions (even if emotional words appear):
+    - "My phone gives me anxiety because the battery dies so fast. What model should I upgrade to?"
+    - "I’m really anxious to start my new job next week. What should I prepare in advance?"
+    - "This slow laptop is driving me crazy. Which laptop should I buy instead?"
+    In these cases, the main intent is product/technical advice, NOT psychological support.
+
+  - HIGH-RISK ("is_high_risk": true) ONLY IF:
+    - The user talks about suicide, wanting to die, self-harm, or harming others
+    - OR they express very strong hopelessness and wanting to end their life.
+
+  MENTAL HEALTH TOPICS include (but are not limited to):
   - Anxiety, depression, stress, mood disorders
-  - Mental health conditions (PTSD, OCD, bipolar, schizophrenia, etc.)
-  - Emotional struggles, feelings, psychological wellbeing
+  - Mental health conditions (PTSD, OCD, bipolar disorder, schizophrenia, etc.)
+  - Emotional struggles, difficult feelings, psychological wellbeing
   - Therapy, counseling, psychological interventions
   - Coping strategies, mindfulness, self-care for mental health
   - Sleep issues related to mental health
   - Relationship issues affecting mental health
   - Trauma, grief, loss
 
-  HIGH-RISK INDICATORS include:
-  - Explicit mentions of suicide, wanting to die, self-harm
+  HIGH-RISK INDICATORS include (but are not limited to):
+  - Explicit mentions of suicide, wanting to die, or self-harm
   - Plans or intentions to hurt oneself or others
   - Feeling hopeless with no reason to live
-  - Statements like "I want to end it all", "I can't go on"
+  - Statements like "I want to end it all", "I can't go on", "I don't want to live anymore"
   - Active crisis situations requiring immediate intervention
 
   NON-MENTAL HEALTH TOPICS include:
   - General medical conditions (diabetes, cancer, flu, etc.)
-  - Physical health issues not related to mental health
+  - Physical health issues not clearly related to mental health
   - General knowledge questions (history, science, math, etc.)
-  - Technical questions (programming, technology, etc.)
+  - Technical questions (programming, technology, devices, etc.)
+  - Product comparisons, shopping decisions (e.g., "Which phone should I buy?")
   - Weather, cooking, travel, entertainment, sports
   - General chitchat or greetings
 
   RESPONSE FORMAT:
-  Return ONLY valid JSON, no additional text:
+  Respond with ONLY a valid JSON object, no additional text. Use lowercase true/false values. For example:
+
   {
     "is_mental_health_related": true,
     "is_high_risk": false,
-    "reason": "Question about anxiety which is a mental health topic"
+    "reason": "Question about anxiety and coping strategies, which is a mental health topic but without signs of self-harm or suicide"
   }
 
 crisis_response: |

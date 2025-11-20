@@ -12,7 +12,7 @@ class Config:
     max_retries: int = 3
     retry_delay: float = 5.0
     min_delay_between_calls: float = 5.0
-    batch_delay: float = 15.0  # Delay between batches to avoid rate limits
+    batch_delay: float = 20.0  # Delay between batches to avoid rate limits
     rate_limit_delay: float = 60.0  # Delay for 429 errors
     model_name: str = "gemini-2.5-flash-lite"
     temperature: float = 0.2

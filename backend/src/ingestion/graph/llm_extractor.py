@@ -181,7 +181,7 @@ class GraphExtractor:
                 self._mark_processed(batch_ids)
                 
                 logger.info(
-                    f"✓ Batch {batch_num} completed: "
+                    f"[OK] Batch {batch_num} completed: "
                     f"{len(graph_data.edges)} edges extracted"
                 )
                 return True
@@ -206,7 +206,7 @@ class GraphExtractor:
                     time.sleep(self.config.retry_delay)
                 else:
                     # Max retries exceeded
-                    logger.error(f"✗ Batch {batch_num} failed after {self.config.max_retries} attempts")
+                    logger.error(f"[X] Batch {batch_num} failed after {self.config.max_retries} attempts")
                     self._mark_error(batch_ids)
                     return False
         
@@ -281,7 +281,7 @@ class GraphExtractor:
                     new_node_count += 1
                 else:
                     duplicate_node_count += 1
-                    logger.debug(f"♻️  Reusing existing node: '{node_name}' (ID: {node_id})")
+                    logger.debug(f"[REUSE] Reusing existing node: '{node_name}' (ID: {node_id})")
                 
                 # Only add if we haven't seen this node in this batch yet
                 if node_id not in seen_nodes:
@@ -310,14 +310,14 @@ class GraphExtractor:
                 # Skip self-loops
                 if start_id == end_id:
                     self_loop_count += 1
-                    logger.debug(f"⚠️  Skipped self-loop: '{start_name}' (ID: {start_id})")
+                    logger.debug(f"[WARN] Skipped self-loop: '{start_name}' (ID: {start_id})")
                     continue
                 
                 # Check for duplicate edges in this batch
                 edge_key = (start_id, end_id, edge_type)
                 if edge_key in seen_edges:
                     duplicate_edge_count += 1
-                    logger.debug(f"🔄 Skipped duplicate edge: {start_id} → {end_id} ({edge_type})")
+                    logger.debug(f"[SKIP] Skipped duplicate edge: {start_id} -> {end_id} ({edge_type})")
                     continue
                 
                 seen_edges.add(edge_key)
@@ -330,13 +330,13 @@ class GraphExtractor:
         
         # Log summary
         logger.info(
-            f"📊 Node statistics: {new_node_count} new, "
+            f"[STATS] Node statistics: {new_node_count} new, "
             f"{duplicate_node_count} duplicates (reused)"
         )
         if self_loop_count > 0:
-            logger.info(f"⚠️  Skipped {self_loop_count} self-loop edges")
+            logger.info(f"[WARN] Skipped {self_loop_count} self-loop edges")
         if duplicate_edge_count > 0:
-            logger.info(f"🔄 Skipped {duplicate_edge_count} duplicate edges in batch")
+            logger.info(f"[SKIP] Skipped {duplicate_edge_count} duplicate edges in batch")
         
         return GraphData(nodes=all_nodes, edges=all_edges)
     
@@ -371,7 +371,7 @@ class GraphExtractor:
             # Log detailed statistics
             if nodes_saved > 0 or nodes_skipped > 0:
                 logger.info(
-                    f"💾 Saved to CSV: {nodes_saved} new nodes added, "
+                    f"[SAVED] Saved to CSV: {nodes_saved} new nodes added, "
                     f"{nodes_skipped} already in file (skipped)"
                 )
         
@@ -380,7 +380,7 @@ class GraphExtractor:
             with open(self.edges_file, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=['start_id', 'end_id', 'type', 'source_id'])
                 writer.writerows(graph_data.edges)
-            logger.info(f"💾 Saved {len(graph_data.edges)} edges to CSV")
+            logger.info(f"[SAVED] Saved {len(graph_data.edges)} edges to CSV")
     
     def _mark_processed(self, ids: List[str]):
         """Mark IDs as processed"""

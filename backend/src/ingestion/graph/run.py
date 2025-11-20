@@ -33,10 +33,7 @@ logger = logging.getLogger(__name__)
 def print_banner():
     """Print welcome banner"""
     print("\n" + "="*70)
-    try:
-        print("🧠 KNOWLEDGE GRAPH INGESTION PIPELINE")
-    except UnicodeEncodeError:
-        print("KNOWLEDGE GRAPH INGESTION PIPELINE")
+    print("KNOWLEDGE GRAPH INGESTION PIPELINE")
     print("="*70 + "\n")
 
 

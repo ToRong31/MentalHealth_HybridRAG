@@ -192,13 +192,13 @@ class IngestionPipeline:
             # Progress update
             logger.info(
                 f"Progress: {i}/{total_batches} batches | "
-                f"✓ {completed_batches} completed | "
-                f"✗ {error_batches} errors"
+                f"[OK] {completed_batches} completed | "
+                f"[X] {error_batches} errors"
             )
             
             # Delay between batches
             if i < total_batches:
-                logger.info(f"⏳ Waiting {self.config.batch_delay}s before next batch...")
+                logger.info(f"[WAIT] Waiting {self.config.batch_delay}s before next batch...")
                 time.sleep(self.config.batch_delay)
         
         # Summary
@@ -282,7 +282,7 @@ class IngestionPipeline:
         
         try:
             # Phase 1: Load data
-            logger.info("\n📥 PHASE 1: Loading input data")
+            logger.info("\n[LOAD] PHASE 1: Loading input data")
             self.extractor.load_processed_and_errors()
             input_data = self.load_input_data(index_filter)
             
@@ -291,14 +291,14 @@ class IngestionPipeline:
                 return True
             
             # Phase 2: Extract graph
-            logger.info("\n🔍 PHASE 2: Extracting knowledge graph with LLM")
+            logger.info("\n[EXTRACT] PHASE 2: Extracting knowledge graph with LLM")
             extraction_success = self.run_extraction(input_data)
             
             if not extraction_success:
                 logger.warning("Extraction completed with some errors")
             
             # Phase 3: Import to Neo4j
-            logger.info("\n📊 PHASE 3: Importing graph to Neo4j")
+            logger.info("\n[IMPORT] PHASE 3: Importing graph to Neo4j")
             import_success = self.run_neo4j_import(clear_existing=clear_neo4j)
             
             if not import_success:
@@ -306,15 +306,15 @@ class IngestionPipeline:
                 return False
             
             # Phase 4: Create embeddings and store in Milvus
-            logger.info("\n🧮 PHASE 4: Creating embeddings and storing in Milvus")
+            logger.info("\n[EMBED] PHASE 4: Creating embeddings and storing in Milvus")
             embedding_success = self.run_embedding(recreate_collection=recreate_milvus)
             
             # Final summary
             logger.info("\n" + "=" * 70)
             logger.info("PIPELINE COMPLETED")
-            logger.info(f"Extraction: {'✓ Success' if extraction_success else '⚠ With errors'}")
-            logger.info(f"Neo4j Import: {'✓ Success' if import_success else '✗ Failed'}")
-            logger.info(f"Milvus Embedding: {'✓ Success' if embedding_success else '✗ Failed'}")
+            logger.info(f"Extraction: {'[OK] Success' if extraction_success else '[WARN] With errors'}")
+            logger.info(f"Neo4j Import: {'[OK] Success' if import_success else '[X] Failed'}")
+            logger.info(f"Milvus Embedding: {'[OK] Success' if embedding_success else '[X] Failed'}")
             logger.info("=" * 70)
             
             return extraction_success and import_success and embedding_success

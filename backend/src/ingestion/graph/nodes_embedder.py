@@ -97,7 +97,7 @@ class MilvusEmbedder:
                     port=port
                 )
             
-            logger.info("✅ Connected to Milvus")
+            logger.info("[OK] Connected to Milvus")
         except Exception as e:
             logger.error(f"Failed to connect to Milvus: {e}")
             raise
@@ -186,7 +186,7 @@ class MilvusEmbedder:
         # Generate embeddings using shared E5 model
         embeddings = self._encode_texts_batched(texts)
         
-        logger.info(f"✅ Created {len(embeddings)} embeddings with shape {embeddings.shape}")
+        logger.info(f"[OK] Created {len(embeddings)} embeddings with shape {embeddings.shape}")
         
         return node_ids, embeddings
     
@@ -243,7 +243,7 @@ class MilvusEmbedder:
                 index_params=index_params
             )
             
-            logger.info(f"✅ Collection '{self.collection_name}' created with HNSW index")
+            logger.info(f"[OK] Collection '{self.collection_name}' created with HNSW index")
             
         except Exception as e:
             logger.error(f"Failed to create collection: {e}")
@@ -290,7 +290,7 @@ class MilvusEmbedder:
             # Flush to persist data
             self.collection.flush()
             
-            logger.info(f"✅ Successfully inserted {total_inserted} embeddings")
+            logger.info(f"[OK] Successfully inserted {total_inserted} embeddings")
             return True
             
         except Exception as e:
