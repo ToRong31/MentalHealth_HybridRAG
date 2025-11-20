@@ -45,16 +45,35 @@ Thumbs.db
 *.log
 logs/
 
-# Data
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yaml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Data (sẽ mount từ volume)
 data/raw/*.json
-data/processed/*.csv
 neo4j/
 
-# API Keys
-**/api_key.txt
-**/api_key_manager/build_graph/api_key.txt
-**/api_key_manager/respone/api_key.txt
+# Tests
+tests/
+*.test.py
+pytest.ini
 
-# Models cache
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Models cache (sẽ tải trong runtime)
 models/
 .cache/
+

@@ -1,6 +1,40 @@
+# ================================
+# LangChain & LLM
+# ================================
 langchain>=0.1.0
 langchain-google-genai>=1.0.0
 google-generativeai>=0.3.0
 langchain-core>=0.1.0
-pyyaml>=6.0
+langgraph>=0.0.1
 
+# ================================
+# Neo4j Graph Database
+# ================================
+neo4j>=5.0.0
+
+# ================================
+# Milvus Vector Database
+# ================================
+pymilvus>=2.3.0
+
+# ================================
+# Embeddings & ML
+# ================================
+torch>=2.0.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+
+# ================================
+# Utilities
+# ================================
+pyyaml>=6.0
+python-dotenv>=1.0.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# ================================
+# Development & Testing
+# ================================
+pytest>=7.0.0
+black>=23.0.0
+flake8>=6.0.0
