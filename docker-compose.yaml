@@ -1,33 +1,109 @@
-version: "3.8"
-
 services:
+  # Neo4j Graph Database
   neo4j:
     image: neo4j:5.25.1-community
     container_name: neo4j
     restart: unless-stopped
     ports:
       - "7474:7474"    # HTTP (Neo4j Browser)
-      - "7687:7687"    # Bolt (driver dùng)
+      - "7687:7687"    # Bolt (driver)
     environment:
-      NEO4J_AUTH: neo4j/kguser2005          # user/pass đăng nhập
+      NEO4J_AUTH: neo4j/kguser2005
       NEO4J_server_memory_pagecache_size: 512M
       NEO4J_server_memory_heap_initial__size: 512M
       NEO4J_server_memory_heap_max__size: 1G
-    
-      # Bật APOC (với image mới thường đã có sẵn APOC core)
       NEO4JLABS_PLUGINS: '["apoc"]'
       NEO4J_apoc_import_file_enabled: "true"
       NEO4J_apoc_export_file_enabled: "true"
       NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
-
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
       - neo4j_plugins:/plugins
       - neo4j_import:/var/lib/neo4j/import
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p kguser2005 'RETURN 1' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Milvus Vector Database (Standalone) - COMMENTED OUT for Cloud Usage
+  # Uncomment this if you want to use local Milvus instead of cloud
+  # milvus:
+  #   image: milvusdb/milvus:v2.3.3
+  #   container_name: milvus
+  #   restart: unless-stopped
+  #   ports:
+  #     - "19530:19530"
+  #     - "9091:9091"
+  #   environment:
+  #     ETCD_USE_EMBED: "true"
+  #     COMMON_STORAGETYPE: local
+  #   volumes:
+  #     - milvus_data:/var/lib/milvus
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 40s
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chatbot-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/src/.env
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=kguser2005
+      # MILVUS_URI and MILVUS_TOKEN will be loaded from .env file for cloud
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/logs
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      # milvus:
+      #   condition: service_healthy  # Commented out for cloud usage
+    networks:
+      - app-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chatbot-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
 
 volumes:
   neo4j_data:
   neo4j_logs:
   neo4j_plugins:
   neo4j_import:
+  # milvus_data:  # Not needed for cloud Milvus
+
+networks:
+  app-network:
+    driver: bridge
+
+
