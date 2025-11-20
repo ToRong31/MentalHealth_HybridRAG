@@ -4,15 +4,73 @@ LangGraph nodes để sinh câu trả lời dựa trên context
 """
 import json
 import re
+import logging
 from typing import Dict, Any
 
 from .llm_gemini import llm
-from src.prompts import (
-    therapist_prompt,
-    safety_check_prompt,
-    crisis_response,
-    not_mental_health_response
-)
+from src.prompts.loader import load_prompts
+
+logger = logging.getLogger(__name__)
+
+# Load safety check prompt
+safety_check_prompt_data = load_prompts("safety_check_prompt.yaml")
+safety_check_prompt = safety_check_prompt_data.get("prompt", "")
+
+# Load response templates (Vietnamese)
+try:
+    response_templates = load_prompts("response_templates.yaml")
+    crisis_response = response_templates.get("crisis_response", "")
+    not_mental_health_response = response_templates.get("not_mental_health_response", "")
+    fallback_answer = response_templates.get("fallback_answer", "")
+    fallback_answer_hybrid = response_templates.get("fallback_answer_hybrid", "")
+    
+    if not crisis_response or not not_mental_health_response:
+        raise ValueError("Missing required response templates")
+    
+    logger.info("Successfully loaded Vietnamese response templates")
+except Exception as e:
+    logger.error(f"Failed to load response_templates.yaml: {e}")
+    # English fallback
+    crisis_response = """I hear that you're in a lot of pain right now. Please reach out to crisis services immediately: 988 (US), 115 (Vietnam), or your local emergency services."""
+    not_mental_health_response = """Thank you for your question. I'm specifically trained to help with mental health concerns. Your question seems outside my expertise."""
+    fallback_answer = """I'm having technical difficulties. Could you share more about your situation?"""
+    fallback_answer_hybrid = """I'm having technical issues. Could you tell me more about what you're experiencing?"""
+    logger.warning("Using English fallback responses")
+
+# Load therapist prompt (Vietnamese version preferred)
+try:
+    # Try Vietnamese version first
+    answer_prompt_data = load_prompts("answer_nodes_prompt_vi.yaml")
+    system_instructions = answer_prompt_data.get("system_instructions", "")
+    user_template = answer_prompt_data.get("user_template", "")
+    
+    if not system_instructions or not user_template:
+        raise ValueError("Missing system_instructions or user_template")
+    
+    logger.info("Successfully loaded Vietnamese therapist prompt")
+except Exception as e:
+    logger.warning(f"Failed to load Vietnamese prompt: {e}, trying English version...")
+    try:
+        # Fallback to English version
+        answer_prompt_data = load_prompts("answer_nodes_prompt.yaml")
+        system_instructions = answer_prompt_data.get("system_instructions", "")
+        user_template = answer_prompt_data.get("user_template", "")
+        
+        if not system_instructions or not user_template:
+            raise ValueError("Missing system_instructions or user_template")
+        
+        logger.info("Successfully loaded English therapist prompt")
+    except Exception as e2:
+        logger.error(f"Failed to load both prompt versions: {e}, {e2}")
+        # Final fallback to old prompt
+        try:
+            therapist_prompt_data = load_prompts("therapist_prompt.yaml")
+            system_instructions = ""
+            user_template = therapist_prompt_data
+            logger.warning("Using legacy therapist_prompt.yaml")
+        except Exception as e3:
+            logger.error(f"Failed to load legacy prompt: {e3}")
+            raise RuntimeError(f"Cannot load any therapist prompt files: {e}, {e2}, {e3}")
 
 
 def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -109,14 +167,23 @@ def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     q = state["question"]
     graph_context = state.get("graph_context", "")
     
-    # Format prompt
-    prompt = therapist_prompt.replace("{{QUESTION}}", q).replace(
-        "{{GRAPH_CONTEXT}}",
-        graph_context
-    )
-    
-    # Generate answer
-    answer = llm.invoke(prompt)
+    try:
+        # Build full prompt with system instructions + user message
+        user_message = user_template.replace("{{QUESTION}}", q).replace(
+            "{{GRAPH_CONTEXT}}",
+            graph_context if graph_context else "No specific knowledge available."
+        )
+        
+        # Combine system instructions with user message
+        full_prompt = f"{system_instructions}\n\n{user_message}"
+        
+        # Generate answer with retry
+        answer = llm.invoke(full_prompt, max_retries=3)
+        
+    except Exception as e:
+        # Fallback answer khi LLM fail (Vietnamese)
+        logger.error(f"Failed to generate answer: {e}")
+        answer = fallback_answer
     
     state["answer"] = answer
     state["done"] = True
@@ -138,23 +205,31 @@ def answer_with_hybrid_node(state: Dict[str, Any]) -> Dict[str, Any]:
     graph_context = state.get("graph_context", "")
     doc_context = state.get("doc_context", "")
     
-    # Combine contexts
-    combined_context = f"""
-Graph Knowledge:
-{graph_context}
+    try:
+        # Combine contexts
+        combined_context = f"""
+From Knowledge Graph:
+{graph_context if graph_context else "(No graph knowledge available)"}
 
-Document Knowledge:
-{doc_context}
+From Documents:
+{doc_context if doc_context else "(No document knowledge available)"}
 """.strip()
-    
-    # Format prompt
-    prompt = therapist_prompt.replace("{{QUESTION}}", q).replace(
-        "{{GRAPH_CONTEXT}}",
-        combined_context
-    )
-    
-    # Generate answer
-    answer = llm.invoke(prompt)
+        
+        # Build full prompt
+        user_message = user_template.replace("{{QUESTION}}", q).replace(
+            "{{GRAPH_CONTEXT}}",
+            combined_context
+        )
+        
+        full_prompt = f"{system_instructions}\n\n{user_message}"
+        
+        # Generate answer with retry
+        answer = llm.invoke(full_prompt, max_retries=3)
+        
+    except Exception as e:
+        # Fallback answer khi LLM fail (Vietnamese)
+        logger.error(f"Failed to generate answer: {e}")
+        answer = fallback_answer_hybrid
     
     state["answer"] = answer
     state["done"] = True
