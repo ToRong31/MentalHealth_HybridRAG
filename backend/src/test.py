@@ -1,12 +1,15 @@
 from .workflow import build_kg_graph, KGState
+import torch
 
 
 
 def run_example():
+
     graph = build_kg_graph()
 
     # Test với câu hỏi về mental health
-    question = "I'm feeling very anxious and stressed out. What can I do to help myself?"
+    # question = "I'm feeling very anxious and stressed out. What can I do to help myself?"
+    question = "Tôi đang cảm thấy rất lo lắng và căng thẳng. Tôi làm sao để giúp mình?"
     
     # Test với câu hỏi high-risk (uncomment để test)
     # question = "Tôi không muốn sống nữa, tôi muốn tự tử"
@@ -16,6 +19,8 @@ def run_example():
 
     initial_state: KGState = {
         "question": question,
+        "translated_question": "",
+        "user_language": "en",
         "is_mental_health_related": False,  # Sẽ được set bởi safety_check_node
         "is_high_risk": False,  # Sẽ được set bởi safety_check_node
         "query_embedding": [],
@@ -23,6 +28,7 @@ def run_example():
         "nodes": [],
         "rels": [],
         "graph_context": "",
+        "dense_context": "",
         "answer": "",
         "done": False,
     }
@@ -33,10 +39,14 @@ def run_example():
     print(f"Is Mental Health Related: {final_state.get('is_mental_health_related')}")
     print(f"Is High Risk: {final_state.get('is_high_risk')}")
 
-    if final_state.get("graph_context"):
-        print("\n=== SUBGRAPH CONTEXT ===")
-        print(final_state["graph_context"])
+    # if final_state.get("graph_context"):
+    #     print("\n=== SUBGRAPH CONTEXT ===")
+    #     print(final_state["graph_context"])
 
+    if final_state.get("dense_context"):
+        print("\n=== DENSE RETRIEVAL CONTEXT ===")
+        print(final_state["dense_context"])
+        
     print("\n=== THERAPIST ANSWER ===")
     print(final_state["answer"])
 

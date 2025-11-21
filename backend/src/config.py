@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
+
 # E5
 E5_MODEL_NAME = os.getenv("E5_MODEL_NAME", "intfloat/e5-large-v2")
-
+E5_DEVICE = os.getenv("E5_DEVICE", "cuda")
 # Milvus / Zilliz
 MILVUS_URI = os.getenv("MILVUS_URI")
 MILVUS_TOKEN = os.getenv("MILVUS_TOKEN")

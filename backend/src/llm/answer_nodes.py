@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 safety_check_prompt_data = load_prompts("safety_check_prompt.yaml")
 safety_check_prompt = safety_check_prompt_data.get("safety_check_prompt", "")
 
+
+
 if not safety_check_prompt:
     raise ValueError("Safety check prompt is empty! Check safety_check_prompt.yaml file.")
 
@@ -43,7 +45,7 @@ except Exception as e:
 # Load therapist prompt (Vietnamese version preferred)
 try:
     # Try Vietnamese version first
-    answer_prompt_data = load_prompts("answer_nodes_prompt_vi.yaml")
+    answer_prompt_data = load_prompts("answer_nodes_prompt.yaml")
     system_instructions = answer_prompt_data.get("system_instructions", "")
     user_template = answer_prompt_data.get("user_template", "")
     
@@ -75,6 +77,16 @@ except Exception as e:
             logger.error(f"Failed to load legacy prompt: {e3}")
             raise RuntimeError(f"Cannot load any therapist prompt files: {e}, {e2}, {e3}")
 
+try:
+    response_templates_dense = load_prompts("answer_dense_promt.yaml")
+    system_instructions_dense = response_templates_dense.get("system_instructions", "")
+    user_template_dense = response_templates_dense.get("user_template", "")
+    if not user_template_dense:
+        raise ValueError("Missing user_template in answer_dense_promt.yaml")
+    logger.info("Successfully loaded answer_dense_promt.yaml")
+except Exception as e:
+    logger.error(f"Failed to load answer_dense_promt.yaml: {e}")
+    user_template_dense = user_template  # Fallback to previous template
 
 def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -145,6 +157,7 @@ def crisis_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
         Updated state với 'answer' và 'done' = True
     """
     state["answer"] = crisis_response
+    state["skip_translation"] = True  # response already in user-facing language
     state["done"] = True
     return state
 
@@ -160,6 +173,7 @@ def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
         Updated state với 'answer' và 'done' = True
     """
     state["answer"] = not_mental_health_response
+    state["skip_translation"] = True  # response already in user-facing language
     state["done"] = True
     return state
 
@@ -200,6 +214,40 @@ def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     
     return state
 
+def answer_with_dense_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Sinh câu trả lời dựa trên document context từ dense retrieval
+    
+    Args:
+        state: State dict với 'question' và 'doc_context'
+    
+    Returns:
+        Updated state với 'answer' và 'done' = True
+    """
+    q = state["question"]
+    dense_context = state.get("dense_context", "")
+    
+    try:
+        # Build full prompt
+        user_message = user_template_dense.replace("{{PATIENT_INPUT}}", q).replace(
+            "{{DOCTOR_DIALOGUE}}",
+            dense_context if dense_context else "No specific knowledge available."
+        )
+        
+        full_prompt = f"{system_instructions_dense}\n\n{user_message}"
+        
+        # Generate answer with retry
+        answer = llm.invoke(full_prompt, max_retries=3)
+        
+    except Exception as e:
+        # Fallback answer khi LLM fail (Vietnamese)
+        logger.error(f"Failed to generate answer: {e}")
+        answer = fallback_answer
+    
+    state["answer"] = answer
+    state["done"] = True
+    
+    return state
 
 def answer_with_hybrid_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """

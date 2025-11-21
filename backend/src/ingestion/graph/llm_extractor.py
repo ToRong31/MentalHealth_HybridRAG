@@ -40,7 +40,7 @@ class GraphExtractor:
         self.error_ids: Set[str] = set()
         
         # Files - using data/processed directory
-        self.output_dir = "data/processed"
+        self.output_dir = "/data/processed"
         self.nodes_file = os.path.join(self.output_dir, "nodes.csv")
         self.edges_file = os.path.join(self.output_dir, "edges.csv")
         self.processed_file = os.path.join(self.output_dir, "processed_id.txt")
@@ -66,7 +66,7 @@ class GraphExtractor:
     def _load_prompt_from_config(self) -> str:
         """Load prompt template from config file"""
         # Default path in ingestion module
-        config_path = "src/ingestion/graph/promts/graph_extraction_prompt.yaml"
+        config_path = "backend/src/ingestion/graph/promts/graph_extraction_prompt.yaml"
         
         if not os.path.exists(config_path):
             logger.error(f"Prompt config file not found: {config_path}")

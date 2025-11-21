@@ -9,10 +9,14 @@ from .graph_nodes import (
     encode_node,
     graph_retrieval_node,
     answer_with_graph_node,
+    translate_question_node,
+    translate_answer_node,
+    dense_retrieval_node,
 )
+    
 
 
-def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_mental_health", "graph_retrieval"]:
+def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_mental_health", "dense_retrieval"]:
     """
     Routing logic sau khi check safety:
     - Nếu high-risk -> crisis_response
@@ -25,18 +29,23 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_
     if not state.get("is_mental_health_related", True):
         return "not_mental_health"
     
-    return "graph_retrieval"
+    return "dense_retrieval"
 
 
 def build_kg_graph():
     """
-    Build Knowledge Graph RAG workflow
+    Build Knowledge Graph RAG workflow with translation support
     
     Workflow:
-    1. safety_check -> Route based on risk/relevance
-    2a. If high-risk -> crisis_response -> END
-    2b. If not mental health -> not_mental_health -> END  
-    2c. If safe & relevant -> graph_retrieval -> answer -> END
+    1. translate_question -> Detect language (VI/EN) and translate to EN if needed
+    2. safety_check -> Route based on risk/relevance
+    3a. If high-risk -> crisis_response -> END
+    3b. If not mental health -> not_mental_health -> END  
+    3c. If safe & relevant -> graph_retrieval -> answer -> translate_answer -> END
+    
+    Translation logic:
+    - Vietnamese input: VI -> EN (processing) -> VI (output)
+    - English input: EN (no translation) -> EN (output)
     
     Graph retrieval integrates:
     - Encode query to embedding
@@ -48,14 +57,20 @@ def build_kg_graph():
     builder = StateGraph(KGState)
 
     # Add nodes
+    builder.add_node("translate_question", translate_question_node)
+    builder.add_node("translate_answer", translate_answer_node)
     builder.add_node("safety_check", safety_check_node)
     builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
+    builder.add_node("dense_retrieval", dense_retrieval_node)
     builder.add_node("graph_retrieval", graph_retrieval_node)
     builder.add_node("answer", answer_with_graph_node)
 
-    # Entry point
-    builder.set_entry_point("safety_check")
+    # Entry point - start with translation
+    builder.set_entry_point("translate_question")
+    
+    # After translation, go to safety check
+    builder.add_edge("translate_question", "safety_check")
 
     # Conditional routing after safety check
     builder.add_conditional_edges(
@@ -64,16 +79,21 @@ def build_kg_graph():
         {
             "crisis_response": "crisis_response",
             "not_mental_health": "not_mental_health",
-            "graph_retrieval": "graph_retrieval",
+            # "graph_retrieval": "graph_retrieval",
+            "dense_retrieval": "dense_retrieval",
         },
     )
 
-    # Crisis and non-relevant queries end immediately
+    # Crisis and non-relevant queries exit directly without translation
     builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
-    # Normal flow: retrieval -> answer
-    builder.add_edge("graph_retrieval", "answer")
-    builder.add_edge("answer", END)
+    # Normal flow: retrieval -> answer -> translate
+    # builder.add_edge("graph_retrieval", "answer")
+    builder.add_edge("dense_retrieval", "answer")
+    builder.add_edge("answer", "translate_answer")
+    
+    # Final translation then END
+    builder.add_edge("translate_answer", END)
 
     return builder.compile()

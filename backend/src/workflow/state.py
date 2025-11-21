@@ -3,6 +3,8 @@ from typing import TypedDict, List, Dict, Any
 
 class KGState(TypedDict):
     question: str
+    original_question: str
+    user_language: str
     is_mental_health_related: bool  
     is_high_risk: bool  
     query_embedding: List[float]
@@ -10,5 +12,6 @@ class KGState(TypedDict):
     nodes: List[Any]
     rels: List[Any]
     graph_context: str
+    dense_context: str
     answer: str
     done: bool

@@ -18,14 +18,29 @@ graph = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize the graph on startup"""
+    """Initialize the graph and preload E5 model on startup"""
     global graph
     try:
-        logger.info("Initializing KG Graph...")
+        logger.info("=" * 70)
+        logger.info("INITIALIZING APPLICATION")
+        logger.info("=" * 70)
+        
+        # Preload E5 model (load once, use forever)
+        logger.info("Step 1: Preloading E5 embedding model...")
+        from src.vectors.embeddings import e5_model, tokenizer, device
+        logger.info(f"✓ E5 model loaded on {device.upper()}")
+        logger.info(f"  Model will be reused for all requests (no reload)")
+        
+        # Initialize graph workflow
+        logger.info("Step 2: Initializing KG Graph workflow...")
         graph = build_kg_graph()
-        logger.info("KG Graph initialized successfully")
+        logger.info("✓ KG Graph workflow ready")
+        
+        logger.info("=" * 70)
+        logger.info("✓ APPLICATION READY - Model cached in memory")
+        logger.info("=" * 70)
     except Exception as e:
-        logger.error(f"Failed to initialize graph: {e}")
+        logger.error(f"✗ Failed to initialize: {e}")
         raise
     
     yield
@@ -107,6 +122,8 @@ async def chat(request: ChatRequest):
         # Initialize state for the workflow
         initial_state: KGState = {
             "question": request.message,
+            "original_question": "",  
+            "user_language": "en",    
             "is_mental_health_related": False,
             "is_high_risk": False,
             "query_embedding": [],
