@@ -8,7 +8,7 @@ import logging
 from .state import KGState
 from src.vectors.embeddings import encode_e5
 from src.retrieval.graph_retrieval import graph_retrieval
-from src.retrieval.dense_retrieval import DenseRetrievel
+from src.retrieval.dense_retrieval import dense_retrieval
 from src.llm.translator import GeminiTranslator, get_translator
 from src.llm.answer_nodes import (
     safety_check_node,
@@ -138,12 +138,12 @@ def dense_retrieval_node(state: KGState) -> KGState:
 
     question = state["question"]
     
-    dense_retriever = DenseRetrievel()
-    results = dense_retriever.retrieve([question], top_k=10)
+    
+    results = dense_retrieval.retrieve([question], top_k=2)
     
 
     
-    state["dense_context"] = results
+    state["dense_context"] = results.context
 
     return state
 

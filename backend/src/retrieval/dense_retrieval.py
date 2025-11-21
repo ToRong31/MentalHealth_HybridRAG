@@ -1,11 +1,13 @@
 from typing import List, Dict, Any, Tuple
 
+from .base_retriever import BaseRetriever, RetrievalResult
 from src.reranker.reranker import CohereReranker
 from src.vectors.dense_retriever import DenseRetriever
 from src.vectors.embeddings import device  # hoặc import device từ nơi bạn định nghĩa
 from src.vectors.embeddings import encode_e5
 
-class DenseRetrievel:
+
+class DenseRetrieval(BaseRetriever):
     """
     Tích hợp luôn:
       - DenseRetriever (lấy candidate từ Milvus)
@@ -16,7 +18,7 @@ class DenseRetrievel:
     def __init__(
         self,
         collection_name: str = "chat_16k",
-        milvus_top_k: int = 50,
+        milvus_top_k: int = 10,
         reranker: CohereReranker | None = None,
     ):
         """
@@ -73,5 +75,26 @@ class DenseRetrievel:
                 (c["node_id"], float(c["cohere_score"])) for c in reranked
             ]
             all_reranked.append(one_query_reranked)
+        
+            # Build dense context for each query after reranking
+        dense_contexts = []
+        for reranked in all_reranked:
+            context_parts = []
+            for node_id, score in reranked:
+                answer_text = self.dense_retriever.get_dense_context_by_id(node_id)
+                context_parts.append(f"Answer (ID: {node_id}, Score: {score:.4f}): {answer_text}")
+            dense_context = "\n".join(context_parts)
+            dense_contexts.append(dense_context)
 
-        return all_reranked
+        return RetrievalResult(
+            context=dense_contexts,
+            metadata={"source": self.dense_retriever.get_name_collection}
+        )
+    
+    def get_name(self):
+        return "DenseRetrievel"
+    
+
+dense_retrieval = DenseRetrieval()
+
+    
