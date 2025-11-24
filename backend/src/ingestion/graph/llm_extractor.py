@@ -40,7 +40,8 @@ class GraphExtractor:
         self.error_ids: Set[str] = set()
         
         # Files - using data/processed directory
-        self.output_dir = "/data/processed"
+        self.output_dir = "data/processed"
+        os.makedirs(self.output_dir, exist_ok=True)
         self.nodes_file = os.path.join(self.output_dir, "nodes.csv")
         self.edges_file = os.path.join(self.output_dir, "edges.csv")
         self.processed_file = os.path.join(self.output_dir, "processed_id.txt")
@@ -66,7 +67,7 @@ class GraphExtractor:
     def _load_prompt_from_config(self) -> str:
         """Load prompt template from config file"""
         # Default path in ingestion module
-        config_path = "backend/src/ingestion/graph/promts/graph_extraction_prompt.yaml"
+        config_path = "src/ingestion/graph/promts/graph_extraction_prompt.yaml"
         
         if not os.path.exists(config_path):
             logger.error(f"Prompt config file not found: {config_path}")
@@ -382,22 +383,49 @@ class GraphExtractor:
                 writer.writerows(graph_data.edges)
             logger.info(f"[SAVED] Saved {len(graph_data.edges)} edges to CSV")
     
+
+
     def _mark_processed(self, ids: List[str]):
         """Mark IDs as processed"""
-        with open(self.processed_file, 'a', encoding='utf-8') as f:
-            for id_val in ids:
-                f.write(f"{id_val}\n")
-                self.processed_ids.add(id_val)
-                # Remove from error list if present
-                self.error_ids.discard(id_val)
-    
+        try:
+            logger.info(f"[MARK_PROCESSED] Marking {len(ids)} IDs as processed: {ids}")
+            logger.info(f"[MARK_PROCESSED] processed_file = {os.path.abspath(self.processed_file)}")
+
+            # Đảm bảo thư mục tồn tại
+            os.makedirs(os.path.dirname(self.processed_file), exist_ok=True)
+
+            with open(self.processed_file, 'a', encoding='utf-8') as f:
+                for id_val in ids:
+                    f.write(f"{id_val}\n")
+                    self.processed_ids.add(id_val)
+                    # Remove from error list if present
+                    self.error_ids.discard(id_val)
+
+            logger.info(f"[MARK_PROCESSED] Done writing {len(ids)} IDs")
+
+        except Exception as e:
+            logger.error(f"[MARK_PROCESSED] Failed to write processed IDs: {e}")
+
+
     def _mark_error(self, ids: List[str]):
         """Mark IDs as error"""
-        with open(self.errors_file, 'a', encoding='utf-8') as f:
-            for id_val in ids:
-                if id_val not in self.error_ids:
-                    f.write(f"{id_val}\n")
-                    self.error_ids.add(id_val)
+        try:
+            logger.info(f"[MARK_ERROR] Marking {len(ids)} IDs as error: {ids}")
+            logger.info(f"[MARK_ERROR] errors_file = {os.path.abspath(self.errors_file)}")
+
+            os.makedirs(os.path.dirname(self.errors_file), exist_ok=True)
+
+            with open(self.errors_file, 'a', encoding='utf-8') as f:
+                for id_val in ids:
+                    if id_val not in self.error_ids:
+                        f.write(f"{id_val}\n")
+                        self.error_ids.add(id_val)
+
+            logger.info(f"[MARK_ERROR] Done writing error IDs")
+
+        except Exception as e:
+            logger.error(f"[MARK_ERROR] Failed to write error IDs: {e}")
+
     
     def load_processed_and_errors(self):
         """Load previously processed IDs and error IDs"""

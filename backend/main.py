@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Global variable to store the graph
 graph = None
 
-
+from src.vectors.embeddings import e5_model, tokenizer, device
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize the graph and preload E5 model on startup"""
@@ -131,6 +131,7 @@ async def chat(request: ChatRequest):
             "nodes": [],
             "rels": [],
             "graph_context": "",
+            "dense_context": "",
             "answer": "",
             "done": False,
         }

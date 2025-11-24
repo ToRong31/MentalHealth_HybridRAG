@@ -14,7 +14,8 @@ from src.llm.answer_nodes import (
     safety_check_node,
     crisis_response_node,
     not_mental_health_node,
-    answer_with_graph_node
+    answer_with_graph_node,
+    answer_with_dense_node,
 )
 
 logger = logging.getLogger(__name__)
@@ -139,7 +140,7 @@ def dense_retrieval_node(state: KGState) -> KGState:
     question = state["question"]
     
     
-    results = dense_retrieval.retrieve([question], top_k=2)
+    results = dense_retrieval.retrieve(question, top_k=2)
     
 
     
@@ -169,4 +170,5 @@ __all__ = [
     
     # Answer generation
     'answer_with_graph_node',
+    'answer_with_dense_node',
 ]

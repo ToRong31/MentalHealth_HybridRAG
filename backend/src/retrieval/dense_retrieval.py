@@ -3,8 +3,8 @@ from typing import List, Dict, Any, Tuple
 from .base_retriever import BaseRetriever, RetrievalResult
 from src.reranker.reranker import CohereReranker
 from src.vectors.dense_retriever import DenseRetriever
-from src.vectors.embeddings import device  # hoặc import device từ nơi bạn định nghĩa
-from src.vectors.embeddings import encode_e5
+from src.vectors.embeddings import device  # nếu không dùng thì có thể xoá
+from src.vectors.embeddings import encode_e5  # nếu không dùng thì có thể xoá
 
 
 class DenseRetrieval(BaseRetriever):
@@ -33,68 +33,65 @@ class DenseRetrieval(BaseRetriever):
 
     def retrieve(
         self,
-        queries: List[str],
+        query: str,
         top_k: int = 10,
-    ) -> List[List[Tuple[int, float]]]:
+    ) -> RetrievalResult:
         """
-        Trả về list kết quả cho mỗi query sau khi rerank:
-        [
-          [(node_id1, cohere_score1), (node_id2, cohere_score2), ...],  # query 1
-          [(...), ...],                                                # query 2
-          ...
-        ]
+        Nhận 1 query string, trả về RetrievalResult:
+          - context: 1 chuỗi context dense đã build từ các node rerank
+          - metadata: thông tin kèm theo
         """
-        # 1. Lấy candidate từ Milvus
+
+        # 1. Lấy candidate từ Milvus (bọc query thành list để reuse DenseRetriever cũ)
         milvus_results: List[List[Tuple[int, float]]] = self.dense_retriever.retrieve(
-            queries,
+            [query],
             top_k=self.milvus_top_k,
         )
+        # Chỉ có 1 query nên lấy phần tử đầu
+        candidates_for_query = milvus_results[0]
 
-        all_reranked: List[List[Tuple[int, float]]] = []
-
-        # 2. Rerank từng query
-        for query, candidates_for_query in zip(queries, milvus_results):
-            candidates_dicts: List[Dict[str, Any]] = []
-            for node_id, score in candidates_for_query:
-                candidates_dicts.append(
-                    {
-                        "node_id": node_id,
-                        "original_milvus_score": float(score),
-                        # Nếu sau này có text thì thêm:
-                        # "text": node_text,
-                    }
-                )
-
-            reranked = self.reranker.rerank_anchors(
-                query=query,
-                candidates=candidates_dicts,
-                top_k=top_k,
+        # 2. Chuẩn hoá candidates sang dạng dict cho reranker
+        candidates_dicts: List[Dict[str, Any]] = []
+        for node_id, score in candidates_for_query:
+            candidates_dicts.append(
+                {
+                    "node_id": node_id,
+                    "original_milvus_score": float(score),
+                    # Nếu sau này có text thì thêm:
+                    # "text": node_text,
+                }
             )
 
-            one_query_reranked: List[Tuple[int, float]] = [
-                (c["node_id"], float(c["cohere_score"])) for c in reranked
-            ]
-            all_reranked.append(one_query_reranked)
-        
-            # Build dense context for each query after reranking
-        dense_contexts = []
-        for reranked in all_reranked:
-            context_parts = []
-            for node_id, score in reranked:
-                answer_text = self.dense_retriever.get_dense_context_by_id(node_id)
-                context_parts.append(f"Answer (ID: {node_id}, Score: {score:.4f}): {answer_text}")
-            dense_context = "\n".join(context_parts)
-            dense_contexts.append(dense_context)
+        # 3. Rerank bằng CohereReranker
+        reranked = self.reranker.rerank_anchors(
+            query=query,
+            candidates=candidates_dicts,
+            top_k=top_k,
+        )
+
+        # 4. Build dense context từ các node sau rerank
+        context_parts = []
+        for c in reranked:
+            node_id = c["node_id"]
+            cohere_score = float(c["cohere_score"])
+            answer_text = self.dense_retriever.get_dense_context_by_id(node_id)
+            context_parts.append(
+                f"Answer (ID: {node_id}, Score: {cohere_score:.4f}): {answer_text}"
+            )
+
+        dense_context = "\n".join(context_parts)
 
         return RetrievalResult(
-            context=dense_contexts,
-            metadata={"source": self.dense_retriever.get_name_collection}
+            context=dense_context,
+            metadata={
+                "source": self.dense_retriever.get_name_collection()
+                if hasattr(self.dense_retriever, "get_name_collection")
+                else None
+            },
         )
-    
+
     def get_name(self):
-        return "DenseRetrievel"
-    
+        return "DenseRetrieval"
+
 
 dense_retrieval = DenseRetrieval()
-
-    

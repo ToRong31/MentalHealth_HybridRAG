@@ -78,7 +78,7 @@ except Exception as e:
             raise RuntimeError(f"Cannot load any therapist prompt files: {e}, {e2}, {e3}")
 
 try:
-    response_templates_dense = load_prompts("answer_dense_promt.yaml")
+    response_templates_dense = load_prompts("answer_dense_promt_vie.yaml")
     system_instructions_dense = response_templates_dense.get("system_instructions", "")
     user_template_dense = response_templates_dense.get("user_template", "")
     if not user_template_dense:

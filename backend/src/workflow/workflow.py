@@ -12,6 +12,7 @@ from .graph_nodes import (
     translate_question_node,
     translate_answer_node,
     dense_retrieval_node,
+    answer_with_dense_node,
 )
     
 
@@ -64,7 +65,7 @@ def build_kg_graph():
     builder.add_node("not_mental_health", not_mental_health_node)
     builder.add_node("dense_retrieval", dense_retrieval_node)
     builder.add_node("graph_retrieval", graph_retrieval_node)
-    builder.add_node("answer", answer_with_graph_node)
+    builder.add_node("answer", answer_with_dense_node)
 
     # Entry point - start with translation
     builder.set_entry_point("translate_question")
@@ -91,9 +92,10 @@ def build_kg_graph():
     # Normal flow: retrieval -> answer -> translate
     # builder.add_edge("graph_retrieval", "answer")
     builder.add_edge("dense_retrieval", "answer")
-    builder.add_edge("answer", "translate_answer")
+    # builder.add_edge("answer", "translate_answer")
     
-    # Final translation then END
-    builder.add_edge("translate_answer", END)
+    # # Final translation then END
+    # builder.add_edge("translate_answer", END)
+    builder.add_edge("answer", END)
 
     return builder.compile()

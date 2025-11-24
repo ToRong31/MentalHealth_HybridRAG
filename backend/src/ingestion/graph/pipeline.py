@@ -28,7 +28,7 @@ class IngestionPipeline:
         api_key_manager: APIKeyManager,
         input_file: str = "data/raw/input.json",
         output_dir: str = "data/processed",
-        neo4j_uri: str = "bolt://localhost:7687",
+        neo4j_uri: str = "bolt://neo4j:7687",
         neo4j_user: str = "neo4j",
         neo4j_password: str = "password",
         milvus_uri: Optional[str] = None,
