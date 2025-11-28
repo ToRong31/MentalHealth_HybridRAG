@@ -63,3 +63,5 @@ pgadmin_data/
 # Models cache
 models/
 .cache/
+
+Mental_Health_API.postman_collection.json
