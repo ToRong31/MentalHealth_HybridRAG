@@ -50,6 +50,11 @@ data/raw/*.json
 data/processed/*.csv
 neo4j/
 
+# PostgreSQL
+postgres_data/
+pgdata/
+pgadmin_data/
+
 # API Keys
 **/api_key.txt
 **/api_key_manager/build_graph/api_key.txt

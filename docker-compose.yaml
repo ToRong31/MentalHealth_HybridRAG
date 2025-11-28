@@ -30,6 +30,47 @@ services:
       retries: 5
       start_period: 40s
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mental_health_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+      POSTGRES_DB: ${DB_NAME:-mental_health_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # PgAdmin - Web UI for PostgreSQL management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mental_health_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
   # Backend API
   backend:
     build:
@@ -39,19 +80,33 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    env_file:
-      - ./backend/src/.env
     environment:
+      # Neo4j Configuration
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=kguser2005
+      # PostgreSQL Configuration
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-mental_health_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
+      # JWT Configuration
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this-in-production}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_DAYS=${ACCESS_TOKEN_EXPIRE_DAYS:-7}
     volumes:
       - ./backend/src:/app/src
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
+      - ./backend/main.py:/app/main.py
+      - ./backend/requirements.txt:/app/requirements.txt
       - hf_cache:/root/.cache/huggingface 
     depends_on:
       neo4j:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - app-network
@@ -68,10 +123,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://backend:8000
     container_name: chatbot-frontend
     restart: unless-stopped
     ports:
       - "80:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
     networks:
@@ -107,6 +166,8 @@ volumes:
   neo4j_plugins:
   neo4j_import:
   hf_cache:
+  postgres_data:
+  pgadmin_data:
 
 networks:
   app-network:
