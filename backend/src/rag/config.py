@@ -21,6 +21,11 @@ MILVUS_TOKEN = os.getenv("MILVUS_TOKEN")
 MILVUS_DB = os.getenv("MILVUS_DB", "default")
 MILVUS_COLLECTION = os.getenv("MILVUS_COLLECTION", "kg_entities")
 
+# HNSW Index Parameters
+HNSW_M = int(os.getenv("HNSW_M", "16"))
+HNSW_EF_CONSTRUCTION = int(os.getenv("HNSW_EF_CONSTRUCTION", "200"))
+HNSW_EF = int(os.getenv("HNSW_EF", "128"))
+
 # Neo4j Graph Database
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "kg_user")
@@ -28,3 +33,4 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "2005")
 
 # Google Gemini
 GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash-lite")
+

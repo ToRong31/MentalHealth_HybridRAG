@@ -17,7 +17,7 @@ class GeminiTranslator(LLMClient):
         self,
         model_name: str = GEMINI_MODEL_NAME,
         default_max_retries: int = 3,
-        prompt_config_path: str = "src/prompts/translator_prompts.yaml",
+        prompt_config_path: str = "src/rag/prompts/translator_prompts.yaml",
     ):
         # Khởi tạo LLMClient (key_manager, model_name, ...)
         super().__init__(model_name=model_name)

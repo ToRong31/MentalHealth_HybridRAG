@@ -67,7 +67,7 @@ class GraphExtractor:
     def _load_prompt_from_config(self) -> str:
         """Load prompt template from config file"""
         # Default path in ingestion module
-        config_path = "src/ingestion/graph/promts/graph_extraction_prompt.yaml"
+        config_path = "src/rag/ingestion/graph/promts/graph_extraction_prompt.yaml"
         
         if not os.path.exists(config_path):
             logger.error(f"Prompt config file not found: {config_path}")

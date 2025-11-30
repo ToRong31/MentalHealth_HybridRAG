@@ -78,24 +78,22 @@ class MilvusEmbedder:
         try:
             logger.info(f"Connecting to Milvus at {self.milvus_uri}")
             
-            if self.milvus_token:
-                # Cloud Milvus (Zilliz)
-                connections.connect(
-                    alias="default",
-                    uri=self.milvus_uri,
-                    token=self.milvus_token,
-                    secure=True,
-                    db_name=self.milvus_db
-                )
+            # Connection parameters
+            connection_params = {
+                "alias": "default",
+                "uri": self.milvus_uri,
+                "db_name": self.milvus_db,
+            }
+            
+            # Only add token and secure flag for cloud deployment (when token is provided)
+            if self.milvus_token and self.milvus_token.strip():
+                connection_params["token"] = self.milvus_token
+                connection_params["secure"] = True
+            # For local Milvus, explicitly disable secure connection
             else:
-                # Local Milvus
-                host = self.milvus_uri.replace("http://", "").replace("https://", "").split(":")[0]
-                port = self.milvus_uri.split(":")[-1] if ":" in self.milvus_uri else "19530"
-                connections.connect(
-                    alias="default",
-                    host=host,
-                    port=port
-                )
+                connection_params["secure"] = False
+            
+            connections.connect(**connection_params)
             
             logger.info("[OK] Connected to Milvus")
         except Exception as e:

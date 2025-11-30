@@ -1,9 +1,19 @@
+import sys
+from pathlib import Path
+
+# Add project root to path
+# __file__ = /app/src/rag/ingestion/vectors/index.py
+# Need to go up 5 levels to /app
+project_root = Path(__file__).parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+print(f"Project root: {project_root}")
+print(f"Python path: {sys.path[0]}")
+
 # backend/src/ingestion/vectors/index.py
 import argparse
 import json
 import torch
 import logging
-from pathlib import Path
 from typing import Iterable, List, Tuple
 
 import numpy as np
@@ -19,6 +29,7 @@ from pymilvus import (
 from src.rag.config import MILVUS_DB, MILVUS_TOKEN, MILVUS_URI
 from src.rag.vectors.embeddings import encode_e5
 
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -33,15 +44,23 @@ DEFAULT_SKIP_FILE = Path("data/processed/embedded_chat_ids.txt")
 
 
 def connect():
-    if not MILVUS_URI or not MILVUS_TOKEN:
-        raise RuntimeError("Set MILVUS_URI and MILVUS_TOKEN in env before running")
-    connections.connect(
-        alias="default",
-        uri=MILVUS_URI,
-        token=MILVUS_TOKEN,
-        secure=True,
-        db_name=MILVUS_DB,
-    )
+    if not MILVUS_URI:
+        raise RuntimeError("Set MILVUS_URI in env before running")
+    
+    connection_params = {
+        "alias": "default",
+        "uri": MILVUS_URI,
+        "db_name": MILVUS_DB,
+    }
+    
+    # Only add token and secure for cloud deployment
+    if MILVUS_TOKEN and MILVUS_TOKEN.strip():
+        connection_params["token"] = MILVUS_TOKEN
+        connection_params["secure"] = True
+    else:
+        connection_params["secure"] = False
+    
+    connections.connect(**connection_params)
     logger.info("Connected to Milvus")
 
 

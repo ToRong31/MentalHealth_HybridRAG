@@ -43,39 +43,7 @@ except Exception as e:
     logger.warning("Using English fallback responses")
 
 # Load therapist prompt (Vietnamese version preferred)
-try:
-    # Try Vietnamese version first
-    answer_prompt_data = load_prompts("answer_nodes_prompt.yaml")
-    system_instructions = answer_prompt_data.get("system_instructions", "")
-    user_template = answer_prompt_data.get("user_template", "")
-    
-    if not system_instructions or not user_template:
-        raise ValueError("Missing system_instructions or user_template")
-    
-    logger.info("Successfully loaded Vietnamese therapist prompt")
-except Exception as e:
-    logger.warning(f"Failed to load Vietnamese prompt: {e}, trying English version...")
-    try:
-        # Fallback to English version
-        answer_prompt_data = load_prompts("answer_nodes_prompt.yaml")
-        system_instructions = answer_prompt_data.get("system_instructions", "")
-        user_template = answer_prompt_data.get("user_template", "")
-        
-        if not system_instructions or not user_template:
-            raise ValueError("Missing system_instructions or user_template")
-        
-        logger.info("Successfully loaded English therapist prompt")
-    except Exception as e2:
-        logger.error(f"Failed to load both prompt versions: {e}, {e2}")
-        # Final fallback to old prompt
-        try:
-            therapist_prompt_data = load_prompts("therapist_prompt.yaml")
-            system_instructions = ""
-            user_template = therapist_prompt_data
-            logger.warning("Using legacy therapist_prompt.yaml")
-        except Exception as e3:
-            logger.error(f"Failed to load legacy prompt: {e3}")
-            raise RuntimeError(f"Cannot load any therapist prompt files: {e}, {e2}, {e3}")
+
 
 try:
     response_templates_dense = load_prompts("answer_dense_promt_vie.yaml")
@@ -179,7 +147,33 @@ def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    """
+    if(state[user_language] == "vi"):
+        try:
+
+            answer_prompt_data = load_prompts("answer_nodes_prompt_vie.yaml")
+            system_instructions = answer_prompt_data.get("system_instructions", "")
+            user_template = answer_prompt_data.get("user_template", "")
+            
+            if not system_instructions or not user_template:
+                raise ValueError("Missing system_instructions or user_template")
+            
+            logger.info("Successfully loaded Vietnamese therapist prompt")
+        except Exception as e:
+            logger.warning(f"Failed to load Vietnamese prompt: {e}, trying English version...")
+    else:
+        try:
+            answer_prompt_data = load_prompts("answer_nodes_prompt_en.yaml")
+            system_instructions = answer_prompt_data.get("system_instructions", "")
+            user_template = answer_prompt_data.get("user_template", "")
+            
+            if not system_instructions or not user_template:
+                raise ValueError("Missing system_instructions or user_template")
+            
+            logger.info("Successfully loaded English therapist prompt")
+        except Exception as e:
+            logger.error(f"Failed to load English prompt: {e}")
+            raise RuntimeError(f"Cannot load any therapist prompt files: {e}")
+        """
     Sinh câu trả lời dựa trên graph context
     
     Args:

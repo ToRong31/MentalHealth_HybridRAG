@@ -4,24 +4,33 @@ from pymilvus import connections, Collection
 from src.rag.config import MILVUS_DB, MILVUS_URI, MILVUS_TOKEN, E5_MODEL_NAME
 
 from src.rag.vectors.embeddings import encode_e5    
-from src.rag.vectors.embeddings import device  # hoặc import device từ nơi bạn định nghĩa
+from src.rag.vectors.embeddings import device
 import json
 
 MILVUS_COLLECTION_NAME = "chat_16k"
+
 class DenseRetriever:
     def __init__(self, collection_name: str | None = None):
         self.model_name = E5_MODEL_NAME
         self.device = device
-        self.path_context="data/raw/input.json"
+        self.path_context = "data/raw/input.json"
 
-        # Kết nối Milvus/Zilliz
-        connections.connect(
-            alias="default",
-            uri=MILVUS_URI,
-            token=MILVUS_TOKEN,
-            secure=True,
-            db_name=MILVUS_DB,
-        )
+        # Connection parameters
+        connection_params = {
+            "alias": "default",
+            "uri": MILVUS_URI,
+            "db_name": MILVUS_DB,
+        }
+        
+        # Only add token and secure for cloud deployment
+        if MILVUS_TOKEN and MILVUS_TOKEN.strip():
+            connection_params["token"] = MILVUS_TOKEN
+            connection_params["secure"] = True
+        else:
+            connection_params["secure"] = False
+        
+        # Kết nối Milvus
+        connections.connect(**connection_params)
 
         self.collection_name = collection_name or MILVUS_COLLECTION_NAME
         self.col = Collection(self.collection_name)

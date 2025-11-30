@@ -1,20 +1,16 @@
 """
-Interactive Ingestion Runner
-Simple script to run knowledge graph ingestion pipeline
-Place this in: src/ingestion/graph/run.py
+Standalone Ingestion Runner
+Run this from /app directory: python3 run_ingestion.py
+Does NOT import src.rag to avoid loading main app dependencies
 """
 import os
 import sys
 from pathlib import Path
-
-# Add project root to path FIRST before any other imports
-# __file__ = /app/src/rag/ingestion/graph/run.py
-# We need to go up to /app (5 levels up)
-project_root = Path(__file__).parent.parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-# Now we can import from src
 import logging
+
+# Ensure we're in /app directory
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root))
 
 # Setup logging
 logging.basicConfig(
@@ -27,9 +23,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+print(f"\nProject root: {project_root}")
+print(f"Python path: {sys.path[0]}\n")
 
-
-# Import after path is set
+# Import ONLY ingestion modules (not src.rag main module)
 from src.rag.ingestion.graph import (
     Config,
     create_pipeline,
@@ -164,11 +161,11 @@ def get_config_for_neo4j():
     
     print()
     return {
-        'batch_size': 5,  # Not used
-        'model_name': 'gemini-2.5-flash-lite',  # Not used
-        'index_filter': None,  # Not used
+        'batch_size': 5,
+        'model_name': 'gemini-2.5-flash-lite',
+        'index_filter': None,
         'clear_neo4j': clear_neo4j,
-        'recreate_milvus': False  # Not applicable
+        'recreate_milvus': False
     }
 
 
@@ -187,10 +184,10 @@ def get_config_for_milvus():
     
     print()
     return {
-        'batch_size': 5,  # Not used
-        'model_name': 'gemini-2.5-flash-lite',  # Not used
-        'index_filter': None,  # Not used
-        'clear_neo4j': False,  # Not applicable
+        'batch_size': 5,
+        'model_name': 'gemini-2.5-flash-lite',
+        'index_filter': None,
+        'clear_neo4j': False,
         'recreate_milvus': recreate_milvus
     }
 
@@ -345,16 +342,12 @@ def main():
         
         # Get configuration based on choice
         if choice == '1':
-            # Full pipeline: needs extraction + neo4j + milvus config
             options = get_config_for_extraction(include_neo4j=True, include_milvus=True)
         elif choice == '2':
-            # Extract only: needs extraction config
             options = get_config_for_extraction(include_neo4j=False, include_milvus=False)
         elif choice == '3':
-            # Neo4j only: no extraction config needed
             options = get_config_for_neo4j()
         elif choice == '4':
-            # Milvus only: no extraction config needed
             options = get_config_for_milvus()
         
         print("\n>> Initializing pipeline...")
