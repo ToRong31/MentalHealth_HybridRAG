@@ -1,0 +1,455 @@
+id,name,label
+1,healing,COPING_STRATEGY
+2,emotions,SYMPTOM
+3,grief,SYMPTOM
+4,sadness,SYMPTOM
+5,art therapy,INTERVENTION
+6,guilt,SYMPTOM
+7,loneliness,SYMPTOM
+8,cognitive behavioral therapy,INTERVENTION
+9,stress,STRESSOR
+10,anxiety,SYMPTOM
+11,cognitive-behavioral techniques,INTERVENTION
+12,emotional unease,SYMPTOM
+13,depression,SYMPTOM
+14,therapy,INTERVENTION
+15,cognitive-behavioral therapy,INTERVENTION
+16,interpersonal therapy,INTERVENTION
+17,mindfulness meditation,COPING_STRATEGY
+18,cognitive restructuring,COPING_STRATEGY
+19,burnout,SYMPTOM
+20,loss,STRESSOR
+21,overwhelmed,SYMPTOM
+22,panic attacks,SYMPTOM
+23,mindfulness,COPING_STRATEGY
+24,fatigue,SYMPTOM
+25,pain,SYMPTOM
+26,helplessness,SYMPTOM
+27,frustration,SYMPTOM
+28,deep breathing exercises,COPING_STRATEGY
+29,isolation,SYMPTOM
+30,mindfulness practices,COPING_STRATEGY
+31,support group,INTERVENTION
+32,trauma,STRESSOR
+33,medication,MEDICATION
+34,insomnia,SYMPTOM
+35,auditory hallucinations,SYMPTOM
+36,anxiety disorders,CONDITION
+37,bipolar disorder,CONDITION
+38,relaxation techniques,COPING_STRATEGY
+39,cognitive-behavioral strategies,COPING_STRATEGY
+40,schizophrenia,CONDITION
+41,sleep disorders,CONDITION
+42,job loss,STRESSOR
+43,increased responsibilities,STRESSOR
+44,mindfulness-based interventions,COPING_STRATEGY
+45,progressive muscle relaxation,COPING_STRATEGY
+46,wandering episodes,STRESSOR
+47,fear,SYMPTOM
+48,anger,SYMPTOM
+49,distress,SYMPTOM
+50,apprehension,SYMPTOM
+51,disappointment,SYMPTOM
+52,coping skills,COPING_STRATEGY
+53,resilience,COPING_STRATEGY
+54,emotional toll,SYMPTOM
+55,emotional state,SYMPTOM
+56,disconnection,SYMPTOM
+57,confusion,SYMPTOM
+58,disorientation,SYMPTOM
+59,uncertainty,SYMPTOM
+60,stress management,COPING_STRATEGY
+61,boundaries,COPING_STRATEGY
+62,emotional support,COPING_STRATEGY
+63,caregiving,STRESSOR
+64,drained,SYMPTOM
+65,self-care,COPING_STRATEGY
+66,setting boundaries,COPING_STRATEGY
+67,emotional needs,SYMPTOM
+68,neglect,SYMPTOM
+69,coping strategies,COPING_STRATEGY
+70,open communication,COPING_STRATEGY
+71,work stress,STRESSOR
+72,overwhelm,SYMPTOM
+73,time management,COPING_STRATEGY
+74,stress reduction,COPING_STRATEGY
+75,hopelessness,SYMPTOM
+76,exercise,COPING_STRATEGY
+77,journaling,COPING_STRATEGY
+78,emotional well-being,SYMPTOM
+79,communication,COPING_STRATEGY
+80,family concerns,STRESSOR
+81,chaos,SYMPTOM
+82,coping mechanisms,COPING_STRATEGY
+83,misunderstanding,SYMPTOM
+84,mental health,CONDITION
+85,self-doubt,SYMPTOM
+86,mental health counselor,INTERVENTION
+87,well-being,CONDITION
+88,cognitive behavioral strategies,INTERVENTION
+89,fear of mortality,STRESSOR
+90,exhaustion,SYMPTOM
+91,lifestyle changes,COPING_STRATEGY
+92,meditation,COPING_STRATEGY
+93,inadequacy,SYMPTOM
+94,disconnected from emotions,SYMPTOM
+95,creative expression,COPING_STRATEGY
+96,pressure,SYMPTOM
+97,counseling,INTERVENTION
+98,impulsivity,SYMPTOM
+99,avoidance,SYMPTOM
+100,grief counseling,INTERVENTION
+101,deep breathing,COPING_STRATEGY
+102,shame,SYMPTOM
+103,intrusive thoughts,SYMPTOM
+104,cancer,CONDITION
+105,pain management,COPING_STRATEGY
+106,overwhelming feelings,SYMPTOM
+107,support system,COPING_STRATEGY
+108,psychotherapy,INTERVENTION
+109,caregiving role,STRESSOR
+110,negative emotions,SYMPTOM
+111,mindfulness techniques,COPING_STRATEGY
+112,emotional dysregulation,SYMPTOM
+113,mental health conditions,CONDITION
+114,physical activity,COPING_STRATEGY
+115,forgiveness,COPING_STRATEGY
+116,anxious,SYMPTOM
+117,fears,SYMPTOM
+118,insecure,SYMPTOM
+119,mental health professional,INTERVENTION
+120,self-compassion,COPING_STRATEGY
+121,self-acceptance,COPING_STRATEGY
+122,worthlessness,SYMPTOM
+123,guilty,SYMPTOM
+124,stressors,STRESSOR
+125,emotional reactions,SYMPTOM
+126,past experiences,STRESSOR
+127,family therapist,INTERVENTION
+128,group therapy,INTERVENTION
+129,unresolved emotions,SYMPTOM
+130,emotional wounds,STRESSOR
+131,psychodynamic therapy,INTERVENTION
+132,worry,SYMPTOM
+133,social activities,COPING_STRATEGY
+134,phone calls,COPING_STRATEGY
+135,video chats,COPING_STRATEGY
+136,writing letters,COPING_STRATEGY
+137,emotional upheaval,SYMPTOM
+138,asking for help,COPING_STRATEGY
+139,uneasy,SYMPTOM
+140,change,STRESSOR
+141,illness,STRESSOR
+142,prayer,COPING_STRATEGY
+143,emotional processing,COPING_STRATEGY
+145,safety devices,COPING_STRATEGY
+146,indecisiveness,SYMPTOM
+147,physical toll,SYMPTOM
+148,self-efficacy,SYMPTOM
+149,self-confidence,SYMPTOM
+150,emotional demands,SYMPTOM
+151,irritability,SYMPTOM
+152,detachment,SYMPTOM
+153,abuse,STRESSOR
+154,cbt,INTERVENTION
+155,suicidal thoughts,SYMPTOM
+156,resentment,SYMPTOM
+157,Parkinson's disease,CONDITION
+158,support groups,COPING_STRATEGY
+159,unhappiness,SYMPTOM
+160,social anxiety,SYMPTOM
+163,communication issues,STRESSOR
+164,emotional expression discouraged,STRESSOR
+165,empathy,COPING_STRATEGY
+166,active listening,COPING_STRATEGY
+167,fear of losing control,SYMPTOM
+168,separation from children,STRESSOR
+169,letting go,COPING_STRATEGY
+170,job demands,STRESSOR
+171,family needs,STRESSOR
+172,children's behavior,STRESSOR
+173,establishing routines,COPING_STRATEGY
+174,food allergies,STRESSOR
+175,separation anxiety,SYMPTOM
+176,relationship distress,STRESSOR
+177,psychodynamic approaches,INTERVENTION
+178,chronic illness,STRESSOR
+179,loss of control,SYMPTOM
+180,independence,COPING_STRATEGY
+181,agitation,SYMPTOM
+182,respite care,INTERVENTION
+183,adult day care,INTERVENTION
+184,communication skills,COPING_STRATEGY
+185,altercation,STRESSOR
+186,animal behaviorist,INTERVENTION
+187,veterinarian,INTERVENTION
+189,paranoia,SYMPTOM
+190,sleep disturbances,SYMPTOM
+191,mother's pain,STRESSOR
+192,caregiving resources,COPING_STRATEGY
+193,sleep issues,SYMPTOM
+194,denial,SYMPTOM
+195,caring for a loved one in hospice,STRESSOR
+196,emotional burden,STRESSOR
+197,acceptance,COPING_STRATEGY
+198,uncertain,SYMPTOM
+199,multiple challenges,STRESSOR
+200,disappointed,SYMPTOM
+201,heavy workload,STRESSOR
+202,responsibility,STRESSOR
+203,emotional regulation,COPING_STRATEGY
+204,dialectical behavior therapy,INTERVENTION
+205,nightmares,SYMPTOM
+206,abandonment,STRESSOR
+207,eye movement desensitization and reprocessing,INTERVENTION
+208,negative self-talk,SYMPTOM
+209,gratitude,SYMPTOM
+210,problem-solving,COPING_STRATEGY
+211,frustrated,SYMPTOM
+213,discomfort,SYMPTOM
+215,emotional suppression,STRESSOR
+216,emotional baggage,STRESSOR
+217,life circumstances,STRESSOR
+218,mental health issues,CONDITION
+219,occupational therapy,INTERVENTION
+220,couples therapy,INTERVENTION
+221,emotional eating,SYMPTOM
+222,imaginal exposure therapy,INTERVENTION
+223,cognitive-behavioral interventions,INTERVENTION
+224,problem-solving interventions,INTERVENTION
+225,reframing,COPING_STRATEGY
+226,positive reappraisal,COPING_STRATEGY
+227,visualization,COPING_STRATEGY
+228,negative thoughts,SYMPTOM
+229,problem-solving skills,COPING_STRATEGY
+230,self-criticism,SYMPTOM
+231,unrealistic expectations,STRESSOR
+232,accident,STRESSOR
+233,workload,STRESSOR
+234,personal issues,STRESSOR
+235,mental health concerns,CONDITION
+236,time management techniques,COPING_STRATEGY
+237,current stressors,STRESSOR
+238,relaxation exercises,COPING_STRATEGY
+239,sleep hygiene practices,COPING_STRATEGY
+240,emptiness,SYMPTOM
+241,disrupted sleep,SYMPTOM
+242,responsibilities,STRESSOR
+243,medication schedule,STRESSOR
+244,sleep routine,COPING_STRATEGY
+245,racing thoughts,SYMPTOM
+246,sleep environment,COPING_STRATEGY
+247,bedtime routine,COPING_STRATEGY
+248,caregiving responsibilities,STRESSOR
+249,mother's condition,STRESSOR
+250,relief,SYMPTOM
+251,grieve,SYMPTOM
+252,personal growth,COPING_STRATEGY
+253,empowerment,COPING_STRATEGY
+254,emotional intensity,SYMPTOM
+255,social support,COPING_STRATEGY
+256,normalization,COPING_STRATEGY
+258,financial stress,STRESSOR
+259,distressed,SYMPTOM
+260,helpless,SYMPTOM
+261,counseling services,INTERVENTION
+262,despair,SYMPTOM
+263,unappreciated,SYMPTOM
+264,undervalued,SYMPTOM
+265,grief support group,INTERVENTION
+266,powerlessness,SYMPTOM
+267,financial struggles,STRESSOR
+268,annoyance,SYMPTOM
+269,misunderstood,SYMPTOM
+270,mistakes,STRESSOR
+271,negative thought patterns,SYMPTOM
+272,low self-worth,SYMPTOM
+273,self-image issues,SYMPTOM
+274,financial burdens,STRESSOR
+275,legal complexities,STRESSOR
+276,emotional drainedness,SYMPTOM
+188,cognitive behavioral techniques,INTERVENTION
+277,fear of backlash,SYMPTOM
+278,EMDR,INTERVENTION
+279,trapped,SYMPTOM
+280,missing out on growth,SYMPTOM
+281,grief counselor,INTERVENTION
+282,desperation,SYMPTOM
+283,caregiver burnout,SYMPTOM
+284,caregiver support groups,COPING_STRATEGY
+285,memory loss,SYMPTOM
+286,cognitive rehabilitation,INTERVENTION
+287,counselor,INTERVENTION
+288,disconnected,SYMPTOM
+289,longing for connection,SYMPTOM
+290,powerless,SYMPTOM
+291,betrayed,SYMPTOM
+292,distrustful,SYMPTOM
+293,family therapy,INTERVENTION
+294,devastating,SYMPTOM
+295,loss of trust,SYMPTOM
+296,alone,SYMPTOM
+297,betrayal,SYMPTOM
+298,complex,SYMPTOM
+299,assumptions,SYMPTOM
+300,hearsay,SYMPTOM
+301,assertive communication skills,COPING_STRATEGY
+302,emotional turmoil,SYMPTOM
+303,conflict,SYMPTOM
+307,bitterness,SYMPTOM
+309,nausea,SYMPTOM
+310,mood,SYMPTOM
+311,gentle exercise,COPING_STRATEGY
+312,aimlessness,SYMPTOM
+313,optimism,COPING_STRATEGY
+314,hopefulness,SYMPTOM
+315,exposure therapy,INTERVENTION
+316,stigma,STRESSOR
+317,sleep deprivation,SYMPTOM
+318,mood disturbances,SYMPTOM
+319,social connections,SYMPTOM
+320,vulnerability,SYMPTOM
+321,creative hobby,COPING_STRATEGY
+322,emotional distress,SYMPTOM
+328,failure,SYMPTOM
+329,financial difficulties,STRESSOR
+330,financial counseling,INTERVENTION
+331,online group,COPING_STRATEGY
+332,anhedonia,SYMPTOM
+323,emotional barriers,ISSUE
+324,stress relief,COPING_STRATEGY
+325,prioritizing others,ISSUE
+326,down,SYMPTOM
+327,unfulfilled,SYMPTOM
+333,caregiving stress,ISSUE
+334,family conflict,ISSUE
+335,counselors,INTERVENTION
+336,relationship issues,ISSUE
+337,breathing exercises,COPING_STRATEGY
+338,emotional stress,STRESSOR
+339,asthma symptoms,SYMPTOM
+340,emotional responses,SYMPTOM
+341,social interactions,ISSUE
+342,belonging,SYMPTOM
+343,agoraphobia,CONDITION
+344,social life,ISSUE
+345,privacy violations,STRESSOR
+346,interpersonal skills,COPING_STRATEGY
+347,fear of exposure,SYMPTOM
+348,privacy concerns,ISSUE
+349,hobbies,COPING_STRATEGY
+350,COVID-19,STRESSOR
+351,emotional intelligence,COPING_STRATEGY
+352,mood swings,SYMPTOM
+353,self-esteem issues,ISSUE
+354,cognitive reappraisal,COPING_STRATEGY
+355,positive self-talk,COPING_STRATEGY
+356,irritation,SYMPTOM
+357,grounding,COPING_STRATEGY
+358,melancholy,SYMPTOM
+359,supportive counseling,INTERVENTION
+360,fear of death,SYMPTOM
+361,life changes,STRESSOR
+362,hurt,SYMPTOM
+363,past hurts,STRESSOR
+364,anticipatory grief,SYMPTOM
+365,impulsive actions,SYMPTOM
+366,regret,SYMPTOM
+367,self-worth,ISSUE
+368,mistrust,SYMPTOM
+369,suicidal tendencies,SYMPTOM
+370,past traumas,STRESSOR
+371,environmental stressors,STRESSOR
+372,emotional wellbeing,SYMPTOM
+373,overwhelming,SYMPTOM
+374,distressing,SYMPTOM
+375,fear of not knowing,SYMPTOM
+376,fear of making a mistake,SYMPTOM
+377,caregiver stress,STRESSOR
+378,self-care practices,COPING_STRATEGY
+379,relaxation,COPING_STRATEGY
+380,dementia,CONDITION
+381,non-pharmacological interventions,COPING_STRATEGY
+382,cognitive distortions,ISSUE
+383,negative attitude,SYMPTOM
+384,limiting beliefs,ISSUE
+385,childhood trauma,STRESSOR
+386,academic pressure,ISSUE
+387,work pressure,STRESSOR
+388,need for control,ISSUE
+389,security,ISSUE
+390,stability,ISSUE
+391,identity,ISSUE
+392,relationships,ISSUE
+393,social skills,COPING_STRATEGY
+394,communication strategies,COPING_STRATEGY
+395,work environment,ISSUE
+396,social needs,ISSUE
+397,work demands,STRESSOR
+398,family obligations,STRESSOR
+399,personal struggles,STRESSOR
+400,community organizations,INTERVENTION
+401,respite care services,INTERVENTION
+402,professional counseling,INTERVENTION
+403,assertive communication,COPING_STRATEGY
+404,emotional issues,CONDITION
+405,trust,ISSUE
+406,intimacy,ISSUE
+407,fear of abandonment,SYMPTOM
+408,attachment-focused therapy,INTERVENTION
+409,emotionally focused therapy,INTERVENTION
+410,rest,COPING_STRATEGY
+411,eating well,COPING_STRATEGY
+412,lack of motivation,SYMPTOM
+413,managing tasks,ISSUE
+414,low mood,SYMPTOM
+415,self-consciousness,SYMPTOM
+416,communication breakdown,ISSUE
+417,diabetes,ISSUE
+418,addiction,CONDITION
+419,support,ISSUE
+420,breakup,STRESSOR
+421,work commitments,ISSUE
+422,safety concerns,ISSUE
+423,obligation,SYMPTOM
+424,career choices,ISSUE
+425,growth mindset,COPING_STRATEGY
+426,fear of making the wrong choice,SYMPTOM
+427,feedback,STRESSOR
+428,communication style,ISSUE
+429,mental illness,CONDITION
+430,emotional and mental health,SYMPTOM
+431,memory issues,ISSUE
+432,seeking support,COPING_STRATEGY
+433,emotion-focused therapy,INTERVENTION
+434,Eisenhower Matrix,COPING_STRATEGY
+435,time blocking,COPING_STRATEGY
+436,delegating tasks,COPING_STRATEGY
+437,professional development,INTERVENTION
+438,business coaching,INTERVENTION
+439,decreased appetite,SYMPTOM
+440,perfectionism,ISSUE
+441,decision-making,COPING_STRATEGY
+442,discouraged,SYMPTOM
+443,career change,ISSUE
+444,fear of failure,SYMPTOM
+445,rejection,SYMPTOM
+446,social isolation,ISSUE
+447,mindfulness based stress reduction,INTERVENTION
+448,self-destructive behaviors,ISSUE
+449,low self-esteem,CONDITION
+450,doubt,SYMPTOM
+451,emotional attachments,ISSUE
+452,cognitive restructuring techniques,INTERVENTION
+453,avoidance behaviors,ISSUE
+454,sleep quality,ISSUE
+455,energy levels,ISSUE
+456,difficulty sleeping,SYMPTOM
+457,overextending,ISSUE
+458,balance,ISSUE
+459,effective communication,COPING_STRATEGY
+460,emotional resilience,COPING_STRATEGY
+461,self-harm,CONDITION
+462,breathing,COPING_STRATEGY
+463,financial burden,ISSUE
+464,cognitive behavioral interventions,INTERVENTION

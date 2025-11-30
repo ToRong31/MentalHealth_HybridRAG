@@ -27,7 +27,7 @@ env/
 .venv
 
 # Environment Variables
-.env
+# .env
 .env.local
 
 # IDE
@@ -45,15 +45,15 @@ Thumbs.db
 *.log
 logs/
 
-# Data
-data/raw/*.json
-data/processed/*.csv
-neo4j/
+# # Data
+# data/raw/*.json
+# data/processed/*.csv
+# neo4j/
 
-# API Keys
-**/api_key.txt
-**/api_key_manager/build_graph/api_key.txt
-**/api_key_manager/respone/api_key.txt
+# # API Keys
+# **/api_key.txt
+# **/api_key_manager/build_graph/api_key.txt
+# **/api_key_manager/respone/api_key.txt
 
 # Models cache
 models/
