@@ -27,7 +27,7 @@ env/
 .venv
 
 # Environment Variables
-.env
+# .env
 .env.local
 
 # IDE
@@ -55,10 +55,10 @@ postgres_data/
 pgdata/
 pgadmin_data/
 
-# API Keys
-**/api_key.txt
-**/api_key_manager/build_graph/api_key.txt
-**/api_key_manager/respone/api_key.txt
+# # API Keys
+# **/api_key.txt
+# **/api_key_manager/build_graph/api_key.txt
+# **/api_key_manager/respone/api_key.txt
 
 # Models cache
 models/
