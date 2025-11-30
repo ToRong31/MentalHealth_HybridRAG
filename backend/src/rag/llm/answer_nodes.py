@@ -49,12 +49,12 @@ try:
     response_templates_dense = load_prompts("answer_dense_promt_vie.yaml")
     system_instructions_dense = response_templates_dense.get("system_instructions", "")
     user_template_dense = response_templates_dense.get("user_template", "")
+    
     if not user_template_dense:
         raise ValueError("Missing user_template in answer_dense_promt.yaml")
     logger.info("Successfully loaded answer_dense_promt.yaml")
 except Exception as e:
-    logger.error(f"Failed to load answer_dense_promt.yaml: {e}")
-    user_template_dense = user_template  # Fallback to previous template
+    logger.error(f"Failed to load answer_dense_promt.yaml: {e}") # Fallback to previous template
 
 def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -147,7 +147,7 @@ def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    if(state[user_language] == "vi"):
+    if(state["user_language"] == "vi"):
         try:
 
             answer_prompt_data = load_prompts("answer_nodes_prompt_vie.yaml")
