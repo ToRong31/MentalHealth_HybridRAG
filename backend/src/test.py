@@ -45,7 +45,7 @@ def run_example():
 
     if final_state.get("dense_context"):
         print("\n=== DENSE RETRIEVAL CONTEXT ===")
-        print(final_state["dense_context"])
+        print(final_state["graph_context"])
         
     print("\n=== THERAPIST ANSWER ===")
     print(final_state["answer"])

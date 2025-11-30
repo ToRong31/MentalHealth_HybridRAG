@@ -94,7 +94,7 @@ async function apiRequest<T>(
 // ================================
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiRequest<AuthResponse>('/auth/register', {
+    const response = await apiRequest<AuthResponse>('/api/v1/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
     });
@@ -106,7 +106,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 }
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiRequest<AuthResponse>('/auth/login', {
+    const response = await apiRequest<AuthResponse>('/api/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
     });
@@ -124,7 +124,7 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
 }
 
 export async function getCurrentUser(): Promise<User> {
-    return apiRequest<User>('/auth/me');
+    return apiRequest<User>('/api/v1/auth/me');
 }
 
 export function logout(): void {
@@ -150,22 +150,22 @@ export function getStoredUser(): User | null {
 // ================================
 
 export async function getConversations(): Promise<Conversation[]> {
-    return apiRequest<Conversation[]>('/conversations');
+    return apiRequest<Conversation[]>('/api/v1/conversations');
 }
 
 export async function createConversation(title: string): Promise<Conversation> {
-    return apiRequest<Conversation>('/conversations', {
+    return apiRequest<Conversation>('/api/v1/conversations', {
         method: 'POST',
         body: JSON.stringify({ title }),
     });
 }
 
 export async function getConversation(id: number): Promise<ConversationWithMessages> {
-    return apiRequest<ConversationWithMessages>(`/conversations/${id}`);
+    return apiRequest<ConversationWithMessages>(`/api/v1/conversations/${id}`);
 }
 
 export async function deleteConversation(id: number): Promise<void> {
-    return apiRequest<void>(`/conversations/${id}`, {
+    return apiRequest<void>(`/api/v1/conversations/${id}`, {
         method: 'DELETE',
     });
 }
@@ -175,7 +175,7 @@ export async function deleteConversation(id: number): Promise<void> {
 // ================================
 
 export async function sendMessage(data: ChatRequest): Promise<ChatResponse> {
-    return apiRequest<ChatResponse>('/chat', {
+    return apiRequest<ChatResponse>('/api/v1/chat', {
         method: 'POST',
         body: JSON.stringify(data),
     });
