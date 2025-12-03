@@ -42,9 +42,9 @@ def expand_subgraph(anchor_ids: List[int]):
     MATCH (a:Entity) WHERE a.id IN $ids
     CALL apoc.path.expandConfig(a, {
         relationshipFilter:"TARGETS>|ALLEVIATES>|WORSENED_BY>|TRIGGERED_BY>|HAS_FREQUENCY>|HAS_DURATION>|HAS_SEVERITY>|OCCURRED_AT>|NEGATES>|RELATED_TO>|TARGETS<|ALLEVIATES<|WORSENED_BY<|TRIGGERED_BY<|HAS_FREQUENCY<|HAS_DURATION<|HAS_SEVERITY<|OCCURRED_AT<|NEGATES<|RELATED_TO<",
-        maxLevel:1,
+        maxLevel:2,
         bfs:true,
-        limit:5,
+        limit:10,
         uniqueness:"NODE_GLOBAL"
     }) YIELD path
 

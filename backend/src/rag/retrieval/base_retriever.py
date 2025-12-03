@@ -2,8 +2,10 @@
 Base Retriever Interface
 Định nghĩa interface chung cho tất cả retrievers
 """
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor
 
 
 class BaseRetriever(ABC):
@@ -37,6 +39,25 @@ class BaseRetriever(ABC):
             Retriever name
         """
         pass
+    
+    async def retrieve_async(self, query: str, **kwargs) -> 'RetrievalResult':
+        """
+        Async version of retrieve method.
+        Default implementation runs sync retrieve in executor.
+        Override this for native async implementations.
+        
+        Args:
+            query: User's question
+            **kwargs: Additional parameters
+        
+        Returns:
+            RetrievalResult with context and metadata
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,  # Use default executor
+            lambda: self.retrieve(query, **kwargs)
+        )
 
 
 class RetrievalResult:

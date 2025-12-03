@@ -20,9 +20,9 @@ class GraphRetrieval(BaseRetriever):
     
     def __init__(
         self,
-        milvus_limit: int = 10,
+        milvus_limit: int = 50,
         milvus_threshold: float = 0.8,
-        rerank_top_k: int = 5
+        rerank_top_k: int = 3
     ):
         """
         Initialize Graph Retriever
@@ -79,18 +79,39 @@ class GraphRetrieval(BaseRetriever):
         for c in candidates:
             c["name"] = name_map.get(c["node_id"], f"Node_{c['node_id']}")
         
+        # Debug: Store Milvus scores before reranking
+        milvus_scores = [
+            {
+                "node_id": c["node_id"],
+                "name": c["name"],
+                "milvus_score": c.get("original_milvus_score", 0.0)
+            }
+            for c in candidates
+        ]
+        
         # Step 4: Rerank anchors
         rerank_top_k = kwargs.get('rerank_top_k', self.rerank_top_k)
         anchors = reranker.rerank_anchors(query, candidates, top_k=rerank_top_k)
+        
+        # Debug: Store rerank scores
+        rerank_scores = [
+            {
+                "node_id": a["node_id"],
+                "name": a["name"],
+                "milvus_score": a.get("original_milvus_score", 0.0),
+                "rerank_score": a.get("cohere_score", 0.0)
+            }
+            for a in anchors
+        ]
         
         # Step 5: Expand subgraph from anchors
         anchor_ids = [a["node_id"] for a in anchors]
         nodes, rels = graph_retriever.retrieve_subgraph(anchor_ids)
         
-        # Step 6: Build context string
+        # Step 6: Build context string (without scores)
         context = graph_retriever.build_context(nodes, rels, anchors)
         
-        # Return result with metadata
+        # Return result with metadata (including debug scores)
         return RetrievalResult(
             context=context,
             metadata={
@@ -98,6 +119,8 @@ class GraphRetrieval(BaseRetriever):
                 "nodes_count": len(nodes),
                 "rels_count": len(rels),
                 "milvus_candidates": len(candidates),
+                "milvus_scores": milvus_scores,  # Debug: Milvus scores
+                "rerank_scores": rerank_scores,  # Debug: Rerank scores
                 "retriever": self.get_name()
             }
         )

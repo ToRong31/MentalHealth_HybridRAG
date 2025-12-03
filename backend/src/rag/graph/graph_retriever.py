@@ -48,117 +48,76 @@ class GraphRetriever:
             anchors: List of anchor dicts with 'node_id'
         
         Returns:
-            Formatted context string
+            Formatted context string in format:
+            TRIPLES
+            source_name -[REL_TYPE]-> target_name {src:X}
         """
+        if not nodes:
+            return ""
+        
         # Build node map
         node_map: Dict[int, Dict[str, Any]] = {}
         for n in nodes:
-            labels = list(n.labels) if n.labels else []
+            labels = list(n.labels) if n.labels else ["Entity"]
+            # Get primary label (first one)
+            primary_label = labels[0] if labels else "Entity"
             name = n.get("name") or n.get("label") or f"Node_{n.id}"
+            business_id = n.get("id")
+            
             node_map[n.id] = {
                 "neo_id": n.id,
-                "id": n.get("id"),
+                "business_id": business_id,
                 "name": name,
-                "labels": labels,
+                "label": primary_label,
                 "props": dict(n),
             }
         
-        # Build adjacency list
-        adjacency: Dict[int, List[Dict[str, Any]]] = {
-            nid: [] for nid in node_map.keys()
-        }
+        # Build context in TRIPLES format
+        lines = ["TRIPLES"]
         
+        # Format all relationships as triples
+        processed_rels = set()
         for r in rels:
             s_id = r.start_node.id
             o_id = r.end_node.id
             rel_type = r.type
+            
+            # Avoid duplicates
+            rel_key = (s_id, rel_type, o_id)
+            if rel_key in processed_rels:
+                continue
+            processed_rels.add(rel_key)
+            
+            src_info = node_map.get(s_id)
+            tgt_info = node_map.get(o_id)
+            
+            if not src_info or not tgt_info:
+                continue
+            
+            # Get source_id from relationship properties
             rel_props = dict(r)
+            source_list = rel_props.get("source_id", [])
             
-            # Outgoing edge from source
-            adjacency[s_id].append({
-                "direction": "out",
-                "rel_type": rel_type,
-                "target_id": o_id,
-                "props": rel_props,
-            })
+            # Format source_id
+            if isinstance(source_list, list) and source_list:
+                source_str = ",".join(map(str, source_list))
+            elif source_list:
+                source_str = str(source_list)
+            else:
+                source_str = "?"
             
-            # Incoming edge to target
-            adjacency[o_id].append({
-                "direction": "in",
-                "rel_type": rel_type,
-                "target_id": s_id,
-                "props": rel_props,
-            })
-        
-        # Identify anchor nodes
-        anchor_business_ids = {a["node_id"] for a in anchors}
-        anchor_internal_ids = []
-        for neo_id, info in node_map.items():
-            if info["id"] in anchor_business_ids:
-                anchor_internal_ids.append(neo_id)
-        
-        # Format context
-        lines: List[str] = []
-        
-        # Format anchor nodes first
-        for neo_id in anchor_internal_ids:
-            info = node_map[neo_id]
-            lines.append(self._format_node_header(info, role="ANCHOR"))
+            # Format triple: source_name -[REL_TYPE]-> target_name {src:X}
+            src_name = src_info["name"]
+            tgt_name = tgt_info["name"]
             
-            for rel in adjacency.get(neo_id, []):
-                tgt_info = node_map.get(rel["target_id"])
-                if tgt_info:
-                    lines.append(self._format_rel_entry(info, rel, tgt_info))
-            
-            lines.append("")
+            triple_line = (
+                f"{src_name} "
+                f"-[{rel_type}]-> "
+                f"{tgt_name} {{src:{source_str}}}"
+            )
+            lines.append(triple_line)
         
-        # Format other connected nodes
-        other_ids = [nid for nid in node_map.keys() if nid not in anchor_internal_ids]
-        if other_ids:
-            lines.append("Other connected nodes:")
-            for neo_id in other_ids:
-                info = node_map[neo_id]
-                lines.append(self._format_node_header(info, role="NEIGHBOR"))
-                
-                for rel in adjacency.get(neo_id, []):
-                    tgt_info = node_map.get(rel["target_id"])
-                    if tgt_info:
-                        lines.append(self._format_rel_entry(info, rel, tgt_info))
-                
-                lines.append("")
-        
-        return "\n".join(lines).strip()
-    
-    def _format_node_header(self, info: Dict[str, Any], role: str) -> str:
-        """Format node header line"""
-        labels_str = ",".join(info["labels"]) if info["labels"] else "Entity"
-        return (
-            f"[{role}] {info['name']} "
-            f"({labels_str}, business_id={info['id']}, neo_id={info['neo_id']})"
-        )
-    
-    def _format_rel_entry(
-        self, 
-        src_info: Dict[str, Any], 
-        rel: Dict[str, Any], 
-        tgt_info: Dict[str, Any]
-    ) -> str:
-        """Format relationship entry line"""
-        direction_symbol = "->" if rel["direction"] == "out" else "<-"
-        rel_type = rel["rel_type"]
-        props = rel["props"]
-        source_id = props.get("source_id")
-        
-        labels_str = ",".join(tgt_info["labels"]) if tgt_info["labels"] else "Entity"
-        base = (
-            f"  - {rel_type} {direction_symbol} "
-            f"{tgt_info['name']} ({labels_str}, business_id={tgt_info['id']})"
-        )
-        
-        if source_id is not None:
-            base += f" [source_id={source_id}]"
-        
-        return base
+        return "\n".join(lines)
 
 
 # Global instance

@@ -34,7 +34,7 @@ class DenseRetrieval(BaseRetriever):
     def retrieve(
         self,
         query: str,
-        top_k: int = 10,
+        top_k: int = 2,
     ) -> RetrievalResult:
         """
         Nhận 1 query string, trả về RetrievalResult:

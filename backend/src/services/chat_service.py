@@ -49,8 +49,8 @@ class ChatService:
         
         logger.info(f"User {current_user.username} sent message in conversation {conversation.id}")
         
-        # Run the RAG workflow
-        final_state = run_graph(graph, request.message)
+        # Run the RAG workflow (async)
+        final_state = await run_graph(graph, request.message)
         
         # Save bot response
         bot_message = await self.conv_repo.add_message(

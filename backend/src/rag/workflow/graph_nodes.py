@@ -1,7 +1,8 @@
 """
 LangGraph Nodes for Graph-based RAG Workflow
-Refactored to use modular components
+Refactored to use modular components with async support
 """
+import asyncio
 from typing import Dict, Any
 import logging
 
@@ -9,6 +10,7 @@ from .state import KGState
 from src.rag.vectors.embeddings import encode_e5
 from src.rag.retrieval.graph_retrieval import graph_retrieval
 from src.rag.retrieval.dense_retrieval import dense_retrieval
+from src.rag.retrieval.hybrid_retriever import hybrid_retriever
 from src.rag.llm.translator import GeminiTranslator, get_translator
 from src.rag.llm.answer_nodes import (
     safety_check_node,
@@ -21,9 +23,9 @@ from src.rag.llm.answer_nodes import (
 logger = logging.getLogger(__name__)
 
 
-def translate_question_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def translate_question_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Dịch question sang tiếng Anh nếu cần
+    Dịch question sang tiếng Anh nếu cần (async version)
     
     Args:
         state: KGState with 'question'
@@ -53,9 +55,9 @@ def translate_question_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 
-def translate_answer_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def translate_answer_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Dịch answer về ngôn ngữ của user
+    Dịch answer về ngôn ngữ của user (async version)
     
     Args:
         state: KGState with 'answer', 'user_language'
@@ -85,9 +87,9 @@ def translate_answer_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 # --- Encoding node ---
 
-def encode_node(state: KGState) -> KGState:
+async def encode_node(state: KGState) -> KGState:
     """
-    Encode query to embedding vector
+    Encode query to embedding vector (async version)
     
     Args:
         state: KGState with 'question'
@@ -96,16 +98,18 @@ def encode_node(state: KGState) -> KGState:
         Updated state with 'query_embedding'
     """
     q = state["question"]
-    emb = encode_e5([f"query: {q}"])[0]
+    # Run encoding in executor to avoid blocking
+    loop = asyncio.get_event_loop()
+    emb = await loop.run_in_executor(None, lambda: encode_e5([f"query: {q}"])[0])
     state["query_embedding"] = emb.tolist()
     return state
 
 
 # --- Retrieval node ---
 
-def graph_retrieval_node(state: KGState) -> KGState:
+async def graph_retrieval_node(state: KGState) -> KGState:
     """
-    Retrieve graph context using GraphRetrieval
+    Retrieve graph context using GraphRetrieval (async version)
     
     Args:
         state: KGState with 'question'
@@ -115,9 +119,8 @@ def graph_retrieval_node(state: KGState) -> KGState:
     """
     question = state["question"]
     
-    # Use GraphRetrieval to get context
-    result = graph_retrieval.retrieve(question)
-
+    # Use async GraphRetrieval to get context
+    result = await graph_retrieval.retrieve_async(question)
     
     # Update state
     state["graph_context"] = result.context
@@ -127,26 +130,51 @@ def graph_retrieval_node(state: KGState) -> KGState:
     
     return state
 
-def dense_retrieval_node(state: KGState) -> KGState:
+async def dense_retrieval_node(state: KGState) -> KGState:
     """
-    Retrieve relevant nodes using DenseRetrieval
+    Retrieve relevant nodes using DenseRetrieval (async version)
     
     Args:
         state: KGState with 'question'
     
     Returns:
-        Updated state with 'graph_context', 'anchors', 'nodes', 'rels'
+        Updated state with 'dense_context'
     """
-
     question = state["question"]
     
-    
-    results = dense_retrieval.retrieve(question, top_k=2)
-    
-
+    # Use async DenseRetrieval to get context
+    results = await dense_retrieval.retrieve_async(question, top_k=2)
     
     state["dense_context"] = results.context
+    
+    return state
 
+
+async def hybrid_retrieval_node(state: KGState) -> KGState:
+    """
+    Retrieve context using both graph and dense retrieval in parallel (hybrid search)
+    
+    Args:
+        state: KGState with 'question'
+    
+    Returns:
+        Updated state with 'combined_context' and metadata from both retrievers
+    """
+    question = state["question"]
+    
+    logger.info(f"Starting hybrid retrieval for: {question[:50]}...")
+    
+    # Use HybridRetriever to get combined context
+    result = await hybrid_retriever.retrieve_async(question)
+    
+    # Update state with combined context
+    state["combined_context"] = result.context
+    state["graph_context"] = result.metadata.get("graph_metadata", {}).get("context", "")
+    state["dense_context"] = result.metadata.get("dense_metadata", {}).get("context", "")
+    state["retrieval_metadata"] = result.metadata
+    
+    logger.info(f"Hybrid retrieval completed in {result.metadata.get('execution_time', 0):.2f}s")
+    
     return state
 
 # --- Export all nodes ---
@@ -168,6 +196,7 @@ __all__ = [
     # Retrieval
     'graph_retrieval_node',
     'dense_retrieval_node',
+    'hybrid_retrieval_node',
     
     # Answer generation
     'answer_with_graph_node',

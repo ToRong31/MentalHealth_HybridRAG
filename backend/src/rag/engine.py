@@ -2,6 +2,7 @@
 RAG engine - Entry point for running the graph workflow.
 Exposes the run_graph() function for chat service.
 """
+import asyncio
 import logging
 from typing import Dict, Any
 
@@ -11,9 +12,9 @@ from .workflow.workflow import KGState
 logger = logging.getLogger(__name__)
 
 
-def run_graph(graph, question: str) -> Dict[str, Any]:
+async def run_graph(graph, question: str) -> Dict[str, Any]:
     """
-    Run the RAG graph workflow with a user question.
+    Run the RAG graph workflow with a user question (async version).
     
     Args:
         graph: Compiled LangGraph workflow
@@ -39,7 +40,8 @@ def run_graph(graph, question: str) -> Dict[str, Any]:
     }
     
     try:
-        final_state = graph.invoke(initial_state)
+        # Use ainvoke for async workflow
+        final_state = await graph.ainvoke(initial_state)
         return final_state
     except Exception as e:
         logger.error(f"Error running RAG graph: {e}", exc_info=True)

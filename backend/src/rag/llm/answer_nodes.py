@@ -1,7 +1,8 @@
 """
 Answer Generation Nodes
-LangGraph nodes để sinh câu trả lời dựa trên context
+LangGraph nodes để sinh câu trả lời dựa trên context (async version)
 """
+import asyncio
 import json
 import re
 import logging
@@ -56,9 +57,9 @@ try:
 except Exception as e:
     logger.error(f"Failed to load answer_dense_promt.yaml: {e}") # Fallback to previous template
 
-def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Kiểm tra xem câu hỏi có liên quan đến mental health và có phải high-risk không.
+    Kiểm tra xem câu hỏi có liên quan đến mental health và có phải high-risk không (async version).
     
     Args:
         state: State dict với 'question' key
@@ -78,9 +79,10 @@ def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
     
     logger.info(f"Safety check prompt length: {len(prompt)}")
     
-    # Gọi LLM để phân tích
+    # Gọi LLM để phân tích (run in executor to avoid blocking)
     try:
-        response = llm.invoke(prompt)
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(None, lambda: llm.invoke(prompt))
         
         # Parse JSON response
         # Tìm JSON trong response (phòng trường hợp LLM trả về text thêm)
@@ -114,9 +116,9 @@ def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 
-def crisis_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def crisis_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Trả về thông báo khẩn cấp cho các trường hợp high-risk.
+    Trả về thông báo khẩn cấp cho các trường hợp high-risk (async version).
     
     Args:
         state: State dict
@@ -130,9 +132,9 @@ def crisis_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 
-def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Trả về thông báo chỉ hỗ trợ mental health cho các câu hỏi không liên quan.
+    Trả về thông báo chỉ hỗ trợ mental health cho các câu hỏi không liên quan (async version).
     
     Args:
         state: State dict
@@ -146,7 +148,7 @@ def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 
-def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     if(state["user_language"] == "vi"):
         try:
 
@@ -174,7 +176,7 @@ def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
             logger.error(f"Failed to load English prompt: {e}")
             raise RuntimeError(f"Cannot load any therapist prompt files: {e}")
         """
-    Sinh câu trả lời dựa trên graph context
+    Sinh câu trả lời dựa trên graph context (async version)
     
     Args:
         state: State dict với 'question' và 'graph_context'
@@ -182,8 +184,13 @@ def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Updated state với 'answer' và 'done' = True
     """
-    q = state["question"]
-    graph_context = state.get("graph_context", "")
+    if(state["user_language"] == "vi"):
+        q=state["original_question"]
+    else:
+        q = state["question"]
+    
+    # Use combined_context if available (from parallel retrieval), otherwise use graph_context
+    graph_context = state.get("combined_context") or state.get("graph_context", "")
     
     try:
         # Build full prompt with system instructions + user message
@@ -195,8 +202,9 @@ def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
         # Combine system instructions with user message
         full_prompt = f"{system_instructions}\n\n{user_message}"
         
-        # Generate answer with retry
-        answer = llm.invoke(full_prompt, max_retries=3)
+        # Generate answer with retry (run in executor)
+        loop = asyncio.get_event_loop()
+        answer = await loop.run_in_executor(None, lambda: llm.invoke(full_prompt, max_retries=3))
         
     except Exception as e:
         # Fallback answer khi LLM fail (Vietnamese)
@@ -208,9 +216,9 @@ def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     
     return state
 
-def answer_with_dense_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def answer_with_dense_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Sinh câu trả lời dựa trên document context từ dense retrieval
+    Sinh câu trả lời dựa trên document context từ dense retrieval (async version)
     
     Args:
         state: State dict với 'question' và 'doc_context'
@@ -230,8 +238,9 @@ def answer_with_dense_node(state: Dict[str, Any]) -> Dict[str, Any]:
         
         full_prompt = f"{system_instructions_dense}\n\n{user_message}"
         
-        # Generate answer with retry
-        answer = llm.invoke(full_prompt, max_retries=3)
+        # Generate answer with retry (run in executor)
+        loop = asyncio.get_event_loop()
+        answer = await loop.run_in_executor(None, lambda: llm.invoke(full_prompt, max_retries=3))
         
     except Exception as e:
         # Fallback answer khi LLM fail (Vietnamese)

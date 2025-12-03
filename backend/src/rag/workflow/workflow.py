@@ -13,6 +13,7 @@ from .graph_nodes import (
     translate_answer_node,
     dense_retrieval_node,
     answer_with_dense_node,
+    hybrid_retrieval_node,
 )
     
 
@@ -35,36 +36,35 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_
 
 def build_kg_graph():
     """
-    Build Knowledge Graph RAG workflow with translation support
+    Build Knowledge Graph RAG workflow with async support
     
     Workflow:
     1. translate_question -> Detect language (VI/EN) and translate to EN if needed
     2. safety_check -> Route based on risk/relevance
     3a. If high-risk -> crisis_response -> END
     3b. If not mental health -> not_mental_health -> END  
-    3c. If safe & relevant -> graph_retrieval -> answer -> translate_answer -> END
+    3c. If safe & relevant -> graph_retrieval -> answer -> END
     
     Translation logic:
     - Vietnamese input: VI -> EN (processing) -> VI (output)
     - English input: EN (no translation) -> EN (output)
     
     Graph retrieval integrates:
-    - Encode query to embedding
-    - Milvus vector search for anchor nodes
-    - Rerank anchors
-    - Expand subgraph in Neo4j
-    - Build context string
+    - Encode query -> Milvus search -> Rerank -> Expand subgraph
+    - All async for non-blocking execution
+    
+    Note: hybrid_retrieval (graph + dense parallel) is available but commented out for now
     """
     builder = StateGraph(KGState)
 
-    # Add nodes
+    # Add nodes (all async now)
     builder.add_node("translate_question", translate_question_node)
     builder.add_node("translate_answer", translate_answer_node)
     builder.add_node("safety_check", safety_check_node)
     builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
-    builder.add_node("dense_retrieval", dense_retrieval_node)
     builder.add_node("graph_retrieval", graph_retrieval_node)
+    # builder.add_node("hybrid_retrieval", hybrid_retrieval_node)  # Available for future use
     builder.add_node("answer", answer_with_graph_node)
 
     # Entry point - start with translation
@@ -81,21 +81,17 @@ def build_kg_graph():
             "crisis_response": "crisis_response",
             "not_mental_health": "not_mental_health",
             "graph_retrieval": "graph_retrieval",
-            # "dense_retrieval": "dense_retrieval",
+            # "hybrid_retrieval": "hybrid_retrieval",  # Available for future use
         },
     )
 
-    # Crisis and non-relevant queries exit directly without translation
+    # Crisis and non-relevant queries exit directly
     builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
-    # Normal flow: retrieval -> answer -> translate
+    # Normal flow: graph_retrieval -> answer -> END
     builder.add_edge("graph_retrieval", "answer")
-    # builder.add_edge("dense_retrieval", "answer")
-    # builder.add_edge("answer", "translate_answer")
-    
-    # # Final translation then END
-    # builder.add_edge("translate_answer", END)
+    # builder.add_edge("hybrid_retrieval", "answer")  # Available for future use
     builder.add_edge("answer", END)
 
     return builder.compile()
