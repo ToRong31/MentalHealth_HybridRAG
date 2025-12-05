@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 import { register, login, logout as apiLogout, getStoredUser } from '../services/api';
+import tokenService from '../services/tokenService';
 import type { User } from '../types';
 
 interface AuthContextType {
@@ -47,9 +48,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const handleLogout = () => {
-        apiLogout();
-        setUser(null);
+    const handleLogout = async () => {
+        try {
+            await apiLogout();
+        } catch (err) {
+            console.error('[AUTH] Logout error:', err);
+        } finally {
+            tokenService.clearAccessToken();
+            setUser(null);
+        }
     };
 
     const clearError = () => {

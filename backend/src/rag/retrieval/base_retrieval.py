@@ -8,10 +8,10 @@ from typing import Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 
 
-class BaseRetriever(ABC):
+class BaseRetrieval(ABC):
     """
-    Base abstract class for all retrievers
-    Mọi retriever (graph, dense, hybrid) đều implement interface này
+    Base abstract class for all retrievals
+    Mọi retrieval (graph, dense, hybrid) đều implement interface này
     """
     
     @abstractmethod

@@ -5,7 +5,7 @@ Run: python3 -m src.test_hybrid_retrieval
 """
 import asyncio
 import time
-from src.rag.retrieval.hybrid_retriever import hybrid_retriever
+from src.rag.retrieval.hybrid_retrieval import hybrid_retrieval
 from src.rag.retrieval.graph_retrieval import graph_retrieval
 from src.rag.retrieval.dense_retrieval import dense_retrieval
 
@@ -25,7 +25,7 @@ async def test_hybrid_retrieval(query: str):
     print("-" * 70)
     
     start_time = time.time()
-    result = await hybrid_retriever.retrieve_async(query)
+    result = await hybrid_retrieval.retrieve_async(query)
     elapsed_time = time.time() - start_time
     
     print(f"\n[Hybrid Retrieval Results]")

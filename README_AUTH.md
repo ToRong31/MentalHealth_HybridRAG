@@ -101,8 +101,11 @@ app/
 ├── backend/
 │   ├── main.py                 # FastAPI application with all endpoints
 │   ├── src/
-│   │   ├── database.py         # Database connection & session management
-│   │   ├── models.py           # SQLAlchemy models (User, Conversation, Message)
+│   │   ├── db/
+│   │   │   ├── init-db.sql     # Database initialization script
+│   │   │   ├── db_models/      # SQLAlchemy models (User, Conversation, Message)
+│   │   │   ├── repositories/   # Database repositories
+│   │   │   └── session.py      # Database connection & session management
 │   │   ├── schemas.py          # Pydantic schemas for validation
 │   │   ├── auth.py             # Authentication utilities (JWT, password hashing)
 │   │   └── workflow.py         # RAG workflow (existing)
@@ -115,7 +118,6 @@ app/
 │   │   └── types.ts            # TypeScript interfaces
 │   └── package.json
 ├── docker-compose.yaml         # Docker services (PostgreSQL, PgAdmin, Neo4j)
-├── init-db.sql                 # Database initialization script
 ├── .env                        # Environment variables
 └── DOCKER_SETUP.md             # Docker setup instructions
 ```

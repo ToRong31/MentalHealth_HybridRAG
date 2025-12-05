@@ -1,13 +1,13 @@
 from typing import List, Dict, Any, Tuple
 
-from .base_retriever import BaseRetriever, RetrievalResult
+from .base_retrieval import BaseRetrieval, RetrievalResult
 from src.rag.reranker.reranker import CohereReranker
 from src.rag.vectors.dense_retriever import DenseRetriever
 from src.rag.vectors.embeddings import device  # nếu không dùng thì có thể xoá
 from src.rag.vectors.embeddings import encode_e5  # nếu không dùng thì có thể xoá
 
 
-class DenseRetrieval(BaseRetriever):
+class DenseRetrieval(BaseRetrieval):
     """
     Tích hợp luôn:
       - DenseRetriever (lấy candidate từ Milvus)

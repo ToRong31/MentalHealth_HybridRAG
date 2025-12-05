@@ -12,6 +12,12 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds until expiry
+
+
 class TokenData(BaseModel):
     user_id: Optional[int] = None
     email: Optional[str] = None
@@ -19,4 +25,5 @@ class TokenData(BaseModel):
 
 class AuthResponse(BaseModel):
     user: UserResponse
-    token: Token
+    token: TokenResponse
+    refresh_token: str = None  # Only returned, not stored in client

@@ -1,8 +1,10 @@
 /**
  * API Client for Mental Health Chatbot
- * Handles all HTTP requests to the backend
+ * Handles all HTTP requests to the backend with automatic token refresh
  */
 
+import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import tokenService from './tokenService';
 import type {
     AuthResponse,
     RegisterRequest,
@@ -16,77 +18,64 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-/**
- * Get authentication token from localStorage
- */
-function getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');
-}
-
-/**
- * Set authentication token in localStorage
- */
-function setAuthToken(token: string): void {
-    localStorage.setItem('auth_token', token);
-}
-
-/**
- * Remove authentication token from localStorage
- */
-function clearAuthToken(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-}
-
-/**
- * Make authenticated API request
- */
-async function apiRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-): Promise<T> {
-    const token = getAuthToken();
-    console.log('[API] Request to:', endpoint);
-    console.log('[API] Token exists:', !!token);
-    console.log('[API] Token value:', token?.substring(0, 20) + '...');
-
-    const headers: Record<string, string> = {
+// Create axios instance
+const api: AxiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
         'Content-Type': 'application/json',
-    };
+    },
+    withCredentials: true, // Important for cookies (refresh token)
+});
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('[API] Authorization header set');
-    } else {
-        console.warn('[API] No token found in localStorage');
+// Request interceptor: Add access token to requests
+api.interceptors.request.use(
+    async (config: InternalAxiosRequestConfig) => {
+        const token = tokenService.getAccessToken();
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// Response interceptor: Handle 401 errors with token refresh retry
+api.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+        // If 401 and haven't retried yet, try refreshing token
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                console.log('[API] 401 error, attempting token refresh...');
+                const newToken = await tokenService.refreshAccessToken();
+
+                // Retry original request with new token
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return api(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed, clear token and let user re-login
+                console.error('[API] Token refresh failed:', refreshError);
+                tokenService.clearAccessToken();
+                return Promise.reject(refreshError);
+            }
+        }
+
+        return Promise.reject(error);
     }
+);
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-            ...headers,
-            ...(options.headers as Record<string, string>),
-        },
-    });
-
-    if (response.status === 401) {
-        // Token expired or invalid
-        clearAuthToken();
-        window.location.href = '/';
-        throw new Error('Unauthorized');
-    }
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(error.detail || 'Request failed');
-    }
-
-    // Handle 204 No Content
-    if (response.status === 204) {
-        return null as T;
-    }
-
-    return response.json();
+/**
+ * Remove authentication data
+ */
+function clearAuthData(): void {
+    tokenService.clearAccessToken();
+    localStorage.removeItem('user');
 }
 
 // ================================
@@ -94,45 +83,46 @@ async function apiRequest<T>(
 // ================================
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiRequest<AuthResponse>('/api/v1/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
+    const response = await api.post<AuthResponse>('/api/v1/auth/register', data);
 
-    setAuthToken(response.token.access_token);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    // Store access token and user
+    tokenService.setAccessToken(response.data.token.access_token, response.data.token.expires_in);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
 
-    return response;
+    return response.data;
 }
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiRequest<AuthResponse>('/api/v1/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
+    const response = await api.post<AuthResponse>('/api/v1/auth/login', data);
 
-    console.log('[AUTH] Login response:', response);
-    console.log('[AUTH] Token:', response.token.access_token.substring(0, 20) + '...');
+    console.log('[AUTH] Login response:', response.data);
 
-    setAuthToken(response.token.access_token);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    // Store access token (refresh token is in httpOnly cookie)
+    tokenService.setAccessToken(response.data.token.access_token, response.data.token.expires_in);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
 
-    console.log('[AUTH] Token saved to localStorage');
-    console.log('[AUTH] Stored token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
+    console.log('[AUTH] Access token stored in memory');
 
-    return response;
+    return response.data;
 }
 
 export async function getCurrentUser(): Promise<User> {
-    return apiRequest<User>('/api/v1/auth/me');
+    const response = await api.get<User>('/api/v1/auth/me');
+    return response.data;
 }
 
-export function logout(): void {
-    clearAuthToken();
+export async function logout(): Promise<void> {
+    try {
+        await api.post('/api/v1/auth/logout');
+    } catch (error) {
+        console.error('[AUTH] Logout request failed:', error);
+    } finally {
+        clearAuthData();
+    }
 }
 
 export function isAuthenticated(): boolean {
-    return getAuthToken() !== null;
+    return tokenService.getAccessToken() !== null;
 }
 
 export function getStoredUser(): User | null {
@@ -150,24 +140,22 @@ export function getStoredUser(): User | null {
 // ================================
 
 export async function getConversations(): Promise<Conversation[]> {
-    return apiRequest<Conversation[]>('/api/v1/conversations');
+    const response = await api.get<Conversation[]>('/api/v1/conversations');
+    return response.data;
 }
 
 export async function createConversation(title: string): Promise<Conversation> {
-    return apiRequest<Conversation>('/api/v1/conversations', {
-        method: 'POST',
-        body: JSON.stringify({ title }),
-    });
+    const response = await api.post<Conversation>('/api/v1/conversations', { title });
+    return response.data;
 }
 
 export async function getConversation(id: number): Promise<ConversationWithMessages> {
-    return apiRequest<ConversationWithMessages>(`/api/v1/conversations/${id}`);
+    const response = await api.get<ConversationWithMessages>(`/api/v1/conversations/${id}`);
+    return response.data;
 }
 
 export async function deleteConversation(id: number): Promise<void> {
-    return apiRequest<void>(`/api/v1/conversations/${id}`, {
-        method: 'DELETE',
-    });
+    await api.delete(`/api/v1/conversations/${id}`);
 }
 
 // ================================
@@ -175,8 +163,9 @@ export async function deleteConversation(id: number): Promise<void> {
 // ================================
 
 export async function sendMessage(data: ChatRequest): Promise<ChatResponse> {
-    return apiRequest<ChatResponse>('/api/v1/chat', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
+    const response = await api.post<ChatResponse>('/api/v1/chat', data);
+    return response.data;
 }
+
+export default api;
+

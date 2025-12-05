@@ -10,7 +10,7 @@ from .state import KGState
 from src.rag.vectors.embeddings import encode_e5
 from src.rag.retrieval.graph_retrieval import graph_retrieval
 from src.rag.retrieval.dense_retrieval import dense_retrieval
-from src.rag.retrieval.hybrid_retriever import hybrid_retriever
+from src.rag.retrieval.hybrid_retrieval import hybrid_retrieval
 from src.rag.llm.translator import GeminiTranslator, get_translator
 from src.rag.llm.answer_nodes import (
     safety_check_node,
@@ -164,8 +164,8 @@ async def hybrid_retrieval_node(state: KGState) -> KGState:
     
     logger.info(f"Starting hybrid retrieval for: {question[:50]}...")
     
-    # Use HybridRetriever to get combined context
-    result = await hybrid_retriever.retrieve_async(question)
+    # Use HybridRetrieval to get combined context
+    result = await hybrid_retrieval.retrieve_async(question)
     
     # Update state with combined context
     state["combined_context"] = result.context

@@ -11,15 +11,20 @@ import {
 } from '../services/api';
 import type { Conversation, Message, ConversationWithMessages } from '../types';
 
+// State for each conversation
+interface ConversationState {
+    messages: Message[];
+    inputValue: string;
+    isLoading: boolean;
+}
+
 const Home: React.FC = () => {
     // Conversation state
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversation, setCurrentConversation] = useState<ConversationWithMessages | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
 
-    // Chat state
-    const [inputValue, setInputValue] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    // Per-conversation state management
+    const [conversationStates, setConversationStates] = useState<Map<number | 'new', ConversationState>>(new Map());
 
     // UI state
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -28,6 +33,24 @@ const Home: React.FC = () => {
     useEffect(() => {
         loadConversations();
     }, []);
+
+    // Get current conversation state
+    const getCurrentState = (): ConversationState => {
+        const key = currentConversation?.id ?? 'new';
+        return conversationStates.get(key) ?? {
+            messages: [],
+            inputValue: '',
+            isLoading: false,
+        };
+    };
+
+    // Update current conversation state
+    const updateCurrentState = (updates: Partial<ConversationState>) => {
+        const key = currentConversation?.id ?? 'new';
+        const currentState = getCurrentState();
+        const newState = { ...currentState, ...updates };
+        setConversationStates(new Map(conversationStates.set(key, newState)));
+    };
 
     const loadConversations = async () => {
         try {
@@ -44,7 +67,14 @@ const Home: React.FC = () => {
             const conversation = await createConversation(title);
             setConversations([conversation, ...conversations]);
             setCurrentConversation({ ...conversation, messages: [] });
-            setMessages([]);
+
+            // Initialize state for new conversation
+            const newState: ConversationState = {
+                messages: [],
+                inputValue: '',
+                isLoading: false,
+            };
+            setConversationStates(new Map(conversationStates.set(conversation.id, newState)));
         } catch (error) {
             console.error('Error creating conversation:', error);
         }
@@ -54,7 +84,19 @@ const Home: React.FC = () => {
         try {
             const conversation = await getConversation(conversationId);
             setCurrentConversation(conversation);
-            setMessages(conversation.messages);
+
+            // Initialize state if not exists
+            if (!conversationStates.has(conversationId)) {
+                const newState: ConversationState = {
+                    messages: conversation.messages,
+                    inputValue: '',
+                    isLoading: false,
+                };
+                setConversationStates(new Map(conversationStates.set(conversationId, newState)));
+            } else {
+                // Update messages from server (in case they changed)
+                updateCurrentState({ messages: conversation.messages });
+            }
         } catch (error) {
             console.error('Error loading conversation:', error);
         }
@@ -66,9 +108,14 @@ const Home: React.FC = () => {
         try {
             await deleteConversation(conversationId);
             setConversations(conversations.filter((c) => c.id !== conversationId));
+
+            // Remove state for deleted conversation
+            const newStates = new Map(conversationStates);
+            newStates.delete(conversationId);
+            setConversationStates(newStates);
+
             if (currentConversation?.id === conversationId) {
                 setCurrentConversation(null);
-                setMessages([]);
             }
         } catch (error) {
             console.error('Error deleting conversation:', error);
@@ -76,41 +123,64 @@ const Home: React.FC = () => {
     };
 
     const handleSendMessage = async () => {
-        if (!inputValue.trim() || isLoading) return;
+        const currentState = getCurrentState();
+        if (!currentState.inputValue.trim() || currentState.isLoading) return;
 
-        const userMessageContent = inputValue;
-        setInputValue('');
-        setIsLoading(true);
+        const userMessageContent = currentState.inputValue;
+        const conversationIdForMessage = currentConversation?.id;
 
-        // Optimistically add user message to UI
+        // Clear input and set loading for THIS conversation
+        updateCurrentState({
+            inputValue: '',
+            isLoading: true
+        });
+
+        // Optimistically add user message to UI for THIS conversation
         const tempUserMessage: Message = {
             id: Date.now(),
-            conversation_id: currentConversation?.id || 0,
+            conversation_id: conversationIdForMessage || 0,
             content: userMessageContent,
             sender: 'user',
             is_high_risk: false,
             is_mental_health_related: true,
             created_at: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, tempUserMessage]);
+
+        updateCurrentState({
+            messages: [...currentState.messages, tempUserMessage]
+        });
 
         try {
             const response = await sendMessage({
                 message: userMessageContent,
-                conversation_id: currentConversation?.id,
+                conversation_id: conversationIdForMessage,
                 conversation_title: currentConversation
                     ? undefined
                     : `Chat ${new Date().toLocaleString()}`,
             });
 
             // If this was a new conversation, update state
-            if (!currentConversation) {
-                await loadConversations();
+            if (!conversationIdForMessage) {
+                // Load new conversation details
                 const newConv = await getConversation(response.conversation_id);
                 setCurrentConversation(newConv);
-                setMessages(newConv.messages);
+
+                // Move state from 'new' to actual conversation ID
+                const newKey = response.conversation_id;
+                const newState: ConversationState = {
+                    messages: newConv.messages,
+                    inputValue: '',
+                    isLoading: false,
+                };
+                const newStates = new Map(conversationStates);
+                newStates.delete('new');
+                newStates.set(newKey, newState);
+                setConversationStates(newStates);
+
+                // Refresh list in background
+                loadConversations();
             } else {
-                // Add bot message
+                // Add bot message to THIS conversation
                 const botMessage: Message = {
                     id: response.message_id,
                     conversation_id: response.conversation_id,
@@ -120,27 +190,53 @@ const Home: React.FC = () => {
                     is_mental_health_related: response.is_mental_health_related,
                     created_at: new Date().toISOString(),
                 };
-                setMessages((prev) => [...prev, botMessage]);
 
-                // Update conversation list
-                await loadConversations();
+                // Get the latest state for this conversation
+                const key = conversationIdForMessage;
+                const latestState = conversationStates.get(key) ?? currentState;
+                const updatedMessages = [...latestState.messages, botMessage];
+
+                const newStates = new Map(conversationStates);
+                newStates.set(key, {
+                    ...latestState,
+                    messages: updatedMessages,
+                    isLoading: false,
+                });
+                setConversationStates(newStates);
+
+                // Update conversation list in background
+                loadConversations();
             }
         } catch (error) {
             console.error('Error sending message:', error);
+
             const errorMessage: Message = {
                 id: Date.now() + 1,
-                conversation_id: currentConversation?.id || 0,
+                conversation_id: conversationIdForMessage || 0,
                 content: 'Sorry, I encountered an error. Please try again.',
                 sender: 'bot',
                 is_high_risk: false,
                 is_mental_health_related: false,
                 created_at: new Date().toISOString(),
             };
-            setMessages((prev) => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
+
+            // Add error message to THIS conversation
+            const key = conversationIdForMessage ?? 'new';
+            const latestState = conversationStates.get(key) ?? currentState;
+            const updatedMessages = [...latestState.messages, errorMessage];
+
+            const newStates = new Map(conversationStates);
+            newStates.set(key, {
+                ...latestState,
+                messages: updatedMessages,
+                isLoading: false,
+            });
+            setConversationStates(newStates);
         }
     };
+
+
+    const currentState = getCurrentState();
 
     return (
         <div className="app-container">
@@ -161,11 +257,11 @@ const Home: React.FC = () => {
                 />
 
                 <ChatInterface
-                    messages={messages}
-                    inputValue={inputValue}
-                    isLoading={isLoading}
+                    messages={currentState.messages}
+                    inputValue={currentState.inputValue}
+                    isLoading={currentState.isLoading}
                     currentConversationTitle={currentConversation?.title}
-                    onInputChange={setInputValue}
+                    onInputChange={(value) => updateCurrentState({ inputValue: value })}
                     onSendMessage={handleSendMessage}
                 />
             </div>

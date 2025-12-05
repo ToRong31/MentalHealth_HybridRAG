@@ -4,7 +4,7 @@ Implement GraphRAG retriever using Knowledge Graph
 """
 from typing import Dict, Any, List
 
-from .base_retriever import BaseRetriever, RetrievalResult
+from .base_retrieval import BaseRetrieval, RetrievalResult
 from src.rag.vectors.embeddings import encode_e5
 from src.rag.vectors.milvus_client import milvus_search
 from src.rag.graph.neo4j_client import get_node_names_from_neo4j
@@ -12,7 +12,7 @@ from src.rag.graph.graph_retriever import graph_retriever
 from src.rag.reranker.reranker import reranker
 
 
-class GraphRetrieval(BaseRetriever):
+class GraphRetrieval(BaseRetrieval):
     """
     GraphRAG retriever
     Pipeline: Query → E5 Embed → Milvus Search → Rerank → Expand Subgraph → Build Context

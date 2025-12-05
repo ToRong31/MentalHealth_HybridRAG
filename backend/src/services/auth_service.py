@@ -4,12 +4,14 @@ Authentication service for user registration and login.
 from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from jose import jwt, JWTError
 
-from src.core.security import get_password_hash, verify_password, create_access_token
+from src.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token
+from src.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from src.db.repositories.user_repository import UserRepository
 from src.db.db_models.user import User
 from src.schemas.user import UserCreate, UserLogin
-from src.schemas.auth import AuthResponse, UserResponse, Token
+from src.schemas.auth import AuthResponse, UserResponse, TokenResponse
 
 
 class AuthService:
@@ -48,12 +50,17 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(new_user)
         
-        # Create access token
+        # Create access and refresh tokens
         access_token = create_access_token(data={"sub": str(new_user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(new_user.id)})
         
         return AuthResponse(
             user=UserResponse.model_validate(new_user),
-            token=Token(access_token=access_token)
+            token=TokenResponse(
+                access_token=access_token,
+                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            ),
+            refresh_token=refresh_token
         )
     
     async def login(self, credentials: UserLogin) -> AuthResponse:
@@ -66,12 +73,17 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Create access token
+        # Create access and refresh tokens
         access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
         
         return AuthResponse(
             user=UserResponse.model_validate(user),
-            token=Token(access_token=access_token)
+            token=TokenResponse(
+                access_token=access_token,
+                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            ),
+            refresh_token=refresh_token
         )
     
     async def authenticate_user(self, email: str, password: str) -> Optional[User]:
@@ -82,3 +94,38 @@ class AuthService:
         if not verify_password(password, user.hashed_password):
             return None
         return user
+    
+    async def refresh_access_token(self, refresh_token: str) -> TokenResponse:
+        """Generate new access token from refresh token"""
+        try:
+            payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: str = payload.get("sub")
+            token_type: str = payload.get("type")
+            
+            if user_id is None or token_type != "refresh":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid refresh token"
+                )
+            
+            # Verify user still exists
+            user = await self.user_repo.get_by_id(int(user_id))
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found"
+                )
+            
+            # Create new access token
+            access_token = create_access_token(data={"sub": str(user_id)})
+            
+            return TokenResponse(
+                access_token=access_token,
+                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            )
+            
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
