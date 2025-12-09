@@ -25,6 +25,9 @@ export interface Message {
     is_high_risk: boolean;
     is_mental_health_related: boolean;
     created_at: string;
+    // Optional fields for pending messages
+    isPending?: boolean;
+    tempId?: string; // Unique identifier for pending messages
 }
 
 export interface ConversationWithMessages extends Conversation {

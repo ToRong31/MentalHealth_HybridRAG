@@ -6,11 +6,20 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const ACCESS_TOKEN_KEY = 'access_token';
 
 class TokenService {
   private accessToken: string | null = null;
   private isRefreshing: boolean = false;
   private refreshSubscribers: ((token: string) => void)[] = [];
+
+  constructor() {
+    // Restore token from localStorage on init
+    this.accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (this.accessToken) {
+      console.log('[TOKEN] Restored access token from localStorage');
+    }
+  }
 
   /**
    * Set access token
@@ -18,6 +27,7 @@ class TokenService {
   setAccessToken(token: string, expiresIn: number): void {
     console.log('[TOKEN] Setting new access token, expires in:', expiresIn, 'seconds');
     this.accessToken = token;
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
   }
 
   /**
@@ -33,6 +43,7 @@ class TokenService {
   clearAccessToken(): void {
     console.log('[TOKEN] Clearing access token');
     this.accessToken = null;
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
   }
 
   /**

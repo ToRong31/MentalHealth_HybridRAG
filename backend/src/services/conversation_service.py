@@ -10,6 +10,7 @@ from src.db.repositories.conversation_repository import ConversationRepository
 from src.db.db_models.user import User
 from src.schemas.chat import (
     ConversationCreate,
+    ConversationUpdate,
     ConversationResponse,
     ConversationWithMessages,
     MessageResponse
@@ -68,6 +69,29 @@ class ConversationService:
             **ConversationResponse.model_validate(conversation).model_dump(),
             messages=[MessageResponse.model_validate(msg) for msg in messages]
         )
+    
+    async def update_conversation(
+        self,
+        conversation_id: int,
+        conversation_data: ConversationUpdate,
+        current_user: User
+    ) -> ConversationResponse:
+        """Update a conversation's title"""
+        conversation = await self.conv_repo.get_by_id(conversation_id, current_user.id)
+        
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found"
+            )
+        
+        if conversation_data.title is not None:
+            conversation.title = conversation_data.title
+        
+        await self.db.commit()
+        await self.db.refresh(conversation)
+        
+        return ConversationResponse.model_validate(conversation)
     
     async def delete_conversation(
         self,
