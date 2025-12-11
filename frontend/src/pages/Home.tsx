@@ -1,272 +1,356 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import ChatInterface from '../components/ChatInterface';
 import {
-    getConversations,
-    getConversation,
-    createConversation,
-    deleteConversation,
-    sendMessage,
+  getConversations,
+  getConversation,
+  updateConversation,
+  deleteConversation,
+  sendMessage,
 } from '../services/api';
-import type { Conversation, Message, ConversationWithMessages } from '../types';
+import type { Conversation, Message } from '../types';
 
-// State for each conversation
+// Per-conversation state management
 interface ConversationState {
-    messages: Message[];
-    inputValue: string;
-    isLoading: boolean;
+  messages: Message[];
+  inputDraft: string;
+  pendingCount: number;
+  serverMessages: Message[]; // Messages from server (for reconciliation)
 }
 
 const Home: React.FC = () => {
-    // Conversation state
-    const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [currentConversation, setCurrentConversation] = useState<ConversationWithMessages | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Force re-render trigger
+  const [, setRenderTrigger] = useState(0);
+  const forceUpdate = useCallback(() => setRenderTrigger(prev => prev + 1), []);
 
-    // Per-conversation state management
-    const [conversationStates, setConversationStates] = useState<Map<number | 'new', ConversationState>>(new Map());
+  // Store state per conversation (key = conversationId string, or 'new' for new conversation)
+  const conversationStatesRef = useRef<Map<string, ConversationState>>(new Map());
+  
+  // Track pending requests by tempId to handle responses correctly
+  const pendingRequestsRef = useRef<Map<string, { conversationKey: string; userTempId: string }>>(new Map());
 
-    // UI state
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Get conversation key
+  const getConversationKey = (convId: number | null): string => {
+    return convId === null ? 'new' : convId.toString();
+  };
 
-    // Load conversations on mount
-    useEffect(() => {
-        loadConversations();
-    }, []);
+  // Get or initialize conversation state
+  const getConversationState = useCallback((convKey: string): ConversationState => {
+    if (!conversationStatesRef.current.has(convKey)) {
+      conversationStatesRef.current.set(convKey, {
+        messages: [],
+        inputDraft: '',
+        pendingCount: 0,
+        serverMessages: [],
+      });
+    }
+    return conversationStatesRef.current.get(convKey)!;
+  }, []);
 
-    // Get current conversation state
-    const getCurrentState = (): ConversationState => {
-        const key = currentConversation?.id ?? 'new';
-        return conversationStates.get(key) ?? {
-            messages: [],
-            inputValue: '',
-            isLoading: false,
-        };
-    };
+  // Update conversation state
+  const updateConversationState = useCallback((convKey: string, updates: Partial<ConversationState>) => {
+    const current = getConversationState(convKey);
+    conversationStatesRef.current.set(convKey, { ...current, ...updates });
+  }, [getConversationState]);
 
-    // Update current conversation state
-    const updateCurrentState = (updates: Partial<ConversationState>) => {
-        const key = currentConversation?.id ?? 'new';
-        const currentState = getCurrentState();
-        const newState = { ...currentState, ...updates };
-        setConversationStates(new Map(conversationStates.set(key, newState)));
-    };
+  // Merge server messages with pending messages
+  const mergeMessages = useCallback((serverMessages: Message[], pendingMessages: Message[]): Message[] => {
+    const serverMap = new Map(serverMessages.map(m => [m.id, m]));
+    const merged: Message[] = [...serverMessages];
 
-    const loadConversations = async () => {
-        try {
-            const convs = await getConversations();
-            setConversations(convs);
-        } catch (error) {
-            console.error('Error loading conversations:', error);
-        }
-    };
+    // Add pending messages that don't exist in server messages
+    pendingMessages.forEach(pm => {
+      if (pm.isPending && !serverMap.has(pm.id)) {
+        merged.push(pm);
+      }
+    });
 
-    const handleNewConversation = async () => {
-        try {
-            const title = `New Chat ${new Date().toLocaleString()}`;
-            const conversation = await createConversation(title);
-            setConversations([conversation, ...conversations]);
-            setCurrentConversation({ ...conversation, messages: [] });
+    return merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, []);
 
-            // Initialize state for new conversation
-            const newState: ConversationState = {
-                messages: [],
-                inputValue: '',
-                isLoading: false,
-            };
-            setConversationStates(new Map(conversationStates.set(conversation.id, newState)));
-        } catch (error) {
-            console.error('Error creating conversation:', error);
-        }
-    };
+  useEffect(() => {
+    loadConversations();
+  }, []);
 
-    const handleSelectConversation = async (conversationId: number) => {
-        try {
-            const conversation = await getConversation(conversationId);
-            setCurrentConversation(conversation);
+  const loadConversations = async () => {
+    try {
+      const convs = await getConversations();
+      setConversations(convs);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
 
-            // Initialize state if not exists
-            if (!conversationStates.has(conversationId)) {
-                const newState: ConversationState = {
-                    messages: conversation.messages,
-                    inputValue: '',
-                    isLoading: false,
-                };
-                setConversationStates(new Map(conversationStates.set(conversationId, newState)));
-            } else {
-                // Update messages from server (in case they changed)
-                updateCurrentState({ messages: conversation.messages });
-            }
-        } catch (error) {
-            console.error('Error loading conversation:', error);
-        }
-    };
+  const handleNewConversation = () => {
+    setCurrentConversationId(null);
+    // Don't clear the 'new' conversation state - it should persist
+  };
 
-    const handleDeleteConversation = async (conversationId: number) => {
-        if (!confirm('Are you sure you want to delete this conversation?')) return;
+  const handleSelectConversation = async (conversationId: number) => {
+    try {
+      const convKey = getConversationKey(conversationId);
+      const state = getConversationState(convKey);
 
-        try {
-            await deleteConversation(conversationId);
-            setConversations(conversations.filter((c) => c.id !== conversationId));
-
-            // Remove state for deleted conversation
-            const newStates = new Map(conversationStates);
-            newStates.delete(conversationId);
-            setConversationStates(newStates);
-
-            if (currentConversation?.id === conversationId) {
-                setCurrentConversation(null);
-            }
-        } catch (error) {
-            console.error('Error deleting conversation:', error);
-        }
-    };
-
-    const handleSendMessage = async () => {
-        const currentState = getCurrentState();
-        if (!currentState.inputValue.trim() || currentState.isLoading) return;
-
-        const userMessageContent = currentState.inputValue;
-        const conversationIdForMessage = currentConversation?.id;
-
-        // Clear input and set loading for THIS conversation
-        updateCurrentState({
-            inputValue: '',
-            isLoading: true
+      // If we haven't loaded this conversation yet, fetch from server
+      if (state.serverMessages.length === 0 && state.pendingCount === 0) {
+        const conversation = await getConversation(conversationId);
+        const mergedMessages = mergeMessages(conversation.messages, state.messages);
+        
+        updateConversationState(convKey, {
+          serverMessages: conversation.messages,
+          messages: mergedMessages,
         });
+      }
 
-        // Optimistically add user message to UI for THIS conversation
-        const tempUserMessage: Message = {
-            id: Date.now(),
-            conversation_id: conversationIdForMessage || 0,
-            content: userMessageContent,
-            sender: 'user',
-            is_high_risk: false,
-            is_mental_health_related: true,
-            created_at: new Date().toISOString(),
-        };
+      setCurrentConversationId(conversationId);
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
 
-        updateCurrentState({
-            messages: [...currentState.messages, tempUserMessage]
-        });
+  const handleRenameConversation = async (conversationId: number, newTitle: string) => {
+    try {
+      const updatedConv = await updateConversation(conversationId, newTitle);
+      setConversations(conversations.map((c) => (c.id === conversationId ? updatedConv : c)));
+    } catch (error) {
+      console.error('Error renaming conversation:', error);
+    }
+  };
 
-        try {
-            const response = await sendMessage({
-                message: userMessageContent,
-                conversation_id: conversationIdForMessage,
-                conversation_title: currentConversation
-                    ? undefined
-                    : `Chat ${new Date().toLocaleString()}`,
-            });
+  const handleDeleteConversation = async (conversationId: number) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa đoạn chat này?')) return;
 
-            // If this was a new conversation, update state
-            if (!conversationIdForMessage) {
-                // Load new conversation details
-                const newConv = await getConversation(response.conversation_id);
-                setCurrentConversation(newConv);
+    try {
+      await deleteConversation(conversationId);
+      setConversations(conversations.filter((c) => c.id !== conversationId));
 
-                // Move state from 'new' to actual conversation ID
-                const newKey = response.conversation_id;
-                const newState: ConversationState = {
-                    messages: newConv.messages,
-                    inputValue: '',
-                    isLoading: false,
-                };
-                const newStates = new Map(conversationStates);
-                newStates.delete('new');
-                newStates.set(newKey, newState);
-                setConversationStates(newStates);
+      // Clean up state
+      const convKey = getConversationKey(conversationId);
+      conversationStatesRef.current.delete(convKey);
 
-                // Refresh list in background
-                loadConversations();
-            } else {
-                // Add bot message to THIS conversation
-                const botMessage: Message = {
-                    id: response.message_id,
-                    conversation_id: response.conversation_id,
-                    content: response.answer,
-                    sender: 'bot',
-                    is_high_risk: response.is_high_risk,
-                    is_mental_health_related: response.is_mental_health_related,
-                    created_at: new Date().toISOString(),
-                };
+      // If deleting current conversation, switch to new
+      if (currentConversationId === conversationId) {
+        setCurrentConversationId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
 
-                // Get the latest state for this conversation
-                const key = conversationIdForMessage;
-                const latestState = conversationStates.get(key) ?? currentState;
-                const updatedMessages = [...latestState.messages, botMessage];
+  const handleSendMessage = async () => {
+    const convKey = getConversationKey(currentConversationId);
+    const state = getConversationState(convKey);
+    const userMessageContent = state.inputDraft.trim();
 
-                const newStates = new Map(conversationStates);
-                newStates.set(key, {
-                    ...latestState,
-                    messages: updatedMessages,
-                    isLoading: false,
-                });
-                setConversationStates(newStates);
+    if (!userMessageContent) return;
 
-                // Update conversation list in background
-                loadConversations();
-            }
-        } catch (error) {
-            console.error('Error sending message:', error);
+    // Generate unique IDs for this message pair
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const userTempId = `user-${tempId}`;
+    const now = new Date().toISOString();
+    
+    // Nếu đang ở conversation mới và chưa có conversation nào, tạo placeholder
+    const isNewConversation = currentConversationId === null;
+    let workingConversationId = currentConversationId;
+    
+    if (isNewConversation) {
+      // Tạo conversation placeholder trong danh sách
+      const placeholderConv: Conversation = {
+        id: -Date.now(), // Temporary negative ID
+        user_id: 0,
+        title: `Chat ${new Date().toLocaleTimeString()}`,
+        created_at: now,
+        updated_at: now,
+      };
+      setConversations(prev => [placeholderConv, ...prev]);
+      workingConversationId = placeholderConv.id;
+      setCurrentConversationId(workingConversationId);
+    }
 
-            const errorMessage: Message = {
-                id: Date.now() + 1,
-                conversation_id: conversationIdForMessage || 0,
-                content: 'Sorry, I encountered an error. Please try again.',
-                sender: 'bot',
-                is_high_risk: false,
-                is_mental_health_related: false,
-                created_at: new Date().toISOString(),
-            };
-
-            // Add error message to THIS conversation
-            const key = conversationIdForMessage ?? 'new';
-            const latestState = conversationStates.get(key) ?? currentState;
-            const updatedMessages = [...latestState.messages, errorMessage];
-
-            const newStates = new Map(conversationStates);
-            newStates.set(key, {
-                ...latestState,
-                messages: updatedMessages,
-                isLoading: false,
-            });
-            setConversationStates(newStates);
-        }
+    // Create pending user message
+    const pendingUserMessage: Message = {
+      id: Date.now(), // Temporary ID
+      conversation_id: workingConversationId ?? 0,
+      content: userMessageContent,
+      sender: 'user',
+      is_high_risk: false,
+      is_mental_health_related: true,
+      created_at: now,
+      isPending: true,
+      tempId: userTempId,
     };
 
+    // Update state: add pending message, clear input, increment pending count
+    const workingConvKey = getConversationKey(workingConversationId);
+    const workingState = getConversationState(workingConvKey);
+    const updatedMessages = [...workingState.messages, pendingUserMessage];
+    updateConversationState(workingConvKey, {
+      messages: updatedMessages,
+      inputDraft: '',
+      pendingCount: workingState.pendingCount + 1,
+    });
 
-    const currentState = getCurrentState();
+    forceUpdate();
 
-    return (
-        <div className="app-container">
-            <Sidebar
-                conversations={conversations}
-                currentConversationId={currentConversation?.id}
-                isOpen={sidebarOpen}
-                onToggle={() => setSidebarOpen(!sidebarOpen)}
-                onNewConversation={handleNewConversation}
-                onSelectConversation={handleSelectConversation}
-                onDeleteConversation={handleDeleteConversation}
-            />
+    // Track this request
+    pendingRequestsRef.current.set(tempId, { conversationKey: workingConvKey, userTempId });
 
-            <div className="chat-container">
-                <Header
-                    title={currentConversation?.title || 'Select or create a conversation'}
-                    subtitle="Your confidential companion for mental wellness"
-                />
+    try {
+      const response = await sendMessage({
+        message: userMessageContent,
+        conversation_id: isNewConversation ? undefined : currentConversationId!,
+        conversation_title: isNewConversation ? `Chat ${new Date().toLocaleString()}` : undefined,
+      });
 
-                <ChatInterface
-                    messages={currentState.messages}
-                    inputValue={currentState.inputValue}
-                    isLoading={currentState.isLoading}
-                    currentConversationTitle={currentConversation?.title}
-                    onInputChange={(value) => updateCurrentState({ inputValue: value })}
-                    onSendMessage={handleSendMessage}
-                />
-            </div>
-        </div>
-    );
+      // Get request info
+      const requestInfo = pendingRequestsRef.current.get(tempId);
+      if (!requestInfo) return; // Request was cancelled or outdated
+
+      const { conversationKey: targetConvKey, userTempId: targetUserTempId } = requestInfo;
+      pendingRequestsRef.current.delete(tempId);
+
+      // Get the target conversation state (might be different from current if user switched)
+      const targetState = getConversationState(targetConvKey);
+
+      // Remove pending messages and add real messages
+      const messagesWithoutPending = targetState.messages.filter(m => m.tempId !== targetUserTempId);
+
+      // Create real messages
+      const realUserMessage: Message = {
+        id: response.message_id - 1, // Assuming user message ID is one less (adjust as needed)
+        conversation_id: response.conversation_id,
+        content: userMessageContent,
+        sender: 'user',
+        is_high_risk: false,
+        is_mental_health_related: true,
+        created_at: now,
+      };
+
+      const botMessage: Message = {
+        id: response.message_id,
+        conversation_id: response.conversation_id,
+        content: response.answer,
+        sender: 'bot',
+        is_high_risk: response.is_high_risk,
+        is_mental_health_related: response.is_mental_health_related,
+        created_at: new Date().toISOString(),
+      };
+
+      // Update server messages
+      const newServerMessages = [...targetState.serverMessages, realUserMessage, botMessage];
+
+      // Merge with any remaining pending messages
+      const finalMessages = mergeMessages(newServerMessages, messagesWithoutPending);
+
+      updateConversationState(targetConvKey, {
+        messages: finalMessages,
+        serverMessages: newServerMessages,
+        pendingCount: Math.max(0, targetState.pendingCount - 1),
+      });
+
+      // Reload conversations list
+      await loadConversations();
+
+      // Handle new conversation creation
+      if (isNewConversation) {
+        // Xóa placeholder conversation
+        setConversations(prev => prev.filter(c => c.id >= 0));
+        
+        // Move state to the actual conversation ID
+        const realConvKey = getConversationKey(response.conversation_id);
+        conversationStatesRef.current.set(realConvKey, {
+          messages: finalMessages,
+          serverMessages: newServerMessages,
+          inputDraft: '',
+          pendingCount: 0,
+        });
+        
+        // Clean up old states
+        conversationStatesRef.current.delete(targetConvKey);
+        conversationStatesRef.current.delete('new');
+
+        // Switch to real conversation
+        setCurrentConversationId(response.conversation_id);
+      } else {
+        forceUpdate();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+
+      // Remove from pending requests
+      pendingRequestsRef.current.delete(tempId);
+
+      // Get current state
+      const currentState = getConversationState(convKey);
+
+      // Remove pending message and add error message
+      const messagesWithoutPending = currentState.messages.filter(m => m.tempId !== userTempId);
+
+      const errorMessage: Message = {
+        id: Date.now(),
+        conversation_id: currentConversationId ?? 0,
+        content: 'Xin lỗi, đã xảy ra lỗi. Vui lòng thử lại.',
+        sender: 'bot',
+        is_high_risk: false,
+        is_mental_health_related: false,
+        created_at: new Date().toISOString(),
+      };
+
+      updateConversationState(convKey, {
+        messages: [...messagesWithoutPending, errorMessage],
+        pendingCount: Math.max(0, currentState.pendingCount - 1),
+      });
+
+      forceUpdate();
+    }
+  };
+
+  const handleInputChange = (value: string) => {
+    const convKey = getConversationKey(currentConversationId);
+    updateConversationState(convKey, { inputDraft: value });
+    forceUpdate();
+  };
+
+  // Get current conversation state for rendering
+  const convKey = getConversationKey(currentConversationId);
+  const currentState = getConversationState(convKey);
+  const currentConversation = conversations.find(c => c.id === currentConversationId);
+
+  return (
+    <div className="app-container">
+      <Sidebar
+        conversations={conversations}
+        currentConversationId={currentConversationId ?? undefined}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onNewConversation={handleNewConversation}
+        onSelectConversation={handleSelectConversation}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
+      />
+
+      <div className="chat-container">
+        <Header
+          title={currentConversation?.title || 'Select or create a conversation'}
+          subtitle="MenChat • Confidential support, always on"
+        />
+
+        <ChatInterface
+          messages={currentState.messages}
+          inputValue={currentState.inputDraft}
+          isLoading={currentState.pendingCount > 0}
+          currentConversationTitle={currentConversation?.title}
+          onInputChange={handleInputChange}
+          onSendMessage={handleSendMessage}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default Home;

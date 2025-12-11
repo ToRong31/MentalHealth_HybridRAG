@@ -30,7 +30,7 @@ class ConversationRepository:
         result = await self.db.execute(
             select(Conversation)
             .where(Conversation.user_id == user_id)
-            .order_by(Conversation.updated_at.desc())
+            .order_by(Conversation.created_at.asc())
         )
         return list(result.scalars().all())
     

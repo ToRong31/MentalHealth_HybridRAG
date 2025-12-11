@@ -159,6 +159,11 @@ export async function getConversation(id: number): Promise<ConversationWithMessa
     return response.data;
 }
 
+export async function updateConversation(id: number, title: string): Promise<Conversation> {
+    const response = await api.patch<Conversation>(`/api/v1/conversations/${id}`, { title });
+    return response.data;
+}
+
 export async function deleteConversation(id: number): Promise<void> {
     await api.delete(`/api/v1/conversations/${id}`);
 }

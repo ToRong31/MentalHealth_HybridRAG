@@ -2,7 +2,15 @@
 
 ## Tổng quan
 
-Hệ thống quản lý state cho các cuộc hội thoại đã được cập nhật để đảm bảo mỗi cuộc hội thoại hoạt động độc lập. Điều này giải quyết vấn đề khi người dùng chuyển đổi giữa các cuộc hội thoại trong khi đang gửi tin nhắn.
+Hệ thống quản lý state cho các cuộc hội thoại được thiết kế theo hướng per-conversation state để đảm bảo:
+
+Mỗi cuộc hội thoại hoạt động độc lập (messages, input, loading…)
+
+Người dùng chuyển qua lại giữa các cuộc hội thoại trong khi request đang chạy không làm UI hiển thị sai
+
+Response luôn được gắn đúng vào cuộc hội thoại đã gửi (tránh race condition)
+
+Hỗ trợ gửi nhiều request đồng thời (giữa các cuộc hội thoại, và trong cùng một cuộc hội thoại nếu cần)
 
 ## Vấn đề trước đây
 
@@ -20,13 +28,31 @@ Trước đây, state được quản lý global cho toàn bộ ứng dụng:
 
 ### 1. Per-Conversation State
 
-Mỗi cuộc hội thoại có state riêng được lưu trong một Map:
-
+Mỗi cuộc hội thoại có state riêng, lưu trong Map theo key là conversationId hoặc 'new' (draft chat chưa có id).
 ```typescript
 interface ConversationState {
-    messages: Message[];      // Tin nhắn của cuộc hội thoại này
-    inputValue: string;       // Giá trị input của cuộc hội thoại này
-    isLoading: boolean;       // Trạng thái loading của cuộc hội thoại này
+  messages: Message[];
+  inputValue: string;
+
+  /**
+   * Thay vì boolean, dùng pendingCount để:
+   * - Hỗ trợ nhiều request trong cùng 1 conversation
+   * - Không bị "response 1 về trước" làm tắt loading khi response 2 chưa về
+   */
+  pendingCount: number;
+}
+
+type ConversationKey = number | "new";
+
+const DEFAULT_STATE: ConversationState = {
+  messages: [],
+  inputValue: "",
+  pendingCount: 0,
+};
+
+const [conversationStates, setConversationStates] =
+  useState<Map<ConversationKey, ConversationState>>(new Map());
+
 }
 
 const [conversationStates, setConversationStates] = 
@@ -36,32 +62,49 @@ const [conversationStates, setConversationStates] =
 ### 2. Key Management
 
 - **Cuộc hội thoại đã tồn tại**: Sử dụng `conversationId` làm key
-- **Cuộc hội thoại mới**: Sử dụng string `'new'` làm key tạm thời
+- **Cuộc hội thoại mới**: Sử dụng string `new` làm key tạm thời
 - Khi cuộc hội thoại mới được tạo, state được chuyển từ key `'new'` sang `conversationId` thực
 
-### 3. Helper Functions
+### 3. Helper Functions (React-safe, không mutate Map)
 
-#### `getCurrentState()`
+#### `getStateByKey()`
 Lấy state của cuộc hội thoại hiện tại:
 ```typescript
-const getCurrentState = (): ConversationState => {
-    const key = currentConversation?.id ?? 'new';
-    return conversationStates.get(key) ?? {
-        messages: [],
-        inputValue: '',
-        isLoading: false,
-    };
+const getStateByKey = (key: ConversationKey): ConversationState => {
+  return conversationStates.get(key) ?? DEFAULT_STATE;
+};
+```
+getStateByKey chỉ nên dùng để đọc trong render. Với async flow, luôn update bằng functional setConversationStates(prev => ...).
+
+#### `upsertStateByKey()`
+Cập nhật state theo key mà không mutate Map cũ và tránh stale closure.
+```typescript
+const upsertStateByKey = (
+  key: ConversationKey,
+  updates: Partial<ConversationState>
+) => {
+  setConversationStates((prev) => {
+    const prevState = prev.get(key) ?? DEFAULT_STATE;
+    const next = new Map(prev);
+    next.set(key, { ...prevState, ...updates });
+    return next;
+  });
 };
 ```
 
-#### `updateCurrentState()`
-Cập nhật state của cuộc hội thoại hiện tại:
+#### `updateStateByKeyWithReducer()`   
+Dùng khi update cần dựa trên state hiện tại (append message, merge…).
 ```typescript
-const updateCurrentState = (updates: Partial<ConversationState>) => {
-    const key = currentConversation?.id ?? 'new';
-    const currentState = getCurrentState();
-    const newState = { ...currentState, ...updates };
-    setConversationStates(new Map(conversationStates.set(key, newState)));
+const updateStateByKey = (
+  key: ConversationKey,
+  reducer: (state: ConversationState) => ConversationState
+) => {
+  setConversationStates((prev) => {
+    const prevState = prev.get(key) ?? DEFAULT_STATE;
+    const next = new Map(prev);
+    next.set(key, reducer(prevState));
+    return next;
+  });
 };
 ```
 
@@ -69,75 +112,145 @@ const updateCurrentState = (updates: Partial<ConversationState>) => {
 
 ### Khi chọn cuộc hội thoại
 
-1. Load dữ liệu cuộc hội thoại từ server
-2. Kiểm tra xem đã có state cho cuộc hội thoại này chưa
-3. Nếu chưa có: Khởi tạo state mới với messages từ server
-4. Nếu đã có: Cập nhật messages từ server (giữ nguyên inputValue và isLoading)
+Mục tiêu:
+1. Nếu chưa có state → khởi tạo bằng messages từ server
+2. Nếu đã có state → merge/replace có kiểm soát để tránh ghi đè message local pending
+Khuyến nghị: Nếu đang pending request trong conversation đó, không overwrite thô toàn bộ messages.
 
 ```typescript
-if (!conversationStates.has(conversationId)) {
-    // Khởi tạo state mới
-    const newState: ConversationState = {
-        messages: conversation.messages,
-        inputValue: '',
-        isLoading: false,
-    };
-    setConversationStates(new Map(conversationStates.set(conversationId, newState)));
-} else {
-    // Cập nhật messages, giữ nguyên input và loading state
-    updateCurrentState({ messages: conversation.messages });
-}
+const initOrSyncConversationFromServer = (
+  conversationId: number,
+  serverMessages: Message[]
+) => {
+  updateStateByKey(conversationId, (state) => {
+    // Nếu không pending gì, có thể replace thẳng
+    if (state.pendingCount === 0) {
+      return { ...state, messages: serverMessages };
+    }
+
+    // Nếu đang pending: merge để không mất message local
+    // (Tuỳ hệ thống id, có thể merge theo message.id)
+    const localOnly = state.messages.filter((m) => m.source === "local");
+    return { ...state, messages: [...serverMessages, ...localOnly] };
+  });
+};
+
 ```
 
 ### Khi gửi tin nhắn
 
-1. Lấy state của cuộc hội thoại hiện tại
-2. Lưu `conversationId` vào biến local để tránh bị thay đổi khi user chuyển cuộc hội thoại
-3. Cập nhật state của cuộc hội thoại này (clear input, set loading)
-4. Gửi request
-5. Khi nhận response, cập nhật state dựa trên `conversationId` đã lưu, không phải `currentConversation`
+1. Xác định key conversation tại thời điểm gửi (không phụ thuộc currentConversation sau này)
+2. Optimistic update (append user message, clear input, tăng pendingCount)
+3. Gửi request
+4. Khi response về: giảm pendingCount, append assistant message theo key đã capture
 
 ```typescript
 const handleSendMessage = async () => {
-    const currentState = getCurrentState();
-    const conversationIdForMessage = currentConversation?.id; // Lưu ID
-    
-    // Cập nhật state cho cuộc hội thoại này
-    updateCurrentState({ 
-        inputValue: '', 
-        isLoading: true 
+  const key: ConversationKey = currentConversation?.id ?? "new";
+  const requestId = crypto.randomUUID();
+
+  // Lấy input tại thời điểm gửi (từ state theo key)
+  const input = (conversationStates.get(key) ?? DEFAULT_STATE).inputValue.trim();
+  if (!input) return;
+
+  // Optimistic update
+  updateStateByKey(key, (state) => ({
+    ...state,
+    inputValue: "",
+    pendingCount: state.pendingCount + 1,
+    messages: [
+      ...state.messages,
+      {
+        id: requestId, // client id
+        role: "user",
+        content: input,
+        pending: true,
+        source: "local",
+      },
+    ],
+  }));
+
+  try {
+    const resp = await apiSendMessage({
+      conversationId: key === "new" ? undefined : key,
+      content: input,
+      requestId,
     });
-    
-    // ... gửi message ...
-    
-    // Cập nhật state dựa trên conversationIdForMessage, không phải currentConversation
-    const key = conversationIdForMessage;
-    const latestState = conversationStates.get(key) ?? currentState;
-    // ... cập nhật state ...
+
+    // Nếu đây là new chat và server trả về conversationId thật → migrate
+    if (key === "new" && resp.conversationId) {
+      migrateNewToConversationId(resp.conversationId);
+    }
+
+    const finalKey: ConversationKey =
+      key === "new" && resp.conversationId ? resp.conversationId : key;
+
+    // Apply response vào đúng conversation
+    updateStateByKey(finalKey, (state) => ({
+      ...state,
+      pendingCount: Math.max(0, state.pendingCount - 1),
+      messages: [
+        ...state.messages.map((m) =>
+          m.id === requestId ? { ...m, pending: false, source: "server" } : m
+        ),
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: resp.assistantText,
+          source: "server",
+        },
+      ],
+    }));
+  } catch (err) {
+    // Fail: giảm pendingCount và đánh dấu message lỗi
+    updateStateByKey(key, (state) => ({
+      ...state,
+      pendingCount: Math.max(0, state.pendingCount - 1),
+      messages: state.messages.map((m) =>
+        m.id === requestId ? { ...m, pending: false, error: true } : m
+      ),
+    }));
+  }
+};
+```
+
+### Migrate state từ 'new' sang conversationId
+Migrate phải atomic và không mutate Map cũ:
+```typescript
+const migrateNewToConversationId = (conversationId: number) => {
+  setConversationStates((prev) => {
+    const next = new Map(prev);
+    const draft = next.get("new");
+    if (!draft) return prev;
+
+    next.set(conversationId, draft);
+    next.delete("new");
+    return next;
+  });
 };
 ```
 
 ### Khi xóa cuộc hội thoại
-
-1. Xóa cuộc hội thoại từ server
-2. Xóa state của cuộc hội thoại khỏi Map
-3. Nếu đang xem cuộc hội thoại bị xóa, clear currentConversation
-
 ```typescript
-const newStates = new Map(conversationStates);
-newStates.delete(conversationId);
-setConversationStates(newStates);
+const deleteConversationState = (conversationId: number) => {
+  setConversationStates((prev) => {
+    const next = new Map(prev);
+    next.delete(conversationId);
+    return next;
+  });
+};
 ```
+Nếu đang xem cuộc hội thoại bị xoá: clear currentConversation ở tầng routing/UI.
 
 ## Lợi ích
 
 ### 1. Độc lập giữa các cuộc hội thoại
-- Mỗi cuộc hội thoại có state riêng
-- Gửi tin nhắn ở cuộc hội thoại A không ảnh hưởng đến cuộc hội thoại B
+- Mỗi conversation có messages/input/pendingCount riêng
+- Loading không “dính” qua conversation khác
 
 ### 2. Hỗ trợ gửi tin nhắn đồng thời
 - Có thể gửi tin nhắn ở nhiều cuộc hội thoại cùng lúc
-- Mỗi cuộc hội thoại hiển thị loading state riêng
+- Mỗi conversation hiển thị loading đúng theo pendingCount
 
 ### 3. Giữ nguyên input khi chuyển cuộc hội thoại
 - Nếu đang soạn tin nhắn ở cuộc hội thoại A
@@ -145,8 +258,9 @@ setConversationStates(newStates);
 - Quay lại cuộc hội thoại A, nội dung đang soạn vẫn còn
 
 ### 4. Tránh race condition
-- Khi gửi tin nhắn, lưu `conversationId` vào biến local
-- Response luôn được thêm vào đúng cuộc hội thoại, dù user có chuyển đi chỗ khác
+Khi gửi, capture key và requestId
+
+Response update dựa trên key/requestId đã capture, không phụ thuộc UI hiện tại
 
 ## Testing
 
@@ -158,13 +272,17 @@ setConversationStates(newStates);
    - Cuộc hội thoại B không hiển thị loading
    - Khi response trả về, tin nhắn xuất hiện ở cuộc hội thoại A
    - Cuộc hội thoại B không bị ảnh hưởng
+   - A pendingCount về 0 khi xong
 
 ### Test case 2: Gửi tin nhắn đồng thời nhiều cuộc hội thoại
 1. Mở cuộc hội thoại A, gửi tin nhắn
 2. Chuyển sang cuộc hội thoại B, gửi tin nhắn
+A gửi → pendingCount(A)=1
+
+B gửi → pendingCount(B)=1
 3. **Kết quả mong đợi:**
-   - Cả hai cuộc hội thoại đều hiển thị loading
-   - Response của mỗi cuộc hội thoại xuất hiện đúng chỗ
+   - cả hai loading độc lập
+   - Response của mỗi cuộc hội thoại xuất hiện đúng chỗ, pending count giảm đúng
 
 ### Test case 3: Giữ nguyên input khi chuyển cuộc hội thoại
 1. Mở cuộc hội thoại A, gõ một nửa tin nhắn (không gửi)
@@ -173,7 +291,15 @@ setConversationStates(newStates);
 4. **Kết quả mong đợi:**
    - Nội dung đang soạn ở cuộc hội thoại A vẫn còn
 
-## Cấu trúc dữ liệu
+### Test case 4: Sync server messages khi đang pending
+
+1. A đang pending
+2. user re-open conversation / app refetch messages
+3. **Expected**
+    - không mất local pending message
+    - merge logic giữ message local ở cuối (hoặc reconcile theo id)
+
+## Cấu trúc dữ liệu ví dụ
 
 ```typescript
 // Ví dụ conversationStates Map
@@ -181,25 +307,42 @@ setConversationStates(newStates);
   123: {
     messages: [...],
     inputValue: "Hello",
-    isLoading: false
+    pendingCount: 0
   },
   456: {
     messages: [...],
     inputValue: "",
-    isLoading: true  // Đang gửi tin nhắn
+    pendingCount: 1
   },
-  'new': {
+  "new": {
     messages: [],
     inputValue: "Starting new chat",
-    isLoading: false
+    pendingCount: 0
   }
 }
+
 ```
 
 ## Lưu ý khi phát triển
 
-1. **Luôn sử dụng `getCurrentState()` và `updateCurrentState()`** thay vì truy cập trực tiếp vào Map
-2. **Lưu `conversationId` vào biến local** trong các async function để tránh race condition
-3. **Khởi tạo state** khi tạo hoặc chọn cuộc hội thoại mới
-4. **Xóa state** khi xóa cuộc hội thoại để tránh memory leak
-5. **Sử dụng key `'new'`** cho cuộc hội thoại chưa được tạo trên server
+Không mutate Map trong React state (set, delete trên object cũ)
+
+Luôn dùng setConversationStates(prev => new Map(prev) ...)
+
+Tránh stale closure trong async
+
+Không đọc conversationStates sau await để quyết định update
+
+Luôn update bằng functional form (prev => ...) / reducer
+
+Không dùng isLoading: boolean nếu có thể có nhiều request
+
+Dùng pendingCount hoặc pendingRequestIds
+
+Khi sync từ server, tránh overwrite thô messages
+
+Merge/reconcile để không mất local pending/optimistic
+
+Migrate 'new' → conversationId phải atomic
+
+Dùng functional setConversationStates

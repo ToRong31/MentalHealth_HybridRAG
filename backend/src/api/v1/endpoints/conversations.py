@@ -9,6 +9,7 @@ from src.db.session import get_db
 from src.db.db_models.user import User
 from src.schemas.chat import (
     ConversationCreate,
+    ConversationUpdate,
     ConversationResponse,
     ConversationWithMessages
 )
@@ -49,6 +50,18 @@ async def get_conversation(
     """Get a conversation with all its messages"""
     conv_service = ConversationService(db)
     return await conv_service.get_conversation(conversation_id, current_user)
+
+
+@router.patch("/{conversation_id}", response_model=ConversationResponse)
+async def update_conversation(
+    conversation_id: int,
+    conversation_data: ConversationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a conversation (e.g., rename)"""
+    conv_service = ConversationService(db)
+    return await conv_service.update_conversation(conversation_id, conversation_data, current_user)
 
 
 @router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
