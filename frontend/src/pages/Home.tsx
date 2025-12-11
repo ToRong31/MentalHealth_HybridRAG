@@ -153,11 +153,29 @@ const Home: React.FC = () => {
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const userTempId = `user-${tempId}`;
     const now = new Date().toISOString();
+    
+    // Nếu đang ở conversation mới và chưa có conversation nào, tạo placeholder
+    const isNewConversation = currentConversationId === null;
+    let workingConversationId = currentConversationId;
+    
+    if (isNewConversation) {
+      // Tạo conversation placeholder trong danh sách
+      const placeholderConv: Conversation = {
+        id: -Date.now(), // Temporary negative ID
+        user_id: 0,
+        title: `Chat ${new Date().toLocaleTimeString()}`,
+        created_at: now,
+        updated_at: now,
+      };
+      setConversations(prev => [placeholderConv, ...prev]);
+      workingConversationId = placeholderConv.id;
+      setCurrentConversationId(workingConversationId);
+    }
 
     // Create pending user message
     const pendingUserMessage: Message = {
       id: Date.now(), // Temporary ID
-      conversation_id: currentConversationId ?? 0,
+      conversation_id: workingConversationId ?? 0,
       content: userMessageContent,
       sender: 'user',
       is_high_risk: false,
@@ -168,23 +186,25 @@ const Home: React.FC = () => {
     };
 
     // Update state: add pending message, clear input, increment pending count
-    const updatedMessages = [...state.messages, pendingUserMessage];
-    updateConversationState(convKey, {
+    const workingConvKey = getConversationKey(workingConversationId);
+    const workingState = getConversationState(workingConvKey);
+    const updatedMessages = [...workingState.messages, pendingUserMessage];
+    updateConversationState(workingConvKey, {
       messages: updatedMessages,
       inputDraft: '',
-      pendingCount: state.pendingCount + 1,
+      pendingCount: workingState.pendingCount + 1,
     });
 
     forceUpdate();
 
     // Track this request
-    pendingRequestsRef.current.set(tempId, { conversationKey: convKey, userTempId });
+    pendingRequestsRef.current.set(tempId, { conversationKey: workingConvKey, userTempId });
 
     try {
       const response = await sendMessage({
         message: userMessageContent,
-        conversation_id: currentConversationId ?? undefined,
-        conversation_title: currentConversationId ? undefined : `Chat ${new Date().toLocaleString()}`,
+        conversation_id: isNewConversation ? undefined : currentConversationId!,
+        conversation_title: isNewConversation ? `Chat ${new Date().toLocaleString()}` : undefined,
       });
 
       // Get request info
@@ -237,20 +257,24 @@ const Home: React.FC = () => {
       await loadConversations();
 
       // Handle new conversation creation
-      if (currentConversationId === null && targetConvKey === 'new') {
-        // Move state from 'new' to the actual conversation ID
-        const newConvKey = getConversationKey(response.conversation_id);
-        const newState = getConversationState('new');
+      if (isNewConversation) {
+        // Xóa placeholder conversation
+        setConversations(prev => prev.filter(c => c.id >= 0));
         
-        conversationStatesRef.current.set(newConvKey, {
-          ...newState,
+        // Move state to the actual conversation ID
+        const realConvKey = getConversationKey(response.conversation_id);
+        conversationStatesRef.current.set(realConvKey, {
           messages: finalMessages,
           serverMessages: newServerMessages,
-          pendingCount: Math.max(0, newState.pendingCount - 1),
+          inputDraft: '',
+          pendingCount: 0,
         });
+        
+        // Clean up old states
+        conversationStatesRef.current.delete(targetConvKey);
         conversationStatesRef.current.delete('new');
 
-        // Switch to new conversation
+        // Switch to real conversation
         setCurrentConversationId(response.conversation_id);
       } else {
         forceUpdate();

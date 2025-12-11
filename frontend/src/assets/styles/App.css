@@ -373,6 +373,7 @@ a {
 .conversation-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: visible;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -387,6 +388,7 @@ a {
   transition: border 0.2s ease, background 0.2s ease, transform 0.15s ease;
   position: relative;
   border: 1px solid var(--border-color);
+  overflow: visible;
 }
 
 .conversation-item:hover {

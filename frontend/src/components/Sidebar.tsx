@@ -121,6 +121,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         key={conv.id}
                         className={`conversation-item ${currentConversationId === conv.id ? 'active' : ''}`}
                         onClick={() => onSelectConversation(conv.id)}
+                        style={{ zIndex: openMenuId === conv.id ? 1001 : 'auto' }}
                     >
                         {renamingId === conv.id ? (
                             <input
