@@ -7,7 +7,9 @@ from .answer_nodes import (
     safety_check_node,
     crisis_response_node,
     not_mental_health_node,
+    slot_filling_node,
     answer_with_graph_node,
+    answer_with_dense_node,
     answer_with_hybrid_node
 )
 
@@ -16,7 +18,9 @@ __all__ = [
     'safety_check_node',
     'crisis_response_node',
     'not_mental_health_node',
+    'slot_filling_node',
     'answer_with_graph_node',
+    'answer_with_dense_node',
     'answer_with_hybrid_node',
 ]
 

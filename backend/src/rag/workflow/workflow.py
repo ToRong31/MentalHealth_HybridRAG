@@ -3,17 +3,20 @@ from typing import Literal
 
 from .state import KGState
 from .graph_nodes import (
-    safety_check_node,
-    crisis_response_node,
-    not_mental_health_node,
     encode_node,
     graph_retrieval_node,
-    answer_with_graph_node,
     translate_question_node,
     translate_answer_node,
     dense_retrieval_node,
-    answer_with_dense_node,
     hybrid_retrieval_node,
+)
+from src.rag.llm.answer_nodes import (
+    safety_check_node,
+    crisis_response_node,
+    not_mental_health_node,
+    answer_with_graph_node,
+    answer_with_dense_node,
+    slot_filling_node,
 )
     
 
@@ -36,14 +39,25 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_
 
 def build_kg_graph():
     """
-    Build Knowledge Graph RAG workflow with async support
+    Build Knowledge Graph RAG workflow with parallel slot filling and safety check
     
     Workflow:
-    1. translate_question -> Detect language (VI/EN) and translate to EN if needed
-    2. safety_check -> Route based on risk/relevance
+    1. translate_question -> Detect language (VI/EN), translate to EN if needed, set parallel_start_time
+    2. [PARALLEL] safety_check + slot_filling -> Both run simultaneously
+    3. route_after_safety_check -> Route based on safety_check results (slots may still be processing)
     3a. If high-risk -> crisis_response -> END
     3b. If not mental health -> not_mental_health -> END  
-    3c. If safe & relevant -> graph_retrieval -> answer -> END
+    3c. If safe & relevant -> graph_retrieval -> answer -> translate_answer -> END
+    
+    Slot filling (parallel):
+    - Extract structured information (emotion, trigger, duration, etc.)
+    - Identify missing information
+    - Generate contextually relevant follow-up questions if needed
+    
+    Graph retrieval smart waiting:
+    - If slots ready → execute immediately
+    - If slots not ready → wait up to 5 seconds
+    - After 7 seconds total → proceed with defaults
     
     Translation logic:
     - Vietnamese input: VI -> EN (processing) -> VI (output)
@@ -61,6 +75,7 @@ def build_kg_graph():
     builder.add_node("translate_question", translate_question_node)
     builder.add_node("translate_answer", translate_answer_node)
     builder.add_node("safety_check", safety_check_node)
+    builder.add_node("slot_filling", slot_filling_node)  # Parallel với safety_check
     builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
     builder.add_node("graph_retrieval", graph_retrieval_node)
@@ -70,18 +85,18 @@ def build_kg_graph():
     # Entry point - start with translation
     builder.set_entry_point("translate_question")
     
-    # After translation, go to safety check
+    # PARALLEL: Cả hai chạy song song sau translate_question
     builder.add_edge("translate_question", "safety_check")
+    builder.add_edge("translate_question", "slot_filling")  # Parallel execution!
 
-    # Conditional routing after safety check
+    # Conditional routing after safety check (slot_filling đang chạy song song)
     builder.add_conditional_edges(
         "safety_check",
         route_after_safety_check,
         {
             "crisis_response": "crisis_response",
             "not_mental_health": "not_mental_health",
-            "graph_retrieval": "graph_retrieval",
-            # "hybrid_retrieval": "hybrid_retrieval",  # Available for future use
+            "graph_retrieval": "graph_retrieval",  # Slots có thể chưa xong, sẽ đợi trong node
         },
     )
 
@@ -89,9 +104,9 @@ def build_kg_graph():
     builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
-    # Normal flow: graph_retrieval -> answer -> END
+    # Normal flow: graph_retrieval (smart waiting) -> answer -> translate_answer -> END
     builder.add_edge("graph_retrieval", "answer")
-    # builder.add_edge("hybrid_retrieval", "answer")  # Available for future use
-    builder.add_edge("answer", END)
+    builder.add_edge("answer", "translate_answer")
+    builder.add_edge("translate_answer", END)
 
     return builder.compile()

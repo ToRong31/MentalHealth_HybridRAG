@@ -3,7 +3,12 @@
  * Handles all HTTP requests to the backend with automatic token refresh
  */
 
-import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import axios, {
+    AxiosError,
+    type AxiosInstance,
+    type InternalAxiosRequestConfig,
+    type AxiosResponse,
+} from 'axios';
 import tokenService from './tokenService';
 import type {
     AuthResponse,
@@ -16,7 +21,7 @@ import type {
     User
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = ((import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL) || 'http://localhost:8000';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -38,12 +43,12 @@ api.interceptors.request.use(
 
         return config;
     },
-    (error) => Promise.reject(error)
+    (error: AxiosError) => Promise.reject(error)
 );
 
 // Response interceptor: Handle 401 errors with token refresh retry
 api.interceptors.response.use(
-    (response) => response,
+    (response: AxiosResponse) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 

@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Dict, Any
+from typing import TypedDict, List, Dict, Any, Optional
 
 
 class KGState(TypedDict):
@@ -15,3 +15,12 @@ class KGState(TypedDict):
     dense_context: str
     answer: str
     done: bool
+    
+    # Slot Filling Data
+    slots: Optional[Dict[str, Any]]
+    missing_slots: Optional[List[str]]
+    relevant_missing_slots: Optional[List[str]]
+    follow_up_questions: Optional[List[str]]
+    
+    # Timing tracking for parallel execution
+    parallel_start_time: Optional[float]  # Timestamp when parallel execution starts

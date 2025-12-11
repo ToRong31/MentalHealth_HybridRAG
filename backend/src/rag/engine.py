@@ -37,6 +37,13 @@ async def run_graph(graph, question: str) -> Dict[str, Any]:
         "dense_context": "",
         "answer": "",
         "done": False,
+        # Slot Filling Data (will be populated by slot_filling_node)
+        "slots": None,
+        "missing_slots": None,
+        "relevant_missing_slots": None,
+        "follow_up_questions": None,
+        # Timing tracking (will be set by translate_question_node)
+        "parallel_start_time": None,
     }
     
     try:

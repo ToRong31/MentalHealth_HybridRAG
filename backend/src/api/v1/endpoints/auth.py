@@ -31,7 +31,7 @@ async def register(
         key="refresh_token",
         value=auth_response.refresh_token,
         httponly=True,
-        secure=True,  # Use HTTPS in production
+        secure=False,  # local HTTP; set True in production
         samesite="lax",
         max_age=7 * 24 * 60 * 60  # 7 days
     )
@@ -54,7 +54,7 @@ async def login(
         key="refresh_token",
         value=auth_response.refresh_token,
         httponly=True,
-        secure=True,  # Use HTTPS in production
+        secure=False,  # local HTTP; set True in production
         samesite="lax",
         max_age=7 * 24 * 60 * 60  # 7 days
     )

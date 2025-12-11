@@ -9,7 +9,8 @@ import logging
 from typing import Dict, Any
 
 from .llm_gemini import llm
-from src.rag.prompts.loader import load_prompts
+from src.rag.prompts.loader import load_prompts, format_prompt
+from src.rag.slots.utils import get_default_slots, build_slot_context
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,89 @@ async def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
     return state
 
 
+async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract structured information (slots) from user question and identify missing information.
+    Only runs after safety_check confirms safe & relevant.
+    
+    Args:
+        state: KGState with 'question', 'user_language'
+    
+    Returns:
+        Updated state with 'slots', 'missing_slots', 'relevant_missing_slots', 'follow_up_questions'
+    """
+    question = state["question"]
+
+    try:
+        # Load slot filling prompt
+        prompt_data = load_prompts("slot_filling_prompt.yaml")
+        prompt_template = prompt_data.get("slot_filling_prompt", "")
+        
+        if not prompt_template:
+            logger.warning("Slot filling prompt not found, using defaults")
+            state["slots"] = get_default_slots()
+            state["missing_slots"] = []
+            state["relevant_missing_slots"] = []
+            state["follow_up_questions"] = []
+            return state
+        
+        # Format prompt with question
+        prompt = format_prompt(prompt_template, QUESTION=question)
+        
+        # Call LLM (run in executor to avoid blocking)
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, 
+            lambda: llm.invoke(prompt, max_retries=3)
+        )
+        
+        # Parse JSON response
+        json_match = re.search(
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',
+            response,
+            re.DOTALL
+        )
+        
+        if json_match:
+            json_str = json_match.group(0)
+            result = json.loads(json_str)
+            
+            # Update state
+            state["slots"] = result.get("slots", get_default_slots())
+            state["missing_slots"] = result.get("missing_slots", [])
+            state["relevant_missing_slots"] = result.get("relevant_missing_slots", [])
+            state["follow_up_questions"] = result.get("follow_up_questions", [])
+            
+            logger.info(
+                f"Extracted slots: {len([v for v in state['slots'].values() if v is not None and v != []])} filled, "
+                f"{len(state.get('relevant_missing_slots', []))} relevant missing, "
+                f"{len(state.get('follow_up_questions', []))} follow-ups"
+            )
+        else:
+            logger.warning(f"Could not parse JSON from slot filling response: {response[:200]}")
+            # Fallback to defaults
+            state["slots"] = get_default_slots()
+            state["missing_slots"] = []
+            state["relevant_missing_slots"] = []
+            state["follow_up_questions"] = []
+            
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error in slot_filling_node: {e}")
+        state["slots"] = get_default_slots()
+        state["missing_slots"] = []
+        state["relevant_missing_slots"] = []
+        state["follow_up_questions"] = []
+    except Exception as e:
+        logger.error(f"Error in slot_filling_node: {e}", exc_info=True)
+        # Fallback to defaults on error
+        state["slots"] = get_default_slots()
+        state["missing_slots"] = []
+        state["relevant_missing_slots"] = []
+        state["follow_up_questions"] = []
+    
+    return state
+
+
 async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     if(state["user_language"] == "vi"):
         try:
@@ -192,12 +276,36 @@ async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # Use combined_context if available (from parallel retrieval), otherwise use graph_context
     graph_context = state.get("combined_context") or state.get("graph_context", "")
     
+    # Get slot information for personalization
+    slots = state.get("slots", {})
+    follow_up_questions = state.get("follow_up_questions", [])
+    relevant_missing_slots = state.get("relevant_missing_slots", [])
+    
     try:
+        # Build slot context if available (import lazily to avoid circular import)
+        slot_info = ""
+        if slots:
+            from src.rag.workflow.graph_nodes import build_slot_context
+            slot_info = build_slot_context(slots)
+        
+        # Build context with graph context and slot information
+        combined_context = graph_context if graph_context else "No specific knowledge available."
+        if slot_info:
+            combined_context = f"{combined_context}\n\n{slot_info}"
+        
         # Build full prompt with system instructions + user message
         user_message = user_template.replace("{{QUESTION}}", q).replace(
             "{{GRAPH_CONTEXT}}",
-            graph_context if graph_context else "No specific knowledge available."
+            combined_context
         )
+        
+        # Add follow-up questions instruction if available
+        if follow_up_questions and relevant_missing_slots:
+            user_message += f"\n\nIMPORTANT: The user's message suggests they might benefit from sharing more about: {', '.join(relevant_missing_slots)}. "
+            user_message += "After providing your main response, naturally and empathetically ask these relevant follow-up questions to better understand their situation:\n"
+            for question in follow_up_questions:
+                user_message += f"- {question}\n"
+            user_message += "\nIntegrate these questions naturally into your response, not as a separate list. Only ask if it feels appropriate given the context."
         
         # Combine system instructions with user message
         full_prompt = f"{system_instructions}\n\n{user_message}"

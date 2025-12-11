@@ -1,0 +1,41 @@
+"""
+Crisis Response Node
+Trả về thông báo khẩn cấp cho các trường hợp high-risk
+"""
+import logging
+from typing import Dict, Any
+
+from src.rag.prompts.loader import load_prompts
+
+logger = logging.getLogger(__name__)
+
+# Load response templates (Vietnamese)
+try:
+    response_templates = load_prompts("response_templates.yaml")
+    crisis_response = response_templates.get("crisis_response", "")
+    
+    if not crisis_response:
+        raise ValueError("Missing crisis_response template")
+    
+    logger.info("Successfully loaded crisis response template")
+except Exception as e:
+    logger.error(f"Failed to load response_templates.yaml: {e}")
+    # English fallback
+    crisis_response = """I hear that you're in a lot of pain right now. Please reach out to crisis services immediately: 988 (US), 115 (Vietnam), or your local emergency services."""
+    logger.warning("Using English fallback for crisis response")
+
+
+async def crisis_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Trả về thông báo khẩn cấp cho các trường hợp high-risk (async version).
+    
+    Args:
+        state: State dict
+    
+    Returns:
+        Updated state với 'answer' và 'done' = True
+    """
+    state["answer"] = crisis_response
+    state["skip_translation"] = True  # response already in user-facing language
+    state["done"] = True
+    return state
