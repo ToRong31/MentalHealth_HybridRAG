@@ -38,6 +38,22 @@ class ChatService:
             title=request.conversation_title or f"Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         )
         
+        # ✅ Get conversation history BEFORE saving current message (to exclude current message)
+        previous_messages = await self.conv_repo.get_messages(conversation.id)
+        
+        # ✅ Initialize buffer + summary from existing messages
+        from src.rag.utils.memory import initialize_memory_from_messages
+        conversation_buffer, summary_context = initialize_memory_from_messages(
+            previous_messages, 
+            buffer_size=3
+        )
+        
+        logger.info(
+            f"Initialized memory for conversation {conversation.id}: "
+            f"{len(conversation_buffer)} pairs in buffer, "
+            f"summary length: {len(summary_context)} chars"
+        )
+        
         # Save user message
         user_message = await self.conv_repo.add_message(
             conversation_id=conversation.id,
@@ -49,8 +65,13 @@ class ChatService:
         
         logger.info(f"User {current_user.username} sent message in conversation {conversation.id}")
         
-        # Run the RAG workflow (async)
-        final_state = await run_graph(graph, request.message)
+        # ✅ Run the RAG workflow (async) with conversation memory
+        final_state = await run_graph(
+            graph, 
+            request.message,
+            conversation_buffer=conversation_buffer,
+            summary_context=summary_context
+        )
         
         # Save bot response
         bot_message = await self.conv_repo.add_message(

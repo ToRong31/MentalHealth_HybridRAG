@@ -98,3 +98,78 @@ def build_slot_context(slots: Dict[str, Any]) -> str:
         return ""
 
     return "Additional Context from User's Message:\n" + "\n".join(f"- {part}" for part in context_parts)
+
+
+def get_slot_keywords(slots: Dict[str, Any]) -> List[str]:
+    """
+    Extract keywords from slots for rerank bonus calculation.
+    Maps slot values to relevant keywords that might appear in node names.
+    
+    Args:
+        slots: Slot dictionary
+    
+    Returns:
+        List of keywords for matching against node names
+    """
+    keywords = []
+    
+    if not slots:
+        return keywords
+    
+    # Sleep-related keywords
+    if slots.get("sleep_quality") or slots.get("sleep_duration"):
+        keywords.extend(["sleep", "insomnia", "bedtime", "rest", "night", "caffeine", "melatonin"])
+    
+    # Emotion/mood keywords
+    emotions = slots.get("emotion", [])
+    if emotions:
+        # Add emotion names directly
+        keywords.extend([e.lower() for e in emotions])
+        # Add related terms
+        keywords.extend(["mood", "feeling", "emotion", "anxiety", "depression", "stress"])
+    
+    primary_mood = slots.get("primary_mood")
+    if primary_mood:
+        keywords.append(primary_mood.lower())
+    
+    # Stress-related keywords
+    if slots.get("stress_level") or slots.get("current_stressors"):
+        keywords.extend(["stress", "pressure", "workload", "tension", "worry"])
+    
+    # Energy/fatigue keywords
+    if slots.get("energy_level"):
+        energy = slots.get("energy_level", "").lower()
+        if "low" in energy or "thấp" in energy:
+            keywords.extend(["fatigue", "tired", "exhaustion", "energy"])
+    
+    # Physical symptoms keywords
+    physical = slots.get("physical_symptoms", [])
+    if physical:
+        keywords.extend([s.lower() for s in physical])
+        keywords.extend(["symptom", "physical", "body"])
+    
+    # Social keywords
+    if slots.get("social_isolation") or slots.get("social_withdrawal"):
+        keywords.extend(["social", "isolation", "lonely", "withdrawal", "connection"])
+    
+    # Coping keywords
+    if slots.get("coping_mechanisms"):
+        keywords.extend(["coping", "strategy", "technique", "manage", "handle"])
+    
+    # Trigger keywords (if specific)
+    trigger = slots.get("trigger")
+    if trigger:
+        trigger_lower = trigger.lower()
+        # Add common trigger-related terms
+        if "work" in trigger_lower or "công việc" in trigger_lower:
+            keywords.extend(["work", "job", "career", "professional"])
+        if "family" in trigger_lower or "gia đình" in trigger_lower:
+            keywords.extend(["family", "relationship", "home"])
+        if "school" in trigger_lower or "học" in trigger_lower:
+            keywords.extend(["school", "study", "education", "academic"])
+    
+    # Remove duplicates and empty strings
+    keywords = list(set([k for k in keywords if k]))
+    
+    return keywords
+

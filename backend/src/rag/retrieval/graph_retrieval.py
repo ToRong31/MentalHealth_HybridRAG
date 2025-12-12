@@ -2,7 +2,8 @@
 Graph Retrieval Implementation
 Implement GraphRAG retriever using Knowledge Graph
 """
-from typing import Dict, Any, List
+import logging
+from typing import Dict, Any, List, Optional
 
 from .base_retrieval import BaseRetrieval, RetrievalResult
 from src.rag.vectors.embeddings import encode_e5
@@ -10,6 +11,8 @@ from src.rag.vectors.milvus_client import milvus_search
 from src.rag.graph.neo4j_client import get_node_names_from_neo4j
 from src.rag.graph.graph_retriever import graph_retriever
 from src.rag.reranker.reranker import reranker
+
+logger = logging.getLogger(__name__)
 
 
 class GraphRetrieval(BaseRetrieval):
@@ -89,9 +92,14 @@ class GraphRetrieval(BaseRetrieval):
             for c in candidates
         ]
         
-        # Step 4: Rerank anchors
+        # Step 4: Rerank anchors with Cohere
         rerank_top_k = kwargs.get('rerank_top_k', self.rerank_top_k)
         anchors = reranker.rerank_anchors(query, candidates, top_k=rerank_top_k)
+        
+        # Step 4.5: Apply slot-based rerank bonus (light rerank)
+        slots = kwargs.get('slots')
+        if slots:
+            anchors = self._apply_slot_rerank_bonus(anchors, slots)
         
         # Debug: Store rerank scores
         rerank_scores = [
@@ -99,7 +107,9 @@ class GraphRetrieval(BaseRetrieval):
                 "node_id": a["node_id"],
                 "name": a["name"],
                 "milvus_score": a.get("original_milvus_score", 0.0),
-                "rerank_score": a.get("cohere_score", 0.0)
+                "rerank_score": a.get("cohere_score", 0.0),
+                "slot_bonus": a.get("slot_bonus", 0.0),
+                "final_score": a.get("final_score", a.get("cohere_score", 0.0))
             }
             for a in anchors
         ]
@@ -124,6 +134,74 @@ class GraphRetrieval(BaseRetrieval):
                 "retriever": self.get_name()
             }
         )
+    
+    def _apply_slot_rerank_bonus(
+        self, 
+        anchors: List[Dict[str, Any]], 
+        slots: Dict[str, Any],
+        bonus_weight: float = 0.05
+    ) -> List[Dict[str, Any]]:
+        """
+        Apply light rerank bonus based on slots.
+        Matches slot keywords against node names and adds small bonus to scores.
+        
+        Args:
+            anchors: List of reranked anchors (from Cohere rerank)
+            slots: Slot dictionary with user information
+            bonus_weight: Weight for slot bonus (default 0.05 = 5% boost)
+        
+        Returns:
+            Reranked anchors with slot bonus applied
+        """
+        try:
+            from src.rag.utils.slots import get_slot_keywords
+            
+            # Get keywords from slots
+            slot_keywords = get_slot_keywords(slots)
+            
+            if not slot_keywords:
+                logger.debug("No slot keywords found, skipping slot rerank bonus")
+                return anchors
+            
+            logger.debug(f"Applying slot rerank bonus with keywords: {slot_keywords[:5]}...")
+            
+            # Apply bonus to each anchor
+            for anchor in anchors:
+                node_name = anchor.get("name", "").lower()
+                bonus = 0.0
+                
+                # Count keyword matches in node name
+                matches = sum(1 for keyword in slot_keywords if keyword in node_name)
+                
+                if matches > 0:
+                    # Bonus proportional to number of matches (capped)
+                    bonus = min(bonus_weight * matches, bonus_weight * 3)  # Max 3x bonus
+                    anchor["slot_bonus"] = bonus
+                    
+                    # Calculate final score (Cohere score + bonus)
+                    cohere_score = anchor.get("cohere_score", 0.0)
+                    anchor["final_score"] = cohere_score + bonus
+                else:
+                    anchor["slot_bonus"] = 0.0
+                    anchor["final_score"] = anchor.get("cohere_score", 0.0)
+            
+            # Re-sort by final score (Cohere score + slot bonus)
+            anchors_sorted = sorted(
+                anchors,
+                key=lambda x: x.get("final_score", x.get("cohere_score", 0.0)),
+                reverse=True
+            )
+            
+            logger.debug(f"Slot rerank bonus applied. Top anchor: {anchors_sorted[0].get('name')} "
+                        f"(cohere: {anchors_sorted[0].get('cohere_score', 0.0):.3f}, "
+                        f"bonus: {anchors_sorted[0].get('slot_bonus', 0.0):.3f}, "
+                        f"final: {anchors_sorted[0].get('final_score', 0.0):.3f})")
+            
+            return anchors_sorted
+            
+        except Exception as e:
+            logger.warning(f"Error applying slot rerank bonus: {e}, returning original anchors")
+            return anchors
     
     def get_name(self) -> str:
         """Return retriever name"""

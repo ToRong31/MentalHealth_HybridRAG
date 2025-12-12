@@ -125,7 +125,7 @@ async def graph_retrieval_node(state: KGState) -> KGState:
         Updated state with 'graph_context', 'anchors', 'nodes', 'rels'
     """
     import time
-    from src.rag.slots.utils import get_default_slots
+    from src.rag.utils.slots import get_default_slots
     
     question = state["question"]
     parallel_start_time = state.get("parallel_start_time")
@@ -189,19 +189,8 @@ async def graph_retrieval_node(state: KGState) -> KGState:
     # Lấy slots cuối cùng (có thể đã được set trong wait loop)
     slots = state.get("slots", get_default_slots())
     
-    # Enhance query với slots nếu có thông tin hữu ích
-    enhanced_query = question
-    if slots:
-        emotion = slots.get("emotion", [])
-        trigger = slots.get("trigger")
-        
-        if emotion:
-            enhanced_query += f" emotions: {', '.join(emotion)}"
-        if trigger:
-            enhanced_query += f" trigger: {trigger}"
-    
-    # Use async GraphRetrieval to get context
-    result = await graph_retrieval.retrieve_async(enhanced_query)
+    # Use original question for retrieval (slots will be used for rerank bonus and answer generation)
+    result = await graph_retrieval.retrieve_async(question, slots=slots)
     
     # Update state
     state["graph_context"] = result.context

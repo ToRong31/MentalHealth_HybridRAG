@@ -76,7 +76,7 @@ async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
         # Build slot context if available (import lazily to avoid circular import)
         slot_info = ""
         if slots:
-            from src.rag.slots.utils import build_slot_context
+            from src.rag.utils.slots import build_slot_context
             slot_info = build_slot_context(slots)
         
         # Build context with graph context and slot information

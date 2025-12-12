@@ -42,6 +42,24 @@ DEFAULT_BATCH = 32
 DEFAULT_INPUT = Path("data/raw/input.json")
 DEFAULT_SKIP_FILE = Path("data/processed/embedded_chat_ids.txt")
 
+# Collection configurations
+COLLECTION_CONFIGS = {
+    "chat_16k": {
+        "default_input": Path("data/raw/input.json"),
+        "default_skip_file": Path("data/processed/embedded_chat_ids.txt"),
+        "text_field": "answer",
+        "id_field": "id",
+        "is_jsonl": False,
+    },
+    "clinicalbook": {
+        "default_input": Path("data/raw/ClinicalBook (treatment)_clean.jsonl"),
+        "default_skip_file": Path("data/processed/clinicalbook_ids_embedded.txt"),
+        "text_field": "text",
+        "id_field": "chunk_id",
+        "is_jsonl": True,
+    },
+}
+
 
 def connect():
     if not MILVUS_URI:
@@ -119,17 +137,55 @@ def load_skip_ids(path: Path | None) -> set[int]:
     return ids
 
 
-def iter_records(path: Path, limit: int | None, skip_ids: set[int]) -> Iterable[Tuple[int, str]]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    for idx, item in enumerate(data):
-        if limit is not None and idx >= limit:
-            break
-        node_id = int(item["id"])
-        if node_id in skip_ids:
-            continue
-        text = (item.get("answer") or "").strip()
-        # E5 passage prefix
-        yield node_id, f"passage: {text}" if text else f"passage: id {node_id}"
+def iter_records(
+    path: Path, 
+    limit: int | None, 
+    skip_ids: set[int],
+    text_field: str = "answer",
+    id_field: str = "id",
+    is_jsonl: bool = False
+) -> Iterable[Tuple[int, str]]:
+    """
+    Iterate over records from input file.
+    
+    Args:
+        path: Path to input file (JSON or JSONL)
+        limit: Optional limit on number of records
+        skip_ids: Set of IDs to skip
+        text_field: Name of field containing text to embed
+        id_field: Name of field containing the ID
+        is_jsonl: True if file is JSONL format, False if JSON array
+    """
+    if is_jsonl:
+        # Read JSONL format (one JSON object per line)
+        idx = 0
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                if limit is not None and idx >= limit:
+                    break
+                line = line.strip()
+                if not line:
+                    continue
+                item = json.loads(line)
+                node_id = int(item[id_field])
+                if node_id in skip_ids:
+                    continue
+                text = (item.get(text_field) or "").strip()
+                # E5 passage prefix
+                yield node_id, f"passage: {text}" if text else f"passage: id {node_id}"
+                idx += 1
+    else:
+        # Read JSON array format
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for idx, item in enumerate(data):
+            if limit is not None and idx >= limit:
+                break
+            node_id = int(item[id_field])
+            if node_id in skip_ids:
+                continue
+            text = (item.get(text_field) or "").strip()
+            # E5 passage prefix
+            yield node_id, f"passage: {text}" if text else f"passage: id {node_id}"
 
 
 def append_embedded_ids(ids: List[int], path: Path | None):
@@ -170,18 +226,41 @@ def insert_batches(
 
 def main():
     parser = argparse.ArgumentParser(description="Embed chat_16k answers into Milvus")
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help="Path to input.json")
+    parser.add_argument("--input", type=Path, default=None, help="Path to input file (JSON or JSONL)")
     parser.add_argument("--collection", default=DEFAULT_COLLECTION, help="Milvus collection name")
     parser.add_argument("--batch", type=int, default=DEFAULT_BATCH, help="Batch size for embedding")
     parser.add_argument("--limit", type=int, default=None, help="Optional limit for testing")
     parser.add_argument(
         "--skip-ids-file",
         type=Path,
-        default=DEFAULT_SKIP_FILE,
-        help="Path to file containing one ID per line to skip (default: data/processed/embedded_chat_ids.txt)",
+        default=None,
+        help="Path to file containing one ID per line to skip",
     )
     parser.add_argument("--drop", action="store_true", help="Drop collection before inserting")
     args = parser.parse_args()
+
+    # Get collection config
+    if args.collection not in COLLECTION_CONFIGS:
+        logger.warning("Unknown collection %s, using default settings", args.collection)
+        config = {
+            "default_input": Path("data/raw/input.json"),
+            "default_skip_file": Path(f"data/processed/{args.collection}_ids_embedded.txt"),
+            "text_field": "text",
+            "id_field": "id",
+            "is_jsonl": False,
+        }
+    else:
+        config = COLLECTION_CONFIGS[args.collection]
+
+    # Use config defaults if not specified
+    input_path = args.input if args.input else config["default_input"]
+    skip_ids_file = args.skip_ids_file if args.skip_ids_file else config["default_skip_file"]
+
+    logger.info("Collection: %s", args.collection)
+    logger.info("Input file: %s", input_path)
+    logger.info("Skip IDs file: %s", skip_ids_file)
+    logger.info("Text field: %s, ID field: %s, JSONL: %s", 
+                config["text_field"], config["id_field"], config["is_jsonl"])
 
     connect()
 
@@ -190,9 +269,16 @@ def main():
         utility.drop_collection(args.collection)
 
     col = ensure_collection(args.collection, EMBEDDING_DIM)
-    skip_ids = load_skip_ids(args.skip_ids_file)
-    records = iter_records(args.input, args.limit, skip_ids)
-    insert_batches(col, records, args.batch, args.skip_ids_file)
+    skip_ids = load_skip_ids(skip_ids_file)
+    records = iter_records(
+        input_path, 
+        args.limit, 
+        skip_ids,
+        text_field=config["text_field"],
+        id_field=config["id_field"],
+        is_jsonl=config["is_jsonl"]
+    )
+    insert_batches(col, records, args.batch, skip_ids_file)
 
 
 if __name__ == "__main__":

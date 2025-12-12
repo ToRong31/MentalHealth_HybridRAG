@@ -56,25 +56,27 @@ async def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
             re.DOTALL
         )
         
+        # Return chỉ các fields được update để tránh conflict khi parallel execution
         if json_match:
             json_str = json_match.group(0)
             result = json.loads(json_str)
             
-            state["is_mental_health_related"] = result.get(
-                "is_mental_health_related",
-                True
-            )
-            state["is_high_risk"] = result.get("is_high_risk", False)
+            return {
+                "is_mental_health_related": result.get("is_mental_health_related", True),
+                "is_high_risk": result.get("is_high_risk", False)
+            }
         else:
             # Fallback: nếu không parse được JSON, mặc định là mental health related
-            print(f"Warning: Could not parse JSON from LLM response: {response}")
-            state["is_mental_health_related"] = True
-            state["is_high_risk"] = False
+            logger.warning(f"Could not parse JSON from LLM response: {response}")
+            return {
+                "is_mental_health_related": True,
+                "is_high_risk": False
+            }
             
     except Exception as e:
-        print(f"Error in safety_check_node: {e}")
+        logger.error(f"Error in safety_check_node: {e}", exc_info=True)
         # Fallback an toàn: cho phép tiếp tục
-        state["is_mental_health_related"] = True
-        state["is_high_risk"] = False
-    
-    return state
+        return {
+            "is_mental_health_related": True,
+            "is_high_risk": False
+        }

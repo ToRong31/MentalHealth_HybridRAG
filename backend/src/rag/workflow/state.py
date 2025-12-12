@@ -24,3 +24,15 @@ class KGState(TypedDict):
     
     # Timing tracking for parallel execution
     parallel_start_time: Optional[float]  # Timestamp when parallel execution starts
+    
+    # Conversation Memory
+    conversation_buffer: Optional[List[Dict[str, str]]]  # List of Q&A pairs: [{"user": "...", "bot": "..."}]
+    summary_context: Optional[str]  # Summarized older conversation pairs
+    previous_follow_up_questions: Optional[List[str]]  # Follow-up questions from previous turn
+    
+    # Query Classification (for conditional enhancement)
+    query_type: Optional[str]  # "follow_up" | "topic_change" | "off_topic"
+    should_enhance_query: Optional[bool]  # Whether to enhance query with buffer + summary
+    query_similarity: Optional[float]  # Similarity score between query and conversation context
+    is_topic_change: Optional[bool]  # Flag for topic change detection
+    is_off_topic: Optional[bool]  # Flag for off-topic detection

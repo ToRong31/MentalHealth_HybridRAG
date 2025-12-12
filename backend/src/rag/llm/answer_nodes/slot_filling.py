@@ -10,7 +10,7 @@ from typing import Dict, Any
 
 from ..llm_gemini import llm
 from src.rag.prompts.loader import load_prompts, format_prompt
-from src.rag.slots.utils import get_default_slots
+from src.rag.utils.slots import get_default_slots
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +35,13 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
         
         if not prompt_template:
             logger.warning("Slot filling prompt not found, using defaults")
-            state["slots"] = get_default_slots()
-            state["missing_slots"] = []
-            state["relevant_missing_slots"] = []
-            state["follow_up_questions"] = []
-            return state
+            # Return chỉ các fields được update để tránh conflict khi parallel execution
+            return {
+                "slots": get_default_slots(),
+                "missing_slots": [],
+                "relevant_missing_slots": [],
+                "follow_up_questions": []
+            }
         
         # Format prompt with question
         prompt = format_prompt(prompt_template, QUESTION=question)
@@ -62,37 +64,49 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
             json_str = json_match.group(0)
             result = json.loads(json_str)
             
-            # Update state
-            state["slots"] = result.get("slots", get_default_slots())
-            state["missing_slots"] = result.get("missing_slots", [])
-            state["relevant_missing_slots"] = result.get("relevant_missing_slots", [])
-            state["follow_up_questions"] = result.get("follow_up_questions", [])
+            # Extract values for logging
+            slots = result.get("slots", get_default_slots())
+            missing_slots = result.get("missing_slots", [])
+            relevant_missing_slots = result.get("relevant_missing_slots", [])
+            follow_up_questions = result.get("follow_up_questions", [])
             
             logger.info(
-                f"Extracted slots: {len([v for v in state['slots'].values() if v is not None and v != []])} filled, "
-                f"{len(state.get('relevant_missing_slots', []))} relevant missing, "
-                f"{len(state.get('follow_up_questions', []))} follow-ups"
+                f"Extracted slots: {len([v for v in slots.values() if v is not None and v != []])} filled, "
+                f"{len(relevant_missing_slots)} relevant missing, "
+                f"{len(follow_up_questions)} follow-ups"
             )
+            
+            # Return chỉ các fields được update để tránh conflict khi parallel execution
+            return {
+                "slots": slots,
+                "missing_slots": missing_slots,
+                "relevant_missing_slots": relevant_missing_slots,
+                "follow_up_questions": follow_up_questions
+            }
         else:
             logger.warning(f"Could not parse JSON from slot filling response: {response[:200]}")
             # Fallback to defaults
-            state["slots"] = get_default_slots()
-            state["missing_slots"] = []
-            state["relevant_missing_slots"] = []
-            state["follow_up_questions"] = []
+            return {
+                "slots": get_default_slots(),
+                "missing_slots": [],
+                "relevant_missing_slots": [],
+                "follow_up_questions": []
+            }
             
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error in slot_filling_node: {e}")
-        state["slots"] = get_default_slots()
-        state["missing_slots"] = []
-        state["relevant_missing_slots"] = []
-        state["follow_up_questions"] = []
+        return {
+            "slots": get_default_slots(),
+            "missing_slots": [],
+            "relevant_missing_slots": [],
+            "follow_up_questions": []
+        }
     except Exception as e:
         logger.error(f"Error in slot_filling_node: {e}", exc_info=True)
         # Fallback to defaults on error
-        state["slots"] = get_default_slots()
-        state["missing_slots"] = []
-        state["relevant_missing_slots"] = []
-        state["follow_up_questions"] = []
-    
-    return state
+        return {
+            "slots": get_default_slots(),
+            "missing_slots": [],
+            "relevant_missing_slots": [],
+            "follow_up_questions": []
+        }
