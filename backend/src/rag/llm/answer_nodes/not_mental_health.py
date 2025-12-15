@@ -25,17 +25,11 @@ except Exception as e:
     logger.warning("Using English fallback for not mental health response")
 
 
-async def not_mental_health_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def get_not_mental_health_message() -> str:
     """
-    Trả về thông báo chỉ hỗ trợ mental health cho các câu hỏi không liên quan (async version).
-    
-    Args:
-        state: State dict
+    Get message for non-mental health questions.
     
     Returns:
-        Updated state với 'answer' và 'done' = True
+        Not mental health response message string
     """
-    state["answer"] = not_mental_health_response
-    state["skip_translation"] = True  # response already in user-facing language
-    state["done"] = True
-    return state
+    return not_mental_health_response

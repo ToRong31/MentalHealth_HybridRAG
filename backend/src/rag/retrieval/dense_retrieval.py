@@ -63,7 +63,7 @@ class DenseRetrieval(BaseRetrieval):
             )
 
         # 3. Rerank bằng CohereReranker
-        reranked = self.reranker.rerank_anchors(
+        reranked = self.reranker.rerank_chunks(
             query=query,
             candidates=candidates_dicts,
             top_k=top_k,

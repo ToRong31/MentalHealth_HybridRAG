@@ -9,11 +9,29 @@ import json
 
 MILVUS_COLLECTION_NAME = "chat_16k"
 
+# Mapping collection names to their data files
+COLLECTION_DATA_FILES = {
+    "chat_16k": "data/raw/input.json",
+    "clinicalbook": "data/raw/clinicalbook.jsonl",
+}
+
 class DenseRetriever:
-    def __init__(self, collection_name: str | None = None):
+    def __init__(self, collection_name: str | None = None, context_file: str | None = None):
         self.model_name = E5_MODEL_NAME
         self.device = device
-        self.path_context = "data/raw/input.json"
+        
+        # Determine collection name
+        self.collection_name = collection_name or MILVUS_COLLECTION_NAME
+        
+        # Determine context file path
+        if context_file:
+            self.path_context = context_file
+        else:
+            # Use default mapping based on collection name
+            self.path_context = COLLECTION_DATA_FILES.get(
+                self.collection_name,
+                "data/raw/input.json"  # fallback default
+            )
 
         # Connection parameters
         connection_params = {
@@ -32,7 +50,6 @@ class DenseRetriever:
         # Kết nối Milvus
         connections.connect(**connection_params)
 
-        self.collection_name = collection_name or MILVUS_COLLECTION_NAME
         self.col = Collection(self.collection_name)
         self.col.load()
 
@@ -81,24 +98,59 @@ class DenseRetriever:
 
     def get_dense_context_by_id(self, node_id: int) -> str:
         """
-        Lấy field 'answer' tương ứng với node_id truyền vào.
-
-        Giả sử trong file JSON mỗi phần tử có dạng:
+        Lấy nội dung văn bản tương ứng với node_id truyền vào.
+        Hỗ trợ cả JSON và JSONL format.
+        
+        JSON format (chat_16k):
         {
             "id": <int>,
             "answer": "<chuỗi trả lời>",
             ...
         }
+        
+        JSONL format (clinicalbook):
+        {
+            "chunk_id": "<string>",
+            "title": "<string>",
+            "section_type": "<string>",
+            "text": "<nội dung>"
+        }
         """
-        with open(self.path_context, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        # Check if file is JSONL or JSON
+        is_jsonl = self.path_context.endswith('.jsonl')
+        
+        if is_jsonl:
+            # Read JSONL format (ClinicalBook)
+            with open(self.path_context, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        item = json.loads(line)
+                        # Try both string and int comparison for chunk_id
+                        chunk_id = item.get("chunk_id")
+                        if chunk_id is not None:
+                            # Convert both to string for comparison
+                            if str(chunk_id) == str(node_id):
+                                # Build context from all fields
+                                title = item.get("title", "")
+                                section_type = item.get("section_type", "")
+                                text = item.get("text", "")
+                                
+                                # Format: Title | Section Type: Text
+                                if title and section_type:
+                                    return f"{title} | {section_type}: {text}"
+                                else:
+                                    return text
+        else:
+            # Read JSON format (chat_16k)
+            with open(self.path_context, 'r', encoding='utf-8') as f:
+                data = json.load(f)
 
-        # Tìm item có field 'id' trùng với node_id
-        for item in data:
-            if item.get("id") == node_id:
-                return item.get("answer", "")
+            # Tìm item có field 'id' trùng với node_id
+            for item in data:
+                if item.get("id") == node_id:
+                    return item.get("answer", "")
 
-        # Không tìm thấy thì trả về chuỗi rỗng (tuỳ bạn muốn raise exception hay không)
+        # Không tìm thấy thì trả về chuỗi rỗng
         return ""
     def build_dense_context(self, results: List[Tuple[int, float]]) -> str:
         """

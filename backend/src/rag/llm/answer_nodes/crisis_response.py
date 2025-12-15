@@ -25,17 +25,11 @@ except Exception as e:
     logger.warning("Using English fallback for crisis response")
 
 
-async def crisis_response_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def get_crisis_response_message() -> str:
     """
-    Trả về thông báo khẩn cấp cho các trường hợp high-risk (async version).
-    
-    Args:
-        state: State dict
+    Get crisis response message for high-risk cases.
     
     Returns:
-        Updated state với 'answer' và 'done' = True
+        Crisis response message string
     """
-    state["answer"] = crisis_response
-    state["skip_translation"] = True  # response already in user-facing language
-    state["done"] = True
-    return state
+    return crisis_response

@@ -208,10 +208,21 @@ Mục tiêu: Thêm conversation memory để chatbot có thể trả lời liên
   - [x] Task 1.2: Update state.py
   - [x] Task 1.3: Update chat_service.py
   - [x] Task 1.4: Update engine.py
-- [ ] Phase 2: Query Similarity Check
-- [ ] Phase 3: Conditional Safety Check
-- [ ] Phase 4: Conditional Query Enhancement
-- [ ] Phase 5: Enhance Context
-- [ ] Phase 6: Topic Change Handling
-- [ ] Phase 7: Workflow Integration
+- [x] Phase 2: Query Similarity Check ✅ COMPLETED
+  - [x] Task 2.1: Tạo query_similarity_check_node trong graph_nodes.py
+  - [x] Task 2.2: Tạo query_classifier_node.py
+  - [x] Task 2.3: Tạo query_classifier_prompt.yaml
+- [x] Phase 3: Conditional Safety Check ✅ COMPLETED
+  - [x] Task 3.1: Sửa safety_check.py để conditional enhancement
+- [x] Phase 4: Conditional Query Enhancement ✅ COMPLETED
+  - [x] Task 4.1: Sửa graph_retrieval_node trong graph_nodes.py
+  - [x] Task 4.2: Sửa graph_retrieval.py để support original_query
+- [x] Phase 5: Enhance Context ✅ COMPLETED
+  - [x] Task 5.1: Sửa answer_with_graph.py để thêm buffer + summary vào prompt
+- [x] Phase 6: Topic Change Handling ✅ COMPLETED
+  - [x] Task 6.1: Tạo conversation_memory_node.py
+  - [x] Task 6.2: Tạo summarize functions trong conversation_memory_node.py
+  - [x] Task 6.3: Tạo conversation_summarize_prompt.yaml
+- [x] Phase 7: Workflow Integration ✅ COMPLETED
+  - [x] Task 7.1: Sửa workflow.py để thêm nodes và update edges
 

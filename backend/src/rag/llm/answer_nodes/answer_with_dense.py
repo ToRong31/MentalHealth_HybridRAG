@@ -34,38 +34,32 @@ except Exception as e:
     fallback_answer = """I'm having technical difficulties. Could you share more about your situation?"""
 
 
-async def answer_with_dense_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def generate_answer_with_dense(question: str, dense_context: str = "") -> str:
     """
-    Sinh câu trả lời dựa trên document context từ dense retrieval (async version)
+    Generate answer based on dense retrieval context.
     
     Args:
-        state: State dict với 'question' và 'doc_context'
+        question: User question
+        dense_context: Context from dense retrieval
     
     Returns:
-        Updated state với 'answer' và 'done' = True
+        Generated answer string
     """
-    q = state["question"]
-    dense_context = state.get("dense_context", "")
-    
     try:
         # Build full prompt
-        user_message = user_template_dense.replace("{{PATIENT_INPUT}}", q).replace(
+        user_message = user_template_dense.replace("{{PATIENT_INPUT}}", question).replace(
             "{{DOCTOR_DIALOGUE}}",
             dense_context if dense_context else "No specific knowledge available."
         )
         
         full_prompt = f"{system_instructions_dense}\n\n{user_message}"
         
-        # Generate answer with retry (run in executor)
+        # Generate answer
         loop = asyncio.get_event_loop()
         answer = await loop.run_in_executor(None, lambda: llm.invoke(full_prompt, max_retries=3))
         
+        return answer
+        
     except Exception as e:
-        # Fallback answer khi LLM fail
         logger.error(f"Failed to generate answer: {e}")
-        answer = fallback_answer
-    
-    state["answer"] = answer
-    state["done"] = True
-    
-    return state
+        return fallback_answer

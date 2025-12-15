@@ -15,19 +15,16 @@ from src.rag.utils.slots import get_default_slots
 logger = logging.getLogger(__name__)
 
 
-async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def process_slot_filling(question: str) -> Dict[str, Any]:
     """
-    Extract structured information (slots) from user question and identify missing information.
-    Only runs after safety_check confirms safe & relevant.
+    Extract structured information (slots) from user question using LLM.
     
     Args:
-        state: KGState with 'question', 'user_language'
+        question: User question
     
     Returns:
-        Updated state with 'slots', 'missing_slots', 'relevant_missing_slots', 'follow_up_questions'
+        Dict with slots, missing_slots, relevant_missing_slots, follow_up_questions
     """
-    question = state["question"]
-
     try:
         # Load slot filling prompt
         prompt_data = load_prompts("slot_filling_prompt.yaml")
@@ -35,7 +32,6 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
         
         if not prompt_template:
             logger.warning("Slot filling prompt not found, using defaults")
-            # Return chỉ các fields được update để tránh conflict khi parallel execution
             return {
                 "slots": get_default_slots(),
                 "missing_slots": [],
@@ -46,7 +42,7 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
         # Format prompt with question
         prompt = format_prompt(prompt_template, QUESTION=question)
         
-        # Call LLM (run in executor to avoid blocking)
+        # Call LLM
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None, 
@@ -64,7 +60,6 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
             json_str = json_match.group(0)
             result = json.loads(json_str)
             
-            # Extract values for logging
             slots = result.get("slots", get_default_slots())
             missing_slots = result.get("missing_slots", [])
             relevant_missing_slots = result.get("relevant_missing_slots", [])
@@ -76,7 +71,6 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
                 f"{len(follow_up_questions)} follow-ups"
             )
             
-            # Return chỉ các fields được update để tránh conflict khi parallel execution
             return {
                 "slots": slots,
                 "missing_slots": missing_slots,
@@ -85,7 +79,6 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
             }
         else:
             logger.warning(f"Could not parse JSON from slot filling response: {response[:200]}")
-            # Fallback to defaults
             return {
                 "slots": get_default_slots(),
                 "missing_slots": [],
@@ -94,7 +87,7 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
             }
             
     except json.JSONDecodeError as e:
-        logger.error(f"JSON decode error in slot_filling_node: {e}")
+        logger.error(f"JSON decode error in process_slot_filling: {e}")
         return {
             "slots": get_default_slots(),
             "missing_slots": [],
@@ -102,8 +95,7 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
             "follow_up_questions": []
         }
     except Exception as e:
-        logger.error(f"Error in slot_filling_node: {e}", exc_info=True)
-        # Fallback to defaults on error
+        logger.error(f"Error in process_slot_filling: {e}", exc_info=True)
         return {
             "slots": get_default_slots(),
             "missing_slots": [],

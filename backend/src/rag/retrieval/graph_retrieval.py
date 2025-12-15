@@ -41,16 +41,26 @@ class GraphRetrieval(BaseRetrieval):
     
     def retrieve(self, query: str, **kwargs) -> RetrievalResult:
         """
-        Retrieve graph context for query
+        Retrieve graph context for query.
+        Supports conditional enhancement: use enhanced query for Milvus search, original query for reranking.
         
         Args:
-            query: User's question
-            **kwargs: Additional parameters (can override defaults)
+            query: User's question (may be enhanced with conversation context)
+            **kwargs: Additional parameters:
+                - original_query: Original user question (for reranking, if query is enhanced)
+                - slots: Slot dictionary for rerank bonus
+                - milvus_limit: Override default Milvus limit
+                - milvus_threshold: Override default Milvus threshold
+                - rerank_top_k: Override default rerank top K
         
         Returns:
             RetrievalResult with graph context and metadata
         """
-        # Step 1: Encode query to embedding
+        # Get original query for reranking (if provided, otherwise use query)
+        original_query = kwargs.get('original_query', query)
+        
+        # Step 1: Encode query to embedding (use enhanced query if provided)
+        # Enhanced query helps find more relevant nodes in Milvus
         query_embedding = encode_e5([f"query: {query}"])[0]
         
         # Step 2: Search Milvus for candidate anchor nodes
@@ -92,9 +102,10 @@ class GraphRetrieval(BaseRetrieval):
             for c in candidates
         ]
         
-        # Step 4: Rerank anchors with Cohere
+        # Step 4: Rerank anchors with Cohere (use original query for reranking)
+        # Original query ensures reranking focuses on user's actual intent
         rerank_top_k = kwargs.get('rerank_top_k', self.rerank_top_k)
-        anchors = reranker.rerank_anchors(query, candidates, top_k=rerank_top_k)
+        anchors = reranker.rerank_anchors(original_query, candidates, top_k=rerank_top_k)
         
         # Step 4.5: Apply slot-based rerank bonus (light rerank)
         slots = kwargs.get('slots')

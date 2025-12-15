@@ -1,6 +1,7 @@
 """
 Answer with Graph Node
 Sinh câu trả lời dựa trên graph context
+Enhanced với conversation buffer và summary context
 """
 import asyncio
 import logging
@@ -8,6 +9,7 @@ from typing import Dict, Any
 
 from ..llm_gemini import llm
 from src.rag.prompts.loader import load_prompts
+from src.rag.utils.memory import format_buffer_for_context, format_summary_context
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +22,45 @@ except Exception as e:
     fallback_answer = """I'm having technical difficulties. Could you share more about your situation?"""
 
 
-async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def generate_answer_with_graph(
+    question: str,
+    graph_context: str = "",
+    user_language: str = "en",
+    original_question: str = None,
+    slots: dict = None,
+    follow_up_questions: list = None,
+    relevant_missing_slots: list = None,
+    conversation_buffer: list = None,
+    summary_context: str = ""
+) -> str:
     """
-    Sinh câu trả lời dựa trên graph context (async version)
+    Generate answer based on graph context with conversation memory.
     
     Args:
-        state: State dict với 'question' và 'graph_context'
+        question: User question (may be translated)
+        graph_context: Context from graph retrieval
+        user_language: User's language (vi/en)
+        original_question: Original question if translated
+        slots: User's personal context slots
+        follow_up_questions: Generated follow-up questions
+        relevant_missing_slots: Relevant missing slot information
+        conversation_buffer: Recent conversation history
+        summary_context: Summary of older conversation
     
     Returns:
-        Updated state với 'answer' và 'done' = True
+        Generated answer string
     """
+    if slots is None:
+        slots = {}
+    if follow_up_questions is None:
+        follow_up_questions = []
+    if relevant_missing_slots is None:
+        relevant_missing_slots = []
+    if conversation_buffer is None:
+        conversation_buffer = []
+    
     # Load appropriate prompt based on user language
-    if state.get("user_language") == "vi":
+    if user_language == "vi":
         try:
             answer_prompt_data = load_prompts("answer_nodes_prompt_vie.yaml")
             system_instructions = answer_prompt_data.get("system_instructions", "")
@@ -59,32 +88,39 @@ async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
             raise RuntimeError(f"Cannot load any therapist prompt files: {e}")
     
     # Get question (use original for Vietnamese)
-    if state.get("user_language") == "vi":
-        q = state.get("original_question", state["question"])
-    else:
-        q = state["question"]
-    
-    # Use combined_context if available (from parallel retrieval), otherwise use graph_context
-    graph_context = state.get("combined_context") or state.get("graph_context", "")
-    
-    # Get slot information for personalization
-    slots = state.get("slots", {})
-    follow_up_questions = state.get("follow_up_questions", [])
-    relevant_missing_slots = state.get("relevant_missing_slots", [])
+    q = original_question if (user_language == "vi" and original_question) else question
     
     try:
-        # Build slot context if available (import lazily to avoid circular import)
+        # Build slot context
         slot_info = ""
         if slots:
             from src.rag.utils.slots import build_slot_context
             slot_info = build_slot_context(slots)
         
-        # Build context with graph context and slot information
-        combined_context = graph_context if graph_context else "No specific knowledge available."
-        if slot_info:
-            combined_context = f"{combined_context}\n\n{slot_info}"
+        # Format conversation memory
+        summary_text = format_summary_context(summary_context)
+        buffer_text = format_buffer_for_context(conversation_buffer)
         
-        # Build full prompt with system instructions + user message
+        # Build combined context
+        context_parts = []
+        
+        if graph_context:
+            context_parts.append(f"Knowledge from graph:\n{graph_context}")
+        else:
+            context_parts.append("No specific knowledge available.")
+        
+        if slot_info:
+            context_parts.append(f"\nUser's personal context:\n{slot_info}")
+        
+        if summary_text:
+            context_parts.append(f"\nPrevious conversation summary:\n{summary_text}")
+        
+        if buffer_text:
+            context_parts.append(f"\nRecent conversation history:\n{buffer_text}")
+        
+        combined_context = "\n".join(context_parts)
+        
+        # Build full prompt
         user_message = user_template.replace("{{QUESTION}}", q).replace(
             "{{GRAPH_CONTEXT}}",
             combined_context
@@ -94,23 +130,18 @@ async def answer_with_graph_node(state: Dict[str, Any]) -> Dict[str, Any]:
         if follow_up_questions and relevant_missing_slots:
             user_message += f"\n\nIMPORTANT: The user's message suggests they might benefit from sharing more about: {', '.join(relevant_missing_slots)}. "
             user_message += "After providing your main response, naturally and empathetically ask these relevant follow-up questions to better understand their situation:\n"
-            for question in follow_up_questions:
-                user_message += f"- {question}\n"
+            for question_text in follow_up_questions:
+                user_message += f"- {question_text}\n"
             user_message += "\nIntegrate these questions naturally into your response, not as a separate list. Only ask if it feels appropriate given the context."
         
-        # Combine system instructions with user message
         full_prompt = f"{system_instructions}\n\n{user_message}"
         
-        # Generate answer with retry (run in executor)
+        # Generate answer
         loop = asyncio.get_event_loop()
         answer = await loop.run_in_executor(None, lambda: llm.invoke(full_prompt, max_retries=3))
         
+        return answer
+        
     except Exception as e:
-        # Fallback answer khi LLM fail
         logger.error(f"Failed to generate answer: {e}")
-        answer = fallback_answer
-    
-    state["answer"] = answer
-    state["done"] = True
-    
-    return state
+        return fallback_answer

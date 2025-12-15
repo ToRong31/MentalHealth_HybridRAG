@@ -52,7 +52,7 @@ COLLECTION_CONFIGS = {
         "is_jsonl": False,
     },
     "clinicalbook": {
-        "default_input": Path("data/raw/ClinicalBook (treatment)_clean.jsonl"),
+        "default_input": Path("data/raw/clinicalbook.jsonl"),
         "default_skip_file": Path("data/processed/clinicalbook_ids_embedded.txt"),
         "text_field": "text",
         "id_field": "chunk_id",
