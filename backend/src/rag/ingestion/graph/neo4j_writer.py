@@ -53,9 +53,9 @@ class Neo4jWriter:
         self.edges_file = Path(edges_file)
         
         # Use provided values or fall back to config
-        self.neo4j_uri = neo4j_uri or NEO4J_URI
-        self.neo4j_user = neo4j_user or NEO4J_USER
-        self.neo4j_password = neo4j_password or NEO4J_PASSWORD
+        self.neo4j_uri = neo4j_uri or rag_settings.NEO4J_URI
+        self.neo4j_user = neo4j_user or rag_settings.NEO4J_USER
+        self.neo4j_password = neo4j_password or rag_settings.NEO4J_PASSWORD
         
         self.batch_size = batch_size
         self.use_apoc = use_apoc

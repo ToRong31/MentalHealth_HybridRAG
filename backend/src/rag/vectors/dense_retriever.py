@@ -1,13 +1,13 @@
 from typing import List, Tuple
 from pymilvus import connections, Collection
 
-from src.rag.config import MILVUS_DB, MILVUS_URI, MILVUS_TOKEN, E5_MODEL_NAME
+from src.rag.config import rag_settings
 
 from src.rag.vectors.embeddings import encode_e5    
 from src.rag.vectors.embeddings import device
 import json
 
-MILVUS_COLLECTION_NAME = "chat_16k"
+MILVUS_COLLECTION_NAME = "clinicalbook"
 
 # Mapping collection names to their data files
 COLLECTION_DATA_FILES = {
@@ -17,7 +17,7 @@ COLLECTION_DATA_FILES = {
 
 class DenseRetriever:
     def __init__(self, collection_name: str | None = None, context_file: str | None = None):
-        self.model_name = E5_MODEL_NAME
+        self.model_name = rag_settings.E5_MODEL_NAME
         self.device = device
         
         # Determine collection name
@@ -36,13 +36,13 @@ class DenseRetriever:
         # Connection parameters
         connection_params = {
             "alias": "default",
-            "uri": MILVUS_URI,
-            "db_name": MILVUS_DB,
+            "uri": rag_settings.MILVUS_URI,
+            "db_name": rag_settings.MILVUS_DB,
         }
         
         # Only add token and secure for cloud deployment
-        if MILVUS_TOKEN and MILVUS_TOKEN.strip():
-            connection_params["token"] = MILVUS_TOKEN
+        if rag_settings.MILVUS_TOKEN and rag_settings.MILVUS_TOKEN.strip():
+            connection_params["token"] = rag_settings.MILVUS_TOKEN
             connection_params["secure"] = True
         else:
             connection_params["secure"] = False

@@ -108,9 +108,8 @@ def build_kg_graph():
     builder.add_node("slot_filling", slot_filling_node)  # Chạy sau safety_check
     builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
-    builder.add_node("graph_retrieval", graph_retrieval_node)
-    # builder.add_node("hybrid_retrieval", hybrid_retrieval_node)  # Available for future use
-    builder.add_node("answer", answer_with_graph_node)
+    builder.add_node("dense_retrieval", dense_retrieval_node)
+    builder.add_node("answer", answer_with_dense_node)
     builder.add_node("conversation_memory", conversation_memory_node)
     builder.add_node("translate_answer", translate_answer_node)
 
@@ -148,9 +147,9 @@ def build_kg_graph():
     builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
-    # Normal flow: slot_filling -> graph_retrieval -> answer -> conversation_memory -> translate_answer -> END
-    builder.add_edge("slot_filling", "graph_retrieval")
-    builder.add_edge("graph_retrieval", "answer")
+    # Normal flow: slot_filling -> dense_retrieval -> answer -> conversation_memory -> translate_answer -> END
+    builder.add_edge("slot_filling", "dense_retrieval")
+    builder.add_edge("dense_retrieval", "answer")
     builder.add_edge("answer", "conversation_memory")  # Update buffer + summary
     builder.add_edge("conversation_memory", END)
     # builder.add_edge("conversation_memory", "translate_answer")

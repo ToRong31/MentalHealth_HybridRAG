@@ -12,13 +12,7 @@ from pathlib import Path
 import numpy as np
 from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection, utility
 
-from src.rag.config import (
-    MILVUS_URI, 
-    MILVUS_TOKEN, 
-    MILVUS_DB, 
-    MILVUS_COLLECTION,
-    E5_MODEL_NAME
-)
+from src.rag.config import rag_settings
 from src.rag.vectors.embeddings import encode_e5
 
 from .models import Config
@@ -58,14 +52,14 @@ class MilvusEmbedder:
         self.nodes_file = Path(nodes_file)
         
         # Use provided values or fall back to config
-        self.milvus_uri = milvus_uri or MILVUS_URI
-        self.milvus_token = milvus_token or MILVUS_TOKEN
-        self.collection_name = collection_name or MILVUS_COLLECTION
-        self.milvus_db = MILVUS_DB
+        self.milvus_uri = milvus_uri or rag_settings.MILVUS_URI
+        self.milvus_token = milvus_token or rag_settings.MILVUS_TOKEN
+        self.collection_name = collection_name or rag_settings.MILVUS_COLLECTION
+        self.milvus_db = rag_settings.MILVUS_DB
         self.embedding_dim = embedding_dim
         self.batch_size = batch_size
         
-        logger.info(f"Using E5 model: {E5_MODEL_NAME}")
+        logger.info(f"Using E5 model: {rag_settings.E5_MODEL_NAME}")
         logger.info(f"Embedding dimension: {self.embedding_dim}")
         
         # Initialize Milvus connection

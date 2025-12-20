@@ -2,7 +2,7 @@ import google.generativeai as genai
 import os
 import logging
 
-from src.rag.config import GEMINI_MODEL_NAME
+from src.rag.config import rag_settings
 from src.rag.api_key_manager.api_key_manager import APIKeyManager, load_api_keys_from_file
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class LLMClient:
     Sau mỗi lần gọi (thành công hay thất bại), key sẽ tự động rotate sang key tiếp theo.
     """
     
-    def __init__(self, model_name: str = GEMINI_MODEL_NAME):
+    def __init__(self, model_name: str = rag_settings.GEMINI_MODEL_NAME):
         self.model_name = model_name
         self.key_manager = key_manager
         logger.info(f"Initialized LLMClient with model: {model_name}")

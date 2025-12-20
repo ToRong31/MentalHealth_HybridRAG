@@ -13,7 +13,7 @@ from src.db.session import get_db
 from src.db.db_models.user import User
 from src.db.repositories.user_repository import UserRepository
 from src.schemas.auth import TokenData
-from .config import SECRET_KEY, ALGORITHM
+from .config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,8 @@ async def get_current_user(
         # Decode token with verify_sub=False to handle legacy tokens where sub might be int
         payload = jwt.decode(
             token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
             options={"verify_sub": False}
         )
         

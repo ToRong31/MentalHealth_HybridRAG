@@ -2,9 +2,9 @@ from typing import List, Dict, Any
 
 from neo4j import GraphDatabase
 
-from src.rag.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+from src.rag.config import rag_settings
 
-driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+driver = GraphDatabase.driver(rag_settings.NEO4J_URI, auth=(rag_settings.NEO4J_USER, rag_settings.NEO4J_PASSWORD))
 
 
 def get_node_names_from_neo4j(node_ids: List[int]) -> Dict[int, str]:

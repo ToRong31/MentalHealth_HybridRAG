@@ -62,18 +62,18 @@ COLLECTION_CONFIGS = {
 
 
 def connect():
-    if not MILVUS_URI:
+    if not rag_settings.MILVUS_URI:
         raise RuntimeError("Set MILVUS_URI in env before running")
     
     connection_params = {
         "alias": "default",
-        "uri": MILVUS_URI,
-        "db_name": MILVUS_DB,
+        "uri": rag_settings.MILVUS_URI,
+        "db_name": rag_settings.MILVUS_DB,
     }
     
     # Only add token and secure for cloud deployment
-    if MILVUS_TOKEN and MILVUS_TOKEN.strip():
-        connection_params["token"] = MILVUS_TOKEN
+    if rag_settings.MILVUS_TOKEN and rag_settings.MILVUS_TOKEN.strip():
+        connection_params["token"] = rag_settings.MILVUS_TOKEN
         connection_params["secure"] = True
     else:
         connection_params["secure"] = False

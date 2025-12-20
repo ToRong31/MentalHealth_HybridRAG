@@ -6,6 +6,8 @@ from src.rag.vectors.dense_retriever import DenseRetriever
 from src.rag.vectors.embeddings import device  # nếu không dùng thì có thể xoá
 from src.rag.vectors.embeddings import encode_e5  # nếu không dùng thì có thể xoá
 
+import logging
+logger = logging.getLogger(__name__)
 
 class DenseRetrieval(BaseRetrieval):
     """
@@ -17,7 +19,7 @@ class DenseRetrieval(BaseRetrieval):
 
     def __init__(
         self,
-        collection_name: str = "chat_16k",
+        collection_name: str = "clinicalbook",
         milvus_top_k: int = 10,
         reranker: CohereReranker | None = None,
     ):
@@ -47,18 +49,21 @@ class DenseRetrieval(BaseRetrieval):
             [query],
             top_k=self.milvus_top_k,
         )
+        logger.info(f"query: {query}")
         # Chỉ có 1 query nên lấy phần tử đầu
         candidates_for_query = milvus_results[0]
 
         # 2. Chuẩn hoá candidates sang dạng dict cho reranker
         candidates_dicts: List[Dict[str, Any]] = []
         for node_id, score in candidates_for_query:
+            # Get text content for reranking
+            text_content = self.dense_retriever.get_dense_context_by_id(node_id)
             candidates_dicts.append(
                 {
+                    "chunk_id": node_id,  # Reranker expects 'chunk_id'
                     "node_id": node_id,
+                    "text": text_content,  # Add text for Cohere reranking
                     "original_milvus_score": float(score),
-                    # Nếu sau này có text thì thêm:
-                    # "text": node_text,
                 }
             )
 
@@ -72,11 +77,11 @@ class DenseRetrieval(BaseRetrieval):
         # 4. Build dense context từ các node sau rerank
         context_parts = []
         for c in reranked:
-            node_id = c["node_id"]
+            chunk_id = c.get("chunk_id") or c.get("node_id")  # Support both keys
             cohere_score = float(c["cohere_score"])
-            answer_text = self.dense_retriever.get_dense_context_by_id(node_id)
+            answer_text = self.dense_retriever.get_dense_context_by_id(chunk_id)
             context_parts.append(
-                f"Answer (ID: {node_id}, Score: {cohere_score:.4f}): {answer_text}"
+                f"Answer (ID: {chunk_id}, Score: {cohere_score:.4f}): {answer_text}"
             )
 
         dense_context = "\n".join(context_parts)

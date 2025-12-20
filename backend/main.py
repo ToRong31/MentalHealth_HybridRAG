@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import logging
 
 # Core
-from src.core.config import API_HOST, API_PORT
+from src.core.config import settings
 
 # Database
 from src.db import init_db, close_db
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     
     uvicorn.run(
         "main:app",
-        host=API_HOST,
-        port=API_PORT,
+        host=settings.API_HOST,
+        port=settings.API_PORT,
         reload=True
     )

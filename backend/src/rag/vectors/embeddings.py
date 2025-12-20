@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
 
-from src.rag.config import E5_MODEL_NAME
+from src.rag.config import rag_settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ print(f"Using device: {device}")
 # Model stays in memory (GPU/CPU) and is reused for ALL requests
 # ============================================================================
 
-tokenizer = AutoTokenizer.from_pretrained(E5_MODEL_NAME)
-e5_model = AutoModel.from_pretrained(E5_MODEL_NAME).to(device)
+tokenizer = AutoTokenizer.from_pretrained(rag_settings.E5_MODEL_NAME)
+e5_model = AutoModel.from_pretrained(rag_settings.E5_MODEL_NAME).to(device)
 e5_model.eval()  # Set to evaluation mode (no training)
 
 

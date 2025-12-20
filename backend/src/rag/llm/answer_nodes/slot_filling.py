@@ -65,12 +65,33 @@ async def process_slot_filling(question: str) -> Dict[str, Any]:
             relevant_missing_slots = result.get("relevant_missing_slots", [])
             follow_up_questions = result.get("follow_up_questions", [])
             
-            logger.info(
-                f"Extracted slots: {len([v for v in slots.values() if v is not None and v != []])} filled, "
-                f"{len(relevant_missing_slots)} relevant missing, "
-                f"{len(follow_up_questions)} follow-ups"
-            )
+            # ========== BEGIN: DETAILED SLOT FILLING LOGS (Remove this block when done debugging) ==========
+            filled_slots = {k: v for k, v in slots.items() 
+                          if v is not None and v != [] and v != "none"}
             
+            logger.info("="*80)
+            logger.info("SLOT FILLING RESULTS")
+            logger.info("="*80)
+            logger.info(f"✅ Filled slots ({len(filled_slots)}):")
+            for key, value in filled_slots.items():
+                if isinstance(value, list):
+                    value_str = ", ".join(str(v) for v in value) if value else "[]"
+                else:
+                    value_str = str(value)
+                logger.info(f"   • {key}: {value_str}")
+            
+            logger.info(f"\n❌ Missing slots ({len(missing_slots)}):")
+            logger.info(f"   {', '.join(missing_slots) if missing_slots else 'None'}")
+            
+            logger.info(f"\n🎯 Relevant missing slots ({len(relevant_missing_slots)}):")
+            logger.info(f"   {', '.join(relevant_missing_slots) if relevant_missing_slots else 'None'}")
+            
+            logger.info(f"\n💬 Follow-up questions ({len(follow_up_questions)}):")
+            for i, q in enumerate(follow_up_questions, 1):
+                logger.info(f"   {i}. {q}")
+            logger.info("="*80)
+            # ========== END: DETAILED SLOT FILLING LOGS ==========
+
             return {
                 "slots": slots,
                 "missing_slots": missing_slots,

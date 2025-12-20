@@ -5,12 +5,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 
-from src.core.config import DATABASE_URL
+from src.core.config import settings
 
 
 # Create async engine
 engine = create_async_engine(
-    DATABASE_URL,
+    settings.DATABASE_URL,
     echo=False,  # Set to True for SQL query logging
     poolclass=NullPool,  # Disable connection pooling for development
     future=True,

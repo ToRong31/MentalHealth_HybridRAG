@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
 from src.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token
-from src.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from src.core.config import settings
 from src.db.repositories.user_repository import UserRepository
 from src.db.db_models.user import User
 from src.schemas.user import UserCreate, UserLogin
@@ -58,7 +58,7 @@ class AuthService:
             user=UserResponse.model_validate(new_user),
             token=TokenResponse(
                 access_token=access_token,
-                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
             ),
             refresh_token=refresh_token
         )
@@ -81,7 +81,7 @@ class AuthService:
             user=UserResponse.model_validate(user),
             token=TokenResponse(
                 access_token=access_token,
-                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
             ),
             refresh_token=refresh_token
         )
@@ -98,7 +98,7 @@ class AuthService:
     async def refresh_access_token(self, refresh_token: str) -> TokenResponse:
         """Generate new access token from refresh token"""
         try:
-            payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
             user_id: str = payload.get("sub")
             token_type: str = payload.get("type")
             
@@ -121,7 +121,7 @@ class AuthService:
             
             return TokenResponse(
                 access_token=access_token,
-                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
             )
             
         except JWTError:

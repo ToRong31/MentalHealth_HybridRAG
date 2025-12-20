@@ -10,7 +10,7 @@ from src.schemas.user import UserCreate, UserLogin, UserResponse
 from src.schemas.auth import AuthResponse, TokenResponse
 from src.services.auth_service import AuthService
 from src.core.deps import get_current_user
-from src.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from src.core.config import settings
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])

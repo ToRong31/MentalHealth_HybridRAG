@@ -373,10 +373,10 @@ def create_pipeline(
     api_manager = APIKeyManager(api_keys, min_delay_between_calls=config.min_delay_between_calls)
     
     # Load Neo4j credentials from config if not provided
-    from src.rag.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
-    neo4j_uri = neo4j_uri or NEO4J_URI
-    neo4j_user = neo4j_user or NEO4J_USER
-    neo4j_password = neo4j_password or NEO4J_PASSWORD
+    from src.rag.config import rag_settings
+    neo4j_uri = neo4j_uri or rag_settings.NEO4J_URI
+    neo4j_user = neo4j_user or rag_settings.NEO4J_USER
+    neo4j_password = neo4j_password or rag_settings.NEO4J_PASSWORD
     
     return IngestionPipeline(
         config=config,

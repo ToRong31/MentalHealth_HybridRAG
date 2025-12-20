@@ -5,7 +5,7 @@ import yaml  # nhớ: pip install pyyaml
 
 from src.rag.llm.llm_gemini import LLMClient
 
-from src.rag.config import GEMINI_MODEL_NAME
+from src.rag.config import rag_settings
 
 class GeminiTranslator(LLMClient):
     """
@@ -15,7 +15,7 @@ class GeminiTranslator(LLMClient):
 
     def __init__(
         self,
-        model_name: str = GEMINI_MODEL_NAME,
+        model_name: str = rag_settings.GEMINI_MODEL_NAME,
         default_max_retries: int = 3,
         prompt_config_path: str = "src/rag/prompts/translator_prompts.yaml",
     ):

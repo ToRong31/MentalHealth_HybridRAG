@@ -34,26 +34,76 @@ except Exception as e:
     fallback_answer = """I'm having technical difficulties. Could you share more about your situation?"""
 
 
-async def generate_answer_with_dense(question: str, dense_context: str = "") -> str:
+async def generate_answer_with_dense(
+    question: str,
+    dense_context: str = "",
+    user_language: str = "en",
+    original_question: str = None,
+    slots: dict = None,
+    follow_up_questions: list = None,
+    relevant_missing_slots: list = None
+) -> str:
     """
     Generate answer based on dense retrieval context.
     
     Args:
-        question: User question
+        question: User question (may be translated)
         dense_context: Context from dense retrieval
+        user_language: User's language (vi/en)
+        original_question: Original question if translated
+        slots: User's personal context slots
+        follow_up_questions: Generated follow-up questions
+        relevant_missing_slots: Relevant missing slot information
     
     Returns:
         Generated answer string
     """
+    if slots is None:
+        slots = {}
+    if follow_up_questions is None:
+        follow_up_questions = []
+    if relevant_missing_slots is None:
+        relevant_missing_slots = []
+    
+    # Get question (use original for Vietnamese)
+    q = original_question if (user_language == "vi" and original_question) else question
+    
     try:
+        # Build slot context
+        slot_info = ""
+        if slots:
+            from src.rag.utils.slots import build_slot_context
+            slot_info = build_slot_context(slots)
+        
+        # Build combined context
+        context_parts = []
+        
+        if dense_context:
+            context_parts.append(f"Knowledge from documents:\n{dense_context}")
+        else:
+            context_parts.append("No specific knowledge available.")
+        
+        if slot_info:
+            context_parts.append(f"\nUser's personal context:\n{slot_info}")
+        
+        combined_context = "\n".join(context_parts)
+        
         # Build full prompt
-        user_message = user_template_dense.replace("{{PATIENT_INPUT}}", question).replace(
+        user_message = user_template_dense.replace("{{PATIENT_INPUT}}", q).replace(
             "{{DOCTOR_DIALOGUE}}",
-            dense_context if dense_context else "No specific knowledge available."
+            combined_context
         )
         
-        full_prompt = f"{system_instructions_dense}\n\n{user_message}"
+        # Add follow-up questions instruction if available
+        if follow_up_questions and relevant_missing_slots:
+            user_message += f"\n\nIMPORTANT: The user's message suggests they might benefit from sharing more about: {', '.join(relevant_missing_slots)}. "
+            user_message += "After providing your main response, naturally and empathetically ask these relevant follow-up questions to better understand their situation:\n"
+            for question_text in follow_up_questions:
+                user_message += f"- {question_text}\n"
+            user_message += "\nIntegrate these questions naturally into your response, not as a separate list. Only ask if it feels appropriate given the context."
         
+        full_prompt = f"{system_instructions_dense}\n\n{user_message}"
+
         # Generate answer
         loop = asyncio.get_event_loop()
         answer = await loop.run_in_executor(None, lambda: llm.invoke(full_prompt, max_retries=3))
