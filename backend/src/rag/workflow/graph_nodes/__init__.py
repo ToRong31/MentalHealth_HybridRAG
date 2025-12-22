@@ -24,9 +24,11 @@ from .not_mental_health import not_mental_health_node
 from .safety_check import safety_check_node
 from .slot_filling import slot_filling_node
 from .query_classifier import query_classifier_node
+from .query_rewriter import query_rewriter_node
 from .conversation_memory import conversation_memory_node
 from .answer_with_graph import answer_with_graph_node
 from .answer_with_dense import answer_with_dense_node
+from .request_more_info import request_more_info_node
 
 __all__ = [
     # Translation

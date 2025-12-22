@@ -17,25 +17,22 @@ logger = logging.getLogger(__name__)
 async def graph_retrieval_node(state: KGState) -> KGState:
     """
     Retrieve graph context using GraphRetrieval with smart waiting for slots.
-    Conditional enhancement: enhance query nếu follow_up/topic_change, không enhance nếu off_topic.
+    Uses rewritten_query from query_rewriter node which includes slots + conversation context.
     
     Logic:
     - Nếu slots có sẵn → execute ngay
     - Nếu chưa có → đợi tối đa 5 giây
     - Sau 7 giây tổng cộng → proceed với defaults
-    - Conditional query enhancement dựa trên should_enhance_query và query_type
+    - Uses rewritten_query if available (from query_rewriter node)
     
     Args:
-        state: KGState with 'question', 'parallel_start_time', 'slots', 'query_type', 'should_enhance_query', 'conversation_buffer', 'summary_context'
+        state: KGState with 'question', 'rewritten_query', 'parallel_start_time', 'slots'
     
     Returns:
         Updated state with 'graph_context', 'anchors', 'nodes', 'rels'
     """
     original_question = state["question"]
-    query_type = state.get("query_type")
-    should_enhance = state.get("should_enhance_query")
-    buffer = state.get("conversation_buffer", [])
-    summary = state.get("summary_context", "")
+    rewritten_query = state.get("rewritten_query")
     parallel_start_time = state.get("parallel_start_time")
     slots = state.get("slots")
     
@@ -97,27 +94,21 @@ async def graph_retrieval_node(state: KGState) -> KGState:
     # Lấy slots cuối cùng (có thể đã được set trong wait loop)
     slots = state.get("slots", get_default_slots())
     
-    # Conditional query enhancement for retrieval
-    # Enhance query nếu follow_up hoặc topic_change
-    # Không enhance nếu off_topic (nhưng off_topic đã bị reject ở safety check)
-    if should_enhance and query_type in ["follow_up", "topic_change"]:
-        # Build enhanced query with conversation context
-        enhanced_question = build_enhanced_query(original_question, buffer, summary)
-        # Use enhanced query for Milvus search, but original query for reranking
-        logger.info(f"Enhanced query for retrieval (type: {query_type})")
-        logger.debug(f"Enhanced query: {enhanced_question[:100]}...")
-        result = await graph_retrieval.retrieve_async(
-            enhanced_question, 
-            slots=slots,
-            original_query=original_question  # Use original for reranking
-        )
+    # Use rewritten query from query_rewriter node (includes slots + conversation context)
+    # Falls back to original question if rewriter hasn't run
+    query_for_retrieval = rewritten_query if rewritten_query else original_question
+    
+    if rewritten_query:
+        logger.info(f"🔍 Using rewritten query for graph retrieval")
+        logger.debug(f"Rewritten: {rewritten_query[:100]}...")
     else:
-        # Use original query (off_topic or first message)
-        if query_type == "off_topic":
-            logger.info("Using original query for retrieval (off_topic)")
-        else:
-            logger.info("Using original query for retrieval (no enhancement needed)")
-        result = await graph_retrieval.retrieve_async(original_question, slots=slots)
+        logger.info(f"🔍 Using original query for graph retrieval (no rewrite available)")
+    
+    result = await graph_retrieval.retrieve_async(
+        query_for_retrieval,
+        slots=slots,
+        original_query=original_question  # Keep original for reranking if needed
+    )
     
     # Update state
     state["graph_context"] = result.context

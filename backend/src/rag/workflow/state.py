@@ -21,6 +21,10 @@ class KGState(TypedDict):
     missing_slots: Optional[List[str]]
     relevant_missing_slots: Optional[List[str]]
     follow_up_questions: Optional[List[str]]
+    has_sufficient_slots: Optional[bool]  # Whether REQUIRED slots are sufficiently filled
+    required_missing_slots: Optional[List[str]]  # List of missing REQUIRED slots
+    rewritten_query: Optional[str]  # Query rewritten with slots + conversation context
+    optional_follow_up_questions: Optional[List[str]]  # Optional questions to ask in answer (not blocking)
     
     # Timing tracking for parallel execution
     parallel_start_time: Optional[float]  # Timestamp when parallel execution starts
@@ -36,3 +40,18 @@ class KGState(TypedDict):
     query_similarity: Optional[float]  # Similarity score between query and conversation context
     is_topic_change: Optional[bool]  # Flag for topic change detection
     is_off_topic: Optional[bool]  # Flag for off-topic detection
+    
+    # Diagnostic fields
+    diagnostic_chunks: Optional[str]  # Chunks from diagnostic retrieval
+    detected_disease: Optional[str]  # Disease name detected
+    diagnostic_confidence: Optional[float]  # Confidence score 0-1
+    diagnostic_reasoning: Optional[str]  # LLM reasoning for diagnosis
+    
+    # Treatment fields
+    awaiting_treatment_confirmation: Optional[bool]  # Waiting for user to confirm treatment
+    treatment_chunks: Optional[List[str]]  # Treatment chunks retrieved by disease
+    treatment_node_ids: Optional[List[int]]  # Node IDs of treatment chunks
+    user_wants_treatment: Optional[bool]  # User confirmed wanting treatment
+    
+    # Routing flags
+    needs_apology_prefix: Optional[bool]  # Flag to add apology prefix for low confidence diagnosis

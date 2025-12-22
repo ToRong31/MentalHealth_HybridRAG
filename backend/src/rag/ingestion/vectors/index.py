@@ -26,7 +26,7 @@ from pymilvus import (
     utility,
 )
 
-from src.rag.config import MILVUS_DB, MILVUS_TOKEN, MILVUS_URI
+from src.rag.config import rag_settings
 from src.rag.vectors.embeddings import encode_e5
 
 
@@ -50,6 +50,7 @@ COLLECTION_CONFIGS = {
         "text_field": "answer",
         "id_field": "id",
         "is_jsonl": False,
+        "has_disease_field": False,
     },
     "clinicalbook": {
         "default_input": Path("data/raw/clinicalbook.jsonl"),
@@ -57,6 +58,25 @@ COLLECTION_CONFIGS = {
         "text_field": "text",
         "id_field": "chunk_id",
         "is_jsonl": True,
+        "has_disease_field": False,
+    },
+    "mental_health_diagnostic_support": {
+        "default_input": Path("data/raw/mental_health_diagnostic_support.jsonl"),
+        "default_skip_file": Path("data/processed/mental_health_diagnostic_support_ids_embedded.txt"),
+        "text_field": "text",
+        "id_field": "chunk_id",
+        "disease_field": "title",
+        "is_jsonl": True,
+        "has_disease_field": True,
+    },
+    "mental_health_treatment_guidance": {
+        "default_input": Path("data/raw/mental_health_treatment_guidance.jsonl"),
+        "default_skip_file": Path("data/processed/mental_health_treatment_guidance_ids_embedded.txt"),
+        "text_field": "text",
+        "id_field": "chunk_id",
+        "disease_field": "title",
+        "is_jsonl": True,
+        "has_disease_field": True,
     },
 }
 
@@ -82,27 +102,37 @@ def connect():
     logger.info("Connected to Milvus")
 
 
-def ensure_collection(name: str, dim: int) -> Collection:
+def ensure_collection(name: str, dim: int, has_disease_field: bool = False) -> Collection:
     if name not in utility.list_collections():
         logger.info("Creating collection %s", name)
-        schema = CollectionSchema(
-            [
+        fields = [
+            FieldSchema(
+                name="node_id",
+                dtype=DataType.INT64,
+                is_primary=True,
+                auto_id=False,
+                description="Item id",
+            ),
+            FieldSchema(
+                name="embedding",
+                dtype=DataType.FLOAT_VECTOR,
+                dim=dim,
+                description="E5 embedding",
+            ),
+        ]
+        
+        # Add disease field if needed
+        if has_disease_field:
+            fields.append(
                 FieldSchema(
-                    name="node_id",
-                    dtype=DataType.INT64,
-                    is_primary=True,
-                    auto_id=False,
-                    description="Chat item id",
-                ),
-                FieldSchema(
-                    name="embedding",
-                    dtype=DataType.FLOAT_VECTOR,
-                    dim=dim,
-                    description="E5 embedding",
-                ),
-            ],
-            description="chat_16k embeddings",
-        )
+                    name="disease",
+                    dtype=DataType.VARCHAR,
+                    max_length=500,
+                    description="Disease or title field",
+                )
+            )
+        
+        schema = CollectionSchema(fields, description=f"{name} embeddings")
         col = Collection(name, schema)
         col.create_index(
             field_name="embedding",
@@ -143,8 +173,9 @@ def iter_records(
     skip_ids: set[int],
     text_field: str = "answer",
     id_field: str = "id",
-    is_jsonl: bool = False
-) -> Iterable[Tuple[int, str]]:
+    is_jsonl: bool = False,
+    disease_field: str | None = None
+) -> Iterable[Tuple[int, str, str | None]]:
     """
     Iterate over records from input file.
     
@@ -155,6 +186,7 @@ def iter_records(
         text_field: Name of field containing text to embed
         id_field: Name of field containing the ID
         is_jsonl: True if file is JSONL format, False if JSON array
+        disease_field: Optional name of field containing disease/title
     """
     if is_jsonl:
         # Read JSONL format (one JSON object per line)
@@ -171,8 +203,9 @@ def iter_records(
                 if node_id in skip_ids:
                     continue
                 text = (item.get(text_field) or "").strip()
+                disease = (item.get(disease_field) or "").strip() if disease_field else None
                 # E5 passage prefix
-                yield node_id, f"passage: {text}" if text else f"passage: id {node_id}"
+                yield node_id, f"passage: {text}" if text else f"passage: id {node_id}", disease
                 idx += 1
     else:
         # Read JSON array format
@@ -184,8 +217,9 @@ def iter_records(
             if node_id in skip_ids:
                 continue
             text = (item.get(text_field) or "").strip()
+            disease = (item.get(disease_field) or "").strip() if disease_field else None
             # E5 passage prefix
-            yield node_id, f"passage: {text}" if text else f"passage: id {node_id}"
+            yield node_id, f"passage: {text}" if text else f"passage: id {node_id}", disease
 
 
 def append_embedded_ids(ids: List[int], path: Path | None):
@@ -198,25 +232,35 @@ def append_embedded_ids(ids: List[int], path: Path | None):
 
 
 def insert_batches(
-    col: Collection, records: Iterable[Tuple[int, str]], batch_size: int, skip_ids_path: Path | None
+    col: Collection, records: Iterable[Tuple[int, str, str | None]], batch_size: int, skip_ids_path: Path | None, has_disease_field: bool = False
 ):
     ids: List[int] = []
     texts: List[str] = []
+    diseases: List[str] = []
     total = 0
-    for node_id, text in records:
+    for node_id, text, disease in records:
         ids.append(node_id)
         texts.append(text)
+        if has_disease_field:
+            diseases.append(disease or "")
         if len(ids) >= batch_size:
             embeddings = encode_e5(texts)
-            col.insert([ids, embeddings.tolist()])
+            if has_disease_field:
+                col.insert([ids, embeddings.tolist(), diseases])
+            else:
+                col.insert([ids, embeddings.tolist()])
             append_embedded_ids(ids, skip_ids_path)
             total += len(ids)
             logger.info("Inserted %d rows", total)
             ids.clear()
             texts.clear()
+            diseases.clear()
     if ids:
         embeddings = encode_e5(texts)
-        col.insert([ids, embeddings.tolist()])
+        if has_disease_field:
+            col.insert([ids, embeddings.tolist(), diseases])
+        else:
+            col.insert([ids, embeddings.tolist()])
         append_embedded_ids(ids, skip_ids_path)
         total += len(ids)
         logger.info("Inserted %d rows", total)
@@ -248,6 +292,7 @@ def main():
             "text_field": "text",
             "id_field": "id",
             "is_jsonl": False,
+            "has_disease_field": False,
         }
     else:
         config = COLLECTION_CONFIGS[args.collection]
@@ -261,6 +306,8 @@ def main():
     logger.info("Skip IDs file: %s", skip_ids_file)
     logger.info("Text field: %s, ID field: %s, JSONL: %s", 
                 config["text_field"], config["id_field"], config["is_jsonl"])
+    if config.get("has_disease_field"):
+        logger.info("Disease field: %s", config.get("disease_field"))
 
     connect()
 
@@ -268,7 +315,7 @@ def main():
         logger.warning("Dropping existing collection %s", args.collection)
         utility.drop_collection(args.collection)
 
-    col = ensure_collection(args.collection, EMBEDDING_DIM)
+    col = ensure_collection(args.collection, EMBEDDING_DIM, config.get("has_disease_field", False))
     skip_ids = load_skip_ids(skip_ids_file)
     records = iter_records(
         input_path, 
@@ -276,9 +323,10 @@ def main():
         skip_ids,
         text_field=config["text_field"],
         id_field=config["id_field"],
-        is_jsonl=config["is_jsonl"]
+        is_jsonl=config["is_jsonl"],
+        disease_field=config.get("disease_field")
     )
-    insert_batches(col, records, args.batch, skip_ids_file)
+    insert_batches(col, records, args.batch, skip_ids_file, config.get("has_disease_field", False))
 
 
 if __name__ == "__main__":

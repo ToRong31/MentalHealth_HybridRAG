@@ -41,7 +41,9 @@ async def generate_answer_with_dense(
     original_question: str = None,
     slots: dict = None,
     follow_up_questions: list = None,
-    relevant_missing_slots: list = None
+    relevant_missing_slots: list = None,
+    conversation_buffer: list = None,
+    summary_context: str = ""
 ) -> str:
     """
     Generate answer based on dense retrieval context.
@@ -64,6 +66,8 @@ async def generate_answer_with_dense(
         follow_up_questions = []
     if relevant_missing_slots is None:
         relevant_missing_slots = []
+    if conversation_buffer is None:
+        conversation_buffer = []
     
     # Get question (use original for Vietnamese)
     q = original_question if (user_language == "vi" and original_question) else question
@@ -75,6 +79,24 @@ async def generate_answer_with_dense(
             from src.rag.utils.slots import build_slot_context
             slot_info = build_slot_context(slots)
         
+        # Build conversation context (last 3 pairs + summary)
+        conversation_context = ""
+        if summary_context or conversation_buffer:
+            from src.rag.utils.memory import format_buffer_for_context, format_summary_context
+            
+            context_parts_conv = []
+            if summary_context:
+                context_parts_conv.append(f"Previous conversation summary: {format_summary_context(summary_context)}")
+            
+            # Use only last 3 buffer pairs
+            recent_buffer = conversation_buffer[-3:] if conversation_buffer else []
+            if recent_buffer:
+                context_parts_conv.append(f"Recent conversation:\n{format_buffer_for_context(recent_buffer)}")
+            
+            if context_parts_conv:
+                conversation_context = "\n".join(context_parts_conv)
+                logger.info(f"📚 Added conversation context: {len(recent_buffer)} recent pairs + summary")
+        
         # Build combined context
         context_parts = []
         
@@ -85,6 +107,9 @@ async def generate_answer_with_dense(
         
         if slot_info:
             context_parts.append(f"\nUser's personal context:\n{slot_info}")
+        
+        if conversation_context:
+            context_parts.append(f"\nConversation context:\n{conversation_context}")
         
         combined_context = "\n".join(context_parts)
         

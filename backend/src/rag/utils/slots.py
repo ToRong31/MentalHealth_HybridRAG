@@ -1,4 +1,13 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+# Required slots that must be filled before retrieval
+REQUIRED_SLOTS = [
+    "emotion",
+    "primary_mood", 
+    "duration",
+    "impact",
+    "intensity",
+]
 
 
 def get_default_slots() -> Dict[str, Any]:
@@ -14,6 +23,7 @@ def get_default_slots() -> Dict[str, Any]:
         "impact": None,
         "risk_level": "none",
         "need": None,
+        "stress_level": None,
         "physical_symptoms": [],
         "sleep_quality": None,
         "sleep_duration": None,
@@ -29,7 +39,6 @@ def get_default_slots() -> Dict[str, Any]:
         "coping_mechanisms": [],
         "coping_effectiveness": None,
         "current_stressors": [],
-        "stress_level": None,
         "suicidal_ideation": None,
         "self_harm_thoughts": None,
         "current_treatment": None,
@@ -172,4 +181,106 @@ def get_slot_keywords(slots: Dict[str, Any]) -> List[str]:
     keywords = list(set([k for k in keywords if k]))
     
     return keywords
+
+
+def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[str]]:
+    """
+    Check if required slots are filled sufficiently for retrieval.
+    
+    Args:
+        slots: Slot dictionary
+    
+    Returns:
+        Tuple of (is_sufficient, required_missing_slots, optional_missing_slots)
+        - is_sufficient: True if REQUIRED_SLOTS are filled (at least 4/5 slots, allow max 1 missing)
+        - required_missing_slots: List of REQUIRED slot names still missing
+        - optional_missing_slots: List of other relevant slots missing (for follow-up after answer)
+    """
+    if not slots:
+        return False, REQUIRED_SLOTS.copy(), []
+    
+    required_missing = []
+    
+    for slot_name in REQUIRED_SLOTS:
+        value = slots.get(slot_name)
+        
+        # Check if slot is actually filled (not None, not empty list, not "none")
+        if value is None or value == [] or value == "none":
+            required_missing.append(slot_name)
+    
+    # Consider sufficient if at least 4 out of 5 REQUIRED slots are filled (allow max 1 missing)
+    # This ensures we have enough context before proceeding to retrieval
+    is_sufficient = len(required_missing) <= 0
+    
+    return is_sufficient, required_missing, []
+
+
+def build_query_context_from_slots(slots: Dict[str, Any]) -> str:
+    """
+    Build natural language context from slots for query rewriting.
+    
+    Args:
+        slots: Slot dictionary
+    
+    Returns:
+        Natural language string describing user's situation
+    """
+    if not slots:
+        return ""
+    
+    parts = []
+    
+    # Emotion and mood
+    emotions = slots.get("emotion", [])
+    primary_mood = slots.get("primary_mood")
+    if emotions or primary_mood:
+        if primary_mood:
+            parts.append(f"feeling {primary_mood}")
+        elif emotions:
+            parts.append(f"experiencing {', '.join(emotions)}")
+    
+    # Intensity
+    intensity = slots.get("intensity")
+    if intensity:
+        parts.append(f"at {intensity} intensity")
+    
+    # Duration
+    duration = slots.get("duration")
+    if duration:
+        parts.append(f"for {duration}")
+    
+    # Trigger
+    trigger = slots.get("trigger")
+    if trigger:
+        parts.append(f"triggered by {trigger}")
+    
+    # Impact
+    impact = slots.get("impact")
+    if impact:
+        parts.append(f"impacting: {impact}")
+    
+    # Stress level
+    stress_level = slots.get("stress_level")
+    if stress_level:
+        parts.append(f"stress level: {stress_level}")
+    
+    # Physical symptoms
+    physical = slots.get("physical_symptoms", [])
+    if physical:
+        parts.append(f"with physical symptoms: {', '.join(physical)}")
+    
+    # Sleep issues
+    sleep_quality = slots.get("sleep_quality")
+    if sleep_quality and sleep_quality != "good":
+        parts.append(f"sleep quality: {sleep_quality}")
+    
+    # What they need
+    need = slots.get("need")
+    if need:
+        parts.append(f"seeking: {need}")
+    
+    if not parts:
+        return ""
+    
+    return " | ".join(parts)
 
