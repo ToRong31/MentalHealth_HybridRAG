@@ -21,7 +21,7 @@ import type {
     User
 } from '../types';
 
-const API_BASE_URL = ((import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL) || 'http://localhost:8000';
+const API_BASE_URL = ((import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL) || '';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

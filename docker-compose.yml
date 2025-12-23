@@ -139,35 +139,20 @@ services:
 
   # Backend API
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: torong/mentalhealth-backend:v1
     container_name: chatbot-backend
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
-      # Neo4j Configuration
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=kguser2005
-      # PostgreSQL Configuration
       - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=${DB_NAME:-mental_health_db}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
-      # JWT Configuration
       - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this-in-production}
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_DAYS=${ACCESS_TOKEN_EXPIRE_DAYS:-7}
     volumes:
-      - ./backend/src:/app/src
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
-      - ./backend/main.py:/app/main.py
-      - ./backend/requirements.txt:/app/requirements.txt
       - hf_cache:/root/.cache/huggingface
     depends_on:
       neo4j:
@@ -178,36 +163,25 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    deploy:
-      resources:
-        reservations:
-          cpus: '1.0'
-          memory: 1G
 
-  # Frontend
+
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=http://localhost:8000
+    image: mentalhealth-frontend:local
     container_name: chatbot-frontend
     restart: unless-stopped
     ports:
       - "8080:80"
-    environment:
-      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
     networks:
       - app-network
 
+
+  # DEV SHELL: chỉ bật khi cần
   dev:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: app-backend
-    container_name: chatbot
+    profiles: ["dev"]
+    image: torong/mentalhealth-backend:v1
+    container_name: chatbot-dev
     working_dir: /app
     command: bash
     stdin_open: true
@@ -218,16 +192,20 @@ services:
       - ./backend/logs:/app/logs
       - ./frontend:/app/frontend
       - hf_cache:/root/.cache/huggingface
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=kguser2005
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+    depends_on:
+      - neo4j
+      - postgres
+      - milvus-standalone
     networks:
       - app-network
-    deploy:
-      resources:
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
 
 volumes:
+  # giữ nguyên volumes DB
   etcd_data:
   minio_data:
   milvus_data:
@@ -238,7 +216,6 @@ volumes:
   hf_cache:
   postgres_data:
   pgadmin_data:
-
 
 networks:
   app-network:

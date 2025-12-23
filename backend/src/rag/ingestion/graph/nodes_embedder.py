@@ -214,7 +214,7 @@ class MilvusEmbedder:
             
             schema = CollectionSchema(
                 fields,
-                description=f"Knowledge Graph entities embeddings ({E5_MODEL_NAME})"
+                description=f"Knowledge Graph entities embeddings ({rag_settings.E5_MODEL_NAME})"
             )
             
             # Create collection
@@ -307,7 +307,7 @@ class MilvusEmbedder:
                 "collection_name": self.collection_name,
                 "num_entities": collection.num_entities,
                 "embedding_dim": self.embedding_dim,
-                "model": E5_MODEL_NAME
+                "model": rag_settings.E5_MODEL_NAME
             }
             
             return stats

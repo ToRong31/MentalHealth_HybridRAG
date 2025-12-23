@@ -11,7 +11,7 @@ from pathlib import Path
 
 from neo4j import GraphDatabase
 
-from src.rag.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+from src.rag.config import rag_settings
 
 from .models import Config
 
