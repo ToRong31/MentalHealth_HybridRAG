@@ -139,9 +139,14 @@ services:
 
   # Backend API
   backend:
-    image: torong/mentalhealth-backend:v1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
     container_name: chatbot-backend
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     environment:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
@@ -151,6 +156,9 @@ services:
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_DAYS=${ACCESS_TOKEN_EXPIRE_DAYS:-7}
     volumes:
+      - ./backend/langgraph.json:/app/langgraph.json
+      - ./backend/.env:/app/.env:ro
+      - ./backend/src:/app/src
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
       - hf_cache:/root/.cache/huggingface
@@ -166,11 +174,17 @@ services:
 
 
   frontend:
-    image: mentalhealth-frontend:local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8000
     container_name: chatbot-frontend
     restart: unless-stopped
     ports:
       - "8080:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
     networks:
@@ -179,23 +193,32 @@ services:
 
   # DEV SHELL: chỉ bật khi cần
   dev:
-    profiles: ["dev"]
-    image: torong/mentalhealth-backend:v1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev
     container_name: chatbot-dev
     working_dir: /app
     command: bash
     stdin_open: true
     tty: true
+    ports:
+      - "8123:8123"  # LangGraph Studio port
     volumes:
       - ./backend/src:/app/src
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
       - ./frontend:/app/frontend
+      - ./backend/langgraph.json:/app/langgraph.json # Mount as read-only file
+      - ./backend/.env:/app/.env:ro  # Mount .env file
       - hf_cache:/root/.cache/huggingface
     environment:
+      - PYTHONPATH=/app:$PYTHONPATH
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=kguser2005
+      - MILVUS_HOST=milvus-standalone
+      - MILVUS_PORT=19530
       - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
     depends_on:
       - neo4j
@@ -203,7 +226,6 @@ services:
       - milvus-standalone
     networks:
       - app-network
-
 volumes:
   # giữ nguyên volumes DB
   etcd_data:

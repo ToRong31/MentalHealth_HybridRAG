@@ -1,48 +1,158 @@
 """
 Disease Conclusion Node
-Concludes diagnosis and asks if user wants treatment guidance
+Analyzes symptoms and concludes diagnosis
 """
 import logging
-from typing import Dict, Any
+import asyncio
+from typing import Dict, Any, List
 
 from ..state import KGState
+from src.rag.llm.answer_nodes.disease_conclusion import analyze_disease
+
+logger = logging.getLogger(__name__)
+
+
+def verify_diseases_with_context(
+    diagnostic_diseases: List[str],
+    diagnostic_chunks: str,
+    rewritten_query: str,
+    slots: Dict[str, Any],
+    conversation_buffer: list,
+    summary_context: str
+) -> tuple[str, float, str]:
+    """
+    Verify which disease from retrieved list matches the conversation context
+    
+    Args:
+        diagnostic_diseases: List of diseases from retrieval
+        diagnostic_chunks: Retrieved diagnostic chunks with diseases
+        rewritten_query: User's query
+        slots: Extracted slots
+        conversation_buffer: Conversation history
+        summary_context: Summary context
+    
+    Returns:
+        Tuple of (selected_disease, confidence, reasoning)
+    """
+    # Use LLM to analyze conversation and select most appropriate disease
+    detected_disease, confidence, reasoning = analyze_disease(
+        diagnostic_chunks,
+        rewritten_query,
+        slots,
+        conversation_buffer,
+        summary_context
+    )
+    
+    # Verify that LLM's disease is in the retrieved list
+    if detected_disease:
+        # Try exact match first
+        if detected_disease in diagnostic_diseases:
+            logger.info(f"✅ LLM selected disease '{detected_disease}' matches retrieved diseases")
+            return detected_disease, confidence, reasoning
+        
+        # Try partial match (in case of formatting differences)
+        for disease in diagnostic_diseases:
+            if detected_disease.lower() in disease.lower() or disease.lower() in detected_disease.lower():
+                logger.info(f"✅ LLM disease '{detected_disease}' matched to '{disease}'")
+                return disease, confidence, reasoning
+        
+        # LLM picked a disease not in retrieval - use top retrieved disease instead
+        logger.warning(f"⚠️ LLM selected '{detected_disease}' not in retrieval list. Using top retrieved disease.")
+    
+    # Fallback to top retrieved disease if LLM didn't find valid disease
+    if diagnostic_diseases:
+        return diagnostic_diseases[0], 0.7, f"Selected from retrieved diseases: {', '.join(diagnostic_diseases)}"
+    
+    return "", 0.0, "No disease detected"
 
 logger = logging.getLogger(__name__)
 
 
 async def disease_conclusion_node(state: KGState) -> KGState:
     """
-    Inform user about detected disease and ask about treatment
+    Analyze diagnostic chunks and conclude disease using LLM
     
     Args:
-        state: KGState with detected_disease, diagnostic_confidence, diagnostic_reasoning
+        state: KGState with diagnostic_chunks, rewritten_query, slots, conversation_buffer, summary_context
     
     Returns:
-        Updated state with answer and awaiting_treatment_confirmation flag
+        Updated state with detected_disease, diagnostic_confidence, diagnostic_reasoning, answer
     """
-    detected_disease = state.get("detected_disease", "")
-    confidence = state.get("diagnostic_confidence", 0.0)
-    reasoning = state.get("diagnostic_reasoning", "")
+    diagnostic_chunks = state.get("diagnostic_chunks", "")
+    diagnostic_diseases = state.get("diagnostic_diseases", [])
+    diagnostic_disease_details = state.get("diagnostic_disease_details", [])
+    rewritten_query = state.get("rewritten_query", state.get("question", ""))
+    slots = state.get("slots", {})
+    conversation_buffer = state.get("conversation_buffer", [])
+    summary_context = state.get("summary_context", "")
     language = state.get("user_language", "vi")
     
-    logger.info(f"📋 Concluding disease: '{detected_disease}' with confidence {confidence:.2f}")
+    logger.info(f"📋 Verifying diseases from retrieval with conversation context")
+    logger.info(f"🔍 Retrieved diseases: {diagnostic_diseases}")
     
-    if language == "vi" or language == "vn":
-        conclusion = f"""Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có thể đang gặp phải: **{detected_disease}**
+    if not diagnostic_chunks or not diagnostic_diseases:
+        logger.warning("⚠️ No diagnostic chunks or diseases available")
+        state["answer"] = "Xin lỗi, tôi không tìm thấy thông tin chẩn đoán phù hợp." if language == "vi" else "Sorry, I couldn't find relevant diagnostic information."
+        return state
+    
+    try:
+        # Use LLM to verify and select disease based on conversation context
+        loop = asyncio.get_event_loop()
+        detected_disease, confidence, reasoning = await loop.run_in_executor(
+            None,
+            verify_diseases_with_context,
+            diagnostic_diseases,
+            diagnostic_chunks,
+            rewritten_query,
+            slots,
+            conversation_buffer,
+            summary_context
+        )
+        
+        if detected_disease:
+            logger.info(f"✅ Disease conclusion: disease='{detected_disease}', confidence={confidence:.2f}")
+            
+            # Save analysis results
+            state["detected_disease"] = detected_disease
+            state["diagnostic_confidence"] = confidence
+            state["diagnostic_reasoning"] = reasoning
+            
+            # Add to disease_detected list if confidence is high enough (>= 0.6)
+            if confidence >= 0.6:
+                disease_list = state.get("disease_detected", [])
+                if disease_list is None:
+                    disease_list = []
+                if detected_disease not in disease_list:
+                    disease_list.append(detected_disease)
+                    state["disease_detected"] = disease_list
+                    logger.info(f"✅ Disease '{detected_disease}' added to disease_detected list (confidence: {confidence:.2f})")
+                else:
+                    logger.info(f"ℹ️ Disease '{detected_disease}' already in disease_detected list")
+            else:
+                logger.info(f"ℹ️ Disease '{detected_disease}' confidence too low ({confidence:.2f}) to add to disease_detected")
+            
+            # Generate conclusion message
+            if language == "vi" or language == "vn":
+                conclusion = f"""Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có thể đang gặp phải: **{detected_disease}**
 
-**Lý do:** {reasoning}
+**Phân tích:** {reasoning}
 
 Bạn có muốn tôi hướng dẫn cách điều trị và giải quyết vấn đề này không?"""
-    else:
-        conclusion = f"""Based on the symptoms you described, I believe you may be experiencing: **{detected_disease}**
+            else:
+                conclusion = f"""Based on the symptoms you described, I believe you may be experiencing: **{detected_disease}**
 
-**Reasoning:** {reasoning}
+**Analysis:** {reasoning}
 
 Would you like me to guide you on treatment and solutions for this condition?"""
-    
-    logger.info(f"✅ Disease conclusion generated for: '{detected_disease}'")
-    
-    state["answer"] = conclusion
-    state["awaiting_treatment_confirmation"] = True
+            
+            state["answer"] = conclusion
+            state["awaiting_treatment_confirmation"] = True
+        else:
+            logger.warning("⚠️ No disease confirmed from verification")
+            state["answer"] = "Xin lỗi, tôi không thể xác định bệnh từ các triệu chứng." if language == "vi" else "Sorry, I couldn't identify a condition from the symptoms."
+        
+    except Exception as e:
+        logger.error(f"❌ Error in disease conclusion: {e}", exc_info=True)
+        state["answer"] = "Xin lỗi, đã xảy ra lỗi trong quá trình phân tích." if language == "vi" else "Sorry, an error occurred during analysis."
     
     return state

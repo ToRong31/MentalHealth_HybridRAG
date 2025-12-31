@@ -72,6 +72,9 @@ class ChatResponse(BaseModel):
     is_high_risk: bool
     conversation_id: int
     message_id: int
+    # New fields from persistent state workflow
+    detected_language: Optional[str] = None  # "vi" or "en"
+    detected_disease: Optional[str] = None  # Disease name if diagnosed
 
 
 class ConversationWithMessages(ConversationResponse):

@@ -13,6 +13,7 @@ REQUIRED_SLOTS = [
 def get_default_slots() -> Dict[str, Any]:
     """
     Return default empty slots structure.
+    All slots initialized as None or empty list to support merging.
     """
     return {
         "emotion": [],
@@ -44,6 +45,56 @@ def get_default_slots() -> Dict[str, Any]:
         "current_treatment": None,
         "medication": None,
     }
+
+
+def merge_slots(existing_slots: Optional[Dict[str, Any]], new_slots: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Merge new slots into existing slots (append/update instead of replace).
+    
+    Rules:
+    - List fields (emotion, physical_symptoms, etc.): Append unique values
+    - Scalar fields: Update only if new value is not None/empty
+    - Preserve existing values when new value is None
+    
+    Args:
+        existing_slots: Current slots from state (may be None on first turn)
+        new_slots: Newly extracted slots from current turn
+    
+    Returns:
+        Merged slots dictionary
+    """
+    # Initialize with defaults if no existing slots
+    if not existing_slots:
+        merged = get_default_slots()
+    else:
+        merged = existing_slots.copy()
+    
+    # Merge each slot
+    for key, new_value in new_slots.items():
+        existing_value = merged.get(key)
+        
+        # Skip if new value is None or "none" or empty
+        if new_value is None or new_value == "none" or new_value == []:
+            continue
+        
+        # Handle list fields - append unique values
+        if isinstance(new_value, list):
+            if not existing_value:
+                merged[key] = new_value
+            else:
+                # Append unique items
+                existing_set = set(existing_value) if existing_value else set()
+                for item in new_value:
+                    if item and item not in existing_set:
+                        merged[key].append(item)
+        
+        # Handle scalar fields - update if not already set or if new value is more specific
+        else:
+            # Always update scalar fields with new non-empty values
+            # This allows updating/refining information across turns
+            merged[key] = new_value
+    
+    return merged
 
 
 def build_slot_context(slots: Dict[str, Any]) -> str:

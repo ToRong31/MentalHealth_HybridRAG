@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple
+import json
 
 from .base_retrieval import BaseRetrieval, RetrievalResult
 from src.rag.reranker.reranker import CohereReranker
@@ -19,13 +20,13 @@ class DenseRetrieval(BaseRetrieval):
 
     def __init__(
         self,
-        collection_name: str = "clinicalbook",
+        collection_name: str = "mental_health_diagnostic_support",
         milvus_top_k: int = 10,
         reranker: CohereReranker | None = None,
     ):
         """
         Args:
-            collection_name: tên collection Milvus/Zilliz (vd: "chat_16k")
+            collection_name: tên collection Milvus/Zilliz (default: mental_health_diagnostic_support)
             milvus_top_k: số candidate lấy từ Milvus trước khi rerank
             reranker: có thể truyền CohereReranker custom, mặc định tạo mới.
         """
@@ -41,11 +42,11 @@ class DenseRetrieval(BaseRetrieval):
         """
         Nhận 1 query string, trả về RetrievalResult:
           - context: 1 chuỗi context dense đã build từ các node rerank
-          - metadata: thông tin kèm theo
+          - metadata: thông tin kèm theo (bao gồm disease)
         """
 
         # 1. Lấy candidate từ Milvus (bọc query thành list để reuse DenseRetriever cũ)
-        milvus_results: List[List[Tuple[int, float]]] = self.dense_retriever.retrieve(
+        milvus_results: List[List[Tuple[int, float, str]]] = self.dense_retriever.retrieve(
             [query],
             top_k=self.milvus_top_k,
         )
@@ -55,7 +56,7 @@ class DenseRetrieval(BaseRetrieval):
 
         # 2. Chuẩn hoá candidates sang dạng dict cho reranker
         candidates_dicts: List[Dict[str, Any]] = []
-        for node_id, score in candidates_for_query:
+        for node_id, score, disease in candidates_for_query:
             # Get text content for reranking
             text_content = self.dense_retriever.get_dense_context_by_id(node_id)
             candidates_dicts.append(
@@ -64,6 +65,7 @@ class DenseRetrieval(BaseRetrieval):
                     "node_id": node_id,
                     "text": text_content,  # Add text for Cohere reranking
                     "original_milvus_score": float(score),
+                    "disease": disease,  # Add disease from Milvus
                 }
             )
 
@@ -74,15 +76,36 @@ class DenseRetrieval(BaseRetrieval):
             top_k=top_k,
         )
 
-        # 4. Build dense context từ các node sau rerank
+        # 4. Build dense context từ các node sau rerank với disease từ Milvus
         context_parts = []
+        diseases = []  # Collect unique diseases
+        disease_details = []  # Detailed disease info per chunk
+        
         for c in reranked:
             chunk_id = c.get("chunk_id") or c.get("node_id")  # Support both keys
             cohere_score = float(c["cohere_score"])
+            disease_name = c.get("disease", "")  # Get disease from reranked results
             answer_text = self.dense_retriever.get_dense_context_by_id(chunk_id)
-            context_parts.append(
-                f"Answer (ID: {chunk_id}, Score: {cohere_score:.4f}): {answer_text}"
-            )
+            
+            # Collect unique diseases
+            if disease_name and disease_name not in diseases:
+                diseases.append(disease_name)
+            
+            disease_details.append({
+                "chunk_id": chunk_id,
+                "disease": disease_name,
+                "score": cohere_score,
+            })
+            
+            # Build context with disease
+            if disease_name:
+                context_parts.append(
+                    f"[Disease: {disease_name}] Answer (ID: {chunk_id}, Score: {cohere_score:.4f}): {answer_text}"
+                )
+            else:
+                context_parts.append(
+                    f"Answer (ID: {chunk_id}, Score: {cohere_score:.4f}): {answer_text}"
+                )
 
         dense_context = "\n".join(context_parts)
 
@@ -91,12 +114,11 @@ class DenseRetrieval(BaseRetrieval):
             metadata={
                 "source": self.dense_retriever.get_name_collection()
                 if hasattr(self.dense_retriever, "get_name_collection")
-                else None
+                else None,
+                "diseases": diseases,  # List of unique diseases detected
+                "disease_details": disease_details,  # Detailed per-chunk disease info
             },
         )
 
     def get_name(self):
         return "DenseRetrieval"
-
-
-dense_retrieval = DenseRetrieval()

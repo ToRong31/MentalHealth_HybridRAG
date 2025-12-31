@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+import asyncio
 
 import yaml  # nhớ: pip install pyyaml
 
@@ -54,7 +55,7 @@ class GeminiTranslator(LLMClient):
         response = self.invoke(prompt, max_retries=retries)
         return response.strip() if response else ""
 
-    # ------------------- PUBLIC API ------------------- #
+    # ------------------- PUBLIC API (SYNC) ------------------- #
 
     def translate_question(self, vietnamese_question: str, max_retries: Optional[int] = None) -> str:
         """
@@ -79,6 +80,40 @@ class GeminiTranslator(LLMClient):
             english_answer=english_answer.strip()
         )
         return self._invoke_llm(prompt, max_retries=max_retries)
+
+    # ------------------- PUBLIC API (ASYNC) ------------------- #
+
+    async def translate_question_async(self, vietnamese_question: str, max_retries: Optional[int] = None) -> str:
+        """
+        Dịch câu hỏi từ tiếng Việt sang tiếng Anh (async version)
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self.translate_question(vietnamese_question, max_retries)
+        )
+
+    async def translate_answer_async(self, english_answer: str, max_retries: Optional[int] = None) -> str:
+        """
+        Dịch câu trả lời của bác sĩ từ tiếng Anh sang tiếng Việt (async version)
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self.translate_answer(english_answer, max_retries)
+        )
+
+    async def vi_to_en_async(self, text: str) -> str:
+        """Alias async: Dịch câu hỏi VI -> EN"""
+        print(f"Dịch câu hỏi VI -> EN (async): {text}")
+        return await self.translate_question_async(text)
+
+    async def en_to_vi_async(self, text: str) -> str:
+        """Alias async: Dịch câu trả lời EN -> VI"""
+        print(f"Dịch câu trả lời EN -> VI (async): {text}")
+        return await self.translate_answer_async(text)
+
+    # ------------------- SYNC ALIASES ------------------- #
 
     def vi_to_en(self, text: str) -> str:
         """Alias: Dịch câu hỏi VI -> EN"""

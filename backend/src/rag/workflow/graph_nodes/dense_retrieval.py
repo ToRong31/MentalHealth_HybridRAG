@@ -5,9 +5,12 @@ Retrieves relevant nodes using DenseRetrieval with rewritten query
 import logging
 
 from ..state import KGState
-from src.rag.retrieval.dense_retrieval import dense_retrieval
+from src.rag.retrieval.dense_retrieval import DenseRetrieval
 
 logger = logging.getLogger(__name__)
+
+# Create default dense retrieval instance
+dense_retrieval = DenseRetrieval(collection_name="mental_health_diagnostic_support")
 
 
 async def dense_retrieval_node(state: KGState) -> KGState:

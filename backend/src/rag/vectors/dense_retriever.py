@@ -7,12 +7,12 @@ from src.rag.vectors.embeddings import encode_e5
 from src.rag.vectors.embeddings import device
 import json
 
-MILVUS_COLLECTION_NAME = "clinicalbook"
+MILVUS_COLLECTION_NAME = "mental_health_diagnostic_support"
 
 # Mapping collection names to their data files
 COLLECTION_DATA_FILES = {
-    "chat_16k": "data/raw/input.json",
-    "clinicalbook": "data/raw/clinicalbook.jsonl",
+    "mental_health_diagnostic_support": "data/raw/mental_health_diagnostic_support.jsonl",
+    "mental_health_treatment_guidance": "data/raw/mental_health_treatment_guidance.jsonl",
 }
 
 class DenseRetriever:
@@ -30,9 +30,24 @@ class DenseRetriever:
             # Use default mapping based on collection name
             self.path_context = COLLECTION_DATA_FILES.get(
                 self.collection_name,
-                "data/raw/input.json"  # fallback default
+                "data/raw/mental_health_diagnostic_support.jsonl"  # fallback default
             )
 
+        # Lazy loading - connection will be established when needed
+        self._col = None
+        self._connected = False
+        
+        # Tham số search (phù hợp index HNSW COSINE trong index.py)
+        self.search_params = {
+            "metric_type": "COSINE",
+            "params": {"ef": 64},  # tùy chỉnh được
+        }
+    
+    def _ensure_connection(self):
+        """Ensure Milvus connection is established (lazy loading)"""
+        if self._connected and self._col is not None:
+            return
+        
         # Connection parameters
         connection_params = {
             "alias": "default",
@@ -50,20 +65,21 @@ class DenseRetriever:
         # Kết nối Milvus
         connections.connect(**connection_params)
 
-        self.col = Collection(self.collection_name)
-        self.col.load()
+        self._col = Collection(self.collection_name)
+        self._col.load()
+        self._connected = True
+    
+    @property
+    def col(self):
+        """Property to access collection with lazy loading"""
+        self._ensure_connection()
+        return self._col
 
-        # Tham số search (phù hợp index HNSW COSINE trong index.py)
-        self.search_params = {
-            "metric_type": "COSINE",
-            "params": {"ef": 64},  # tùy chỉnh được
-        }
-
-    def retrieve(self, queries: List[str], top_k: int = 5) -> List[List[Tuple[int, float]]]:
+    def retrieve(self, queries: List[str], top_k: int = 5) -> List[List[Tuple[int, float, str]]]:
         """
         Trả về list kết quả cho mỗi query:
         [
-          [(node_id1, score1), (node_id2, score2), ...],  # cho query 1
+          [(node_id1, score1, disease1), (node_id2, score2, disease2), ...],  # cho query 1
           [(...), ...],                                   # cho query 2
           ...
         ]
@@ -81,17 +97,22 @@ class DenseRetriever:
             anns_field="embedding",       # tên field vector
             param=self.search_params,
             limit=top_k,
-            output_fields=["node_id"],
+            output_fields=["node_id", "disease"],  # Thêm disease field
         )
 
-        all_results: List[List[Tuple[int, float]]] = []
+        all_results: List[List[Tuple[int, float, str]]] = []  # Thêm disease vào tuple
         for hits in search_results:  # hits: list[Hit] cho từng query
-            one_query_results: List[Tuple[int, float]] = []
+            one_query_results: List[Tuple[int, float, str]] = []
             for hit in hits:
-                # node_id được lấy từ field trong entity
+                # node_id và disease được lấy từ field trong entity
                 node_id = hit.entity.get("node_id")
+                # Hit.entity.get() doesn't support default value, use try-except
+                try:
+                    disease = hit.entity.get("disease") or ""
+                except:
+                    disease = ""
                 score = float(hit.score)
-                one_query_results.append((node_id, score))
+                one_query_results.append((node_id, score, disease))
             all_results.append(one_query_results)
 
         return all_results

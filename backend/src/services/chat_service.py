@@ -1,5 +1,6 @@
 """
 Chat service for processing chat messages with RAG workflow.
+Uses persistent state via PostgreSQL checkpointer.
 """
 import logging
 from datetime import datetime
@@ -10,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.repositories.conversation_repository import ConversationRepository
 from src.db.db_models.user import User
 from src.schemas.chat import ChatRequest, ChatResponse
-from src.rag.engine import run_graph
+from src.rag.engine import run_rag_workflow  # ← NEW API with persistent state
 
 
 logger = logging.getLogger(__name__)
@@ -27,9 +28,17 @@ class ChatService:
         self,
         request: ChatRequest,
         current_user: User,
-        graph
+        graph  # ← No longer used, kept for backward compatibility
     ) -> ChatResponse:
-        """Process a chat message through the RAG workflow"""
+        """
+        Process a chat message through the RAG workflow with persistent state
+        
+        State Management:
+        - Uses PostgreSQL checkpointer for automatic state persistence
+        - conversation.id (UUID) is used as thread_id
+        - State (slots, buffer, summary) automatically restored from previous turns
+        - No manual buffer/summary management needed
+        """
         
         # Get or create conversation
         conversation = await self._get_or_create_conversation(
@@ -38,23 +47,9 @@ class ChatService:
             title=request.conversation_title or f"Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         )
         
-        # ✅ Get conversation history BEFORE saving current message (to exclude current message)
-        previous_messages = await self.conv_repo.get_messages(conversation.id)
+        logger.info(f"Processing message for user {current_user.username}, conversation_id={conversation.id}")
         
-        # ✅ Initialize buffer + summary from existing messages
-        from src.rag.utils.memory import initialize_memory_from_messages
-        conversation_buffer, summary_context = initialize_memory_from_messages(
-            previous_messages, 
-            buffer_size=3
-        )
-        
-        logger.info(
-            f"Initialized memory for conversation {conversation.id}: "
-            f"{len(conversation_buffer)} pairs in buffer, "
-            f"summary length: {len(summary_context)} chars"
-        )
-        
-        # Save user message
+        # Save user message to database
         user_message = await self.conv_repo.add_message(
             conversation_id=conversation.id,
             content=request.message,
@@ -63,20 +58,27 @@ class ChatService:
             is_mental_health_related=True
         )
         
-        logger.info(f"User {current_user.username} sent message in conversation {conversation.id}")
+        logger.info(f"User message saved, id={user_message.id}")
         
-        # ✅ Run the RAG workflow (async) with conversation memory
-        final_state = await run_graph(
-            graph, 
-            request.message,
-            conversation_buffer=conversation_buffer,
-            summary_context=summary_context
+        # ✅ Run RAG workflow with persistent state (NEW API)
+        # State (slots, buffer, summary) automatically managed by checkpointer
+        # No need to manually pass conversation_buffer or summary_context
+        final_state = await run_rag_workflow(
+            conversation_id=str(conversation.id),  # ← Used as thread_id for checkpointer
+            user_message=request.message,
+            user_id=str(current_user.id)
         )
         
-        # Save bot response
+        logger.info(
+            f"Workflow completed: detected_language={final_state.get('detected_language')}, "
+            f"is_high_risk={final_state.get('is_high_risk')}, "
+            f"detected_disease={final_state.get('detected_disease', 'none')}"
+        )
+        
+        # Save bot response to database
         bot_message = await self.conv_repo.add_message(
             conversation_id=conversation.id,
-            content=final_state.get("answer", "I'm sorry, I couldn't process your request."),
+            content=final_state.get("answer", "Xin lỗi, tôi không thể xử lý yêu cầu của bạn."),
             sender="bot",
             is_high_risk=final_state.get("is_high_risk", False),
             is_mental_health_related=final_state.get("is_mental_health_related", False)
@@ -88,14 +90,17 @@ class ChatService:
         await self.db.commit()
         await self.db.refresh(bot_message)
         
-        logger.info(f"Bot responded in conversation {conversation.id}")
+        logger.info(f"Bot response saved, id={bot_message.id}")
         
         return ChatResponse(
             answer=bot_message.content,
             is_mental_health_related=bot_message.is_mental_health_related,
             is_high_risk=bot_message.is_high_risk,
             conversation_id=conversation.id,
-            message_id=bot_message.id
+            message_id=bot_message.id,
+            # ✅ Optional: Include additional metadata from workflow
+            detected_language=final_state.get("detected_language"),
+            detected_disease=final_state.get("detected_disease"),
         )
     
     async def _get_or_create_conversation(

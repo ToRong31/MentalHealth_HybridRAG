@@ -36,30 +36,14 @@ logger = logging.getLogger(__name__)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-DEFAULT_COLLECTION = "chat_16k"
+DEFAULT_COLLECTION = "mental_health_diagnostic_support"
 EMBEDDING_DIM = 1024
 DEFAULT_BATCH = 32
-DEFAULT_INPUT = Path("data/raw/input.json")
-DEFAULT_SKIP_FILE = Path("data/processed/embedded_chat_ids.txt")
+DEFAULT_INPUT = Path("data/raw/mental_health_diagnostic_support.jsonl")
+DEFAULT_SKIP_FILE = Path("data/processed/mental_health_diagnostic_support_ids_embedded.txt")
 
 # Collection configurations
 COLLECTION_CONFIGS = {
-    "chat_16k": {
-        "default_input": Path("data/raw/input.json"),
-        "default_skip_file": Path("data/processed/embedded_chat_ids.txt"),
-        "text_field": "answer",
-        "id_field": "id",
-        "is_jsonl": False,
-        "has_disease_field": False,
-    },
-    "clinicalbook": {
-        "default_input": Path("data/raw/clinicalbook.jsonl"),
-        "default_skip_file": Path("data/processed/clinicalbook_ids_embedded.txt"),
-        "text_field": "text",
-        "id_field": "chunk_id",
-        "is_jsonl": True,
-        "has_disease_field": False,
-    },
     "mental_health_diagnostic_support": {
         "default_input": Path("data/raw/mental_health_diagnostic_support.jsonl"),
         "default_skip_file": Path("data/processed/mental_health_diagnostic_support_ids_embedded.txt"),
@@ -268,54 +252,44 @@ def insert_batches(
     logger.info("Flush complete; collection now has %d entities", col.num_entities)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Embed chat_16k answers into Milvus")
-    parser.add_argument("--input", type=Path, default=None, help="Path to input file (JSON or JSONL)")
-    parser.add_argument("--collection", default=DEFAULT_COLLECTION, help="Milvus collection name")
-    parser.add_argument("--batch", type=int, default=DEFAULT_BATCH, help="Batch size for embedding")
-    parser.add_argument("--limit", type=int, default=None, help="Optional limit for testing")
-    parser.add_argument(
-        "--skip-ids-file",
-        type=Path,
-        default=None,
-        help="Path to file containing one ID per line to skip",
-    )
-    parser.add_argument("--drop", action="store_true", help="Drop collection before inserting")
-    args = parser.parse_args()
-
+def process_collection(collection_name: str, args, connect_first: bool = False):
+    """Process a single collection"""
     # Get collection config
-    if args.collection not in COLLECTION_CONFIGS:
-        logger.warning("Unknown collection %s, using default settings", args.collection)
+    if collection_name not in COLLECTION_CONFIGS:
+        logger.warning("Unknown collection %s, using default settings", collection_name)
         config = {
-            "default_input": Path("data/raw/input.json"),
-            "default_skip_file": Path(f"data/processed/{args.collection}_ids_embedded.txt"),
+            "default_input": Path(f"data/raw/{collection_name}.jsonl"),
+            "default_skip_file": Path(f"data/processed/{collection_name}_ids_embedded.txt"),
             "text_field": "text",
-            "id_field": "id",
-            "is_jsonl": False,
+            "id_field": "chunk_id",
+            "is_jsonl": True,
             "has_disease_field": False,
         }
     else:
-        config = COLLECTION_CONFIGS[args.collection]
+        config = COLLECTION_CONFIGS[collection_name]
 
     # Use config defaults if not specified
     input_path = args.input if args.input else config["default_input"]
     skip_ids_file = args.skip_ids_file if args.skip_ids_file else config["default_skip_file"]
 
-    logger.info("Collection: %s", args.collection)
+    logger.info("=" * 60)
+    logger.info("Collection: %s", collection_name)
     logger.info("Input file: %s", input_path)
     logger.info("Skip IDs file: %s", skip_ids_file)
     logger.info("Text field: %s, ID field: %s, JSONL: %s", 
                 config["text_field"], config["id_field"], config["is_jsonl"])
     if config.get("has_disease_field"):
         logger.info("Disease field: %s", config.get("disease_field"))
+    logger.info("=" * 60)
 
-    connect()
+    if connect_first:
+        connect()
 
-    if args.drop and args.collection in utility.list_collections():
-        logger.warning("Dropping existing collection %s", args.collection)
-        utility.drop_collection(args.collection)
+    if args.drop and collection_name in utility.list_collections():
+        logger.warning("Dropping existing collection %s", collection_name)
+        utility.drop_collection(collection_name)
 
-    col = ensure_collection(args.collection, EMBEDDING_DIM, config.get("has_disease_field", False))
+    col = ensure_collection(collection_name, EMBEDDING_DIM, config.get("has_disease_field", False))
     skip_ids = load_skip_ids(skip_ids_file)
     records = iter_records(
         input_path, 
@@ -327,6 +301,35 @@ def main():
         disease_field=config.get("disease_field")
     )
     insert_batches(col, records, args.batch, skip_ids_file, config.get("has_disease_field", False))
+    logger.info("✅ Completed collection: %s\n", collection_name)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Embed mental health data into Milvus")
+    parser.add_argument("--input", type=Path, default=None, help="Path to input file (JSON or JSONL)")
+    parser.add_argument("--collection", default=None, help="Milvus collection name (if not specified, process all)")
+    parser.add_argument("--batch", type=int, default=DEFAULT_BATCH, help="Batch size for embedding")
+    parser.add_argument("--limit", type=int, default=None, help="Optional limit for testing")
+    parser.add_argument(
+        "--skip-ids-file",
+        type=Path,
+        default=None,
+        help="Path to file containing one ID per line to skip",
+    )
+    parser.add_argument("--drop", action="store_true", help="Drop collection before inserting")
+    args = parser.parse_args()
+
+    connect()
+
+    # If no collection specified, process all collections
+    if args.collection is None:
+        logger.info("🚀 No collection specified - processing all collections")
+        for collection_name in COLLECTION_CONFIGS.keys():
+            process_collection(collection_name, args, connect_first=False)
+        logger.info("🎉 All collections processed successfully!")
+    else:
+        # Process single collection
+        process_collection(args.collection, args, connect_first=False)
 
 
 if __name__ == "__main__":

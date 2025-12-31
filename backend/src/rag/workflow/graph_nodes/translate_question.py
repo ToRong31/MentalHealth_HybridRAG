@@ -5,6 +5,7 @@ Detects language and translates Vietnamese to English if needed
 import logging
 from typing import Dict, Any
 import time
+import asyncio
 
 from src.rag.llm.translator import GeminiTranslator, get_translator
 
@@ -32,10 +33,17 @@ async def translate_question_node(state: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"Detected language: {lang}")
     
     if lang == 'vi':
-        # Dịch sang tiếng Anh để xử lý
+        # Dịch sang tiếng Anh để xử lý (async with executor)
         logger.info(f"Translating VI->EN: {question[:50]}...")
         translator = get_translator()
-        translated = translator.vi_to_en(question)
+        
+        # Run translation in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        translated = await loop.run_in_executor(
+            None,
+            lambda: translator.vi_to_en(question)
+        )
+        
         state["question"] = translated
         logger.info(f"Translated to: {translated[:50]}...")
     else:

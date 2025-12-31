@@ -1,5 +1,6 @@
 """
 Chat endpoint for mental health chatbot.
+Now uses persistent state via PostgreSQL checkpointer.
 """
 import logging
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,14 +16,20 @@ from src.core.deps import get_current_user
 router = APIRouter(prefix="/chat", tags=["Chat"])
 logger = logging.getLogger(__name__)
 
-# Global variable to store the graph (will be injected from main.py)
+# Global variable to store the graph (kept for backward compatibility, but no longer required)
 graph = None
 
 
 def set_graph(g):
-    """Set the global graph instance"""
+    """
+    Set the global graph instance (DEPRECATED - kept for backward compatibility)
+    
+    Graph is now built internally by run_rag_workflow() with checkpointer,
+    so this function is no longer necessary but kept to avoid breaking main.py
+    """
     global graph
     graph = g
+    logger.info("Graph instance set (note: graph is now built internally with checkpointer)")
 
 
 @router.post("", response_model=ChatResponse)
@@ -33,14 +40,31 @@ async def chat(
 ):
     """
     Main chat endpoint for the mental health chatbot.
-    Requires authentication and saves messages to database.
-    """
-    if graph is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Graph not initialized. Please try again later."
-        )
     
+    Features:
+    - Requires authentication
+    - Saves messages to database
+    - Uses PostgreSQL checkpointer for persistent state
+    - State (slots, buffer, summary) automatically managed across turns
+    
+    Request body:
+    {
+        "message": "User message",
+        "conversation_id": 123 (optional, creates new if not provided),
+        "conversation_title": "Chat title" (optional)
+    }
+    
+    Returns:
+    {
+        "answer": "Bot response",
+        "is_mental_health_related": true,
+        "is_high_risk": false,
+        "conversation_id": 123,
+        "message_id": 456,
+        "detected_language": "vi",
+        "detected_disease": "depression"
+    }
+    """
     try:
         chat_service = ChatService(db)
         return await chat_service.process_message(request, current_user, graph)

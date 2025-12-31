@@ -32,7 +32,7 @@ graph = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize the graph, database, and preload E5 model on startup"""
+    """Initialize database, checkpointer, and preload E5 model on startup"""
     global graph
     try:
         logger.info("=" * 70)
@@ -44,20 +44,27 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("✓ Database initialized")
         
+        # Initialize PostgreSQL checkpointer for persistent state
+        logger.info("Step 2: Initializing PostgreSQL checkpointer...")
+        from src.rag.workflow.checkpointer import get_checkpointer
+        checkpointer = get_checkpointer()
+        logger.info("✓ Checkpointer initialized (tables: checkpoints, checkpoint_writes)")
+        
         # Preload E5 model
-        logger.info("Step 2: Preloading E5 embedding model...")
+        logger.info("Step 3: Preloading E5 embedding model...")
         logger.info(f"✓ E5 model loaded on {device.upper()}")
         logger.info(f"  Model will be reused for all requests (no reload)")
         
-        # Initialize graph workflow
-        logger.info("Step 3: Initializing KG Graph workflow...")
+        # Initialize graph workflow (kept for backward compatibility)
+        # Note: Graph is now built internally by run_rag_workflow() with checkpointer
+        logger.info("Step 4: Initializing KG Graph workflow...")
         graph = build_kg_graph()
-        # Inject graph into chat endpoint
+        # Inject graph into chat endpoint (for backward compatibility)
         chat.set_graph(graph)
-        logger.info("✓ KG Graph workflow ready")
+        logger.info("✓ KG Graph workflow ready (note: workflow now uses internal checkpointer)")
         
         logger.info("=" * 70)
-        logger.info("✓ APPLICATION READY")
+        logger.info("✓ APPLICATION READY WITH PERSISTENT STATE")
         logger.info("=" * 70)
     except Exception as e:
         logger.error(f"✗ Failed to initialize: {e}")
@@ -67,7 +74,10 @@ async def lifespan(app: FastAPI):
     
     # Cleanup on shutdown
     logger.info("Shutting down...")
+    from src.rag.workflow.checkpointer import close_checkpointer
+    close_checkpointer()
     await close_db()
+    logger.info("✓ Shutdown complete")
 
 
 # Create FastAPI app

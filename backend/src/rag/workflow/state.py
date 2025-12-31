@@ -17,7 +17,7 @@ class KGState(TypedDict):
     done: bool
     
     # Slot Filling Data
-    slots: Optional[Dict[str, Any]]
+    slots: Optional[Dict[str, Any]] 
     missing_slots: Optional[List[str]]
     relevant_missing_slots: Optional[List[str]]
     follow_up_questions: Optional[List[str]]
@@ -43,9 +43,11 @@ class KGState(TypedDict):
     
     # Diagnostic fields
     diagnostic_chunks: Optional[str]  # Chunks from diagnostic retrieval
+    diagnostic_diseases: Optional[List[str]]  # List of diseases from diagnostic retrieval
     detected_disease: Optional[str]  # Disease name detected
     diagnostic_confidence: Optional[float]  # Confidence score 0-1
     diagnostic_reasoning: Optional[str]  # LLM reasoning for diagnosis
+    disease_detected: Optional[List[str]]  # List of confirmed diseases (when confidence high enough)
     
     # Treatment fields
     awaiting_treatment_confirmation: Optional[bool]  # Waiting for user to confirm treatment

@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .base_retrieval import BaseRetrieval, RetrievalResult
 from .graph_retrieval import graph_retrieval
-from .dense_retrieval import dense_retrieval
+from .dense_retrieval import DenseRetrieval
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +36,11 @@ class HybridRetrieval(BaseRetrieval):
         
         Args:
             graph_retriever: Graph retrieval instance (default: global graph_retrieval)
-            dense_retriever: Dense retrieval instance (default: global dense_retrieval)
+            dense_retriever: Dense retrieval instance (default: created on demand)
             combine_strategy: How to combine contexts ("concatenate" or "weighted")
         """
         self.graph_retrieval = graph_retriever or graph_retrieval
-        self.dense_retrieval = dense_retriever or dense_retrieval
+        self.dense_retrieval = dense_retriever or DenseRetrieval(collection_name="mental_health_diagnostic_support")
         self.combine_strategy = combine_strategy
     
     def retrieve(self, query: str, **kwargs) -> RetrievalResult:

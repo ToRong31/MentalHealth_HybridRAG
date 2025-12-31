@@ -35,7 +35,7 @@ query_rewrite_prompt: |
      - Include context that helps find relevant mental health information
      - Keep it concise (2-3 sentences maximum)
   
-  5. **Language Consistency**: Use the same language as the original question (Vietnamese/English)
+  5. **Language Consistency**: Return only English.
   
   ========== IMPORTANT RULES ==========
   
