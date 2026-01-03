@@ -9,23 +9,22 @@ from .graph_nodes import (
     graph_retrieval_node,
     translate_question_node,
     translate_answer_node,
-    dense_retrieval_node,
-    hybrid_retrieval_node,
-    query_similarity_check_node,
     safety_check_node,
     crisis_response_node,
     not_mental_health_node,
     answer_with_graph_node,
-    answer_with_dense_node,
     slot_filling_node,
-    query_classifier_node,
+    query_type_classifier_node,
+    router_node,
     query_rewriter_node,
     conversation_memory_node,
     request_more_info_node,
+    answer_with_theoretical_node,
+    theoretical_retrieval_node,
 )
 
 # Import new diagnostic and treatment nodes
-from .graph_nodes.diagnostic_check import diagnostic_check_node
+from .graph_nodes.diagnostic_retrieval import diagnostic_retrieval_node
 from .graph_nodes.disease_conclusion import disease_conclusion_node
 from .graph_nodes.treatment_retrieval import treatment_retrieval_node
 from .graph_nodes.answer_with_treatment import answer_with_treatment_node
@@ -33,55 +32,47 @@ from .graph_nodes.answer_with_treatment import answer_with_treatment_node
 logger = logging.getLogger(__name__)
 
 
-def route_after_query_similarity_check(state: KGState) -> Literal["classify_query", "safety_check"]:
-    """
-    Routing logic sau khi check query similarity:
-    - Nếu similarity >= 0.8 hoặc không có buffer/summary -> skip LLM, go to safety_check
-    - Nếu similarity < 0.8 -> cần LLM classify, go to classify_query
-    """
-    query_type = state.get("query_type")
-    query_similarity = state.get("query_similarity")
-    
-    # Nếu đã có query_type (>= 0.8 hoặc không có buffer) -> skip LLM
-    if query_type is not None:
-        return "safety_check"
-    
-    # Nếu similarity < 0.8 -> cần LLM classify
-    if query_similarity is not None and query_similarity < 0.8:
-        return "classify_query"
-    
-    # Fallback: go to safety_check
-    return "safety_check"
-
-
-def route_after_safety_check(state: KGState) -> Literal["crisis_response", "not_mental_health", "slot_filling"]:
+def route_after_safety_check(state: KGState) -> Literal["crisis_response", "slot_filling"]:
     """
     Routing logic sau khi check safety:
     - Nếu high-risk -> crisis_response
-    - Nếu không phải mental health -> not_mental_health
-    - Nếu OK -> slot_filling (để extract thông tin trước khi retrieval)
+    - Nếu safe -> slot_filling (personal questions đã được filter trước đó)
     """
     if state.get("is_high_risk", False):
         return "crisis_response"
     
-    if not state.get("is_mental_health_related", True):
-        return "not_mental_health"
-    
+    # Safe personal question - go through full diagnostic flow
     return "slot_filling"
 
 
-def route_after_classify_query(state: KGState) -> Literal["safety_check", "not_mental_health"]:
+def route_after_classify_query(state: KGState) -> Literal["router", "not_mental_health"]:
     """
     Routing logic sau khi classify query:
-    - Nếu off_topic -> not_mental_health (reject ngay, không cần safety_check)
-    - Nếu follow_up hoặc topic_change -> safety_check (tiếp tục flow)
+    - Nếu off_topic -> not_mental_health (reject ngay)
+    - Nếu follow_up hoặc topic_change -> router (phân loại tiếp)
     """
     query_type = state.get("query_type")
     
     if query_type == "off_topic":
         return "not_mental_health"
     
-    # follow_up or topic_change
+    # follow_up or topic_change -> classify personal/theoretical
+    return "router"
+
+def route_after_personal_theoretical(state: KGState) -> Literal["theoretical_retrieval", "safety_check"]:
+    """
+    Routing logic sau khi classify personal/theoretical:
+    - Nếu theoretical -> theoretical_retrieval (skip safety + slot filling)
+    - Nếu personal -> safety_check (full diagnostic flow)
+    """
+    query_nature = state.get("query_nature", "personal")
+    
+    if query_nature == "theoretical":
+        logger.info("[ROUTING] Theoretical question - direct to theoretical retrieval")
+        return "theoretical_retrieval"
+    
+    # Personal question - go through safety check + diagnostic flow
+    logger.info("[ROUTING] Personal question - go through safety check + diagnostic flow")
     return "safety_check"
 
 
@@ -132,10 +123,10 @@ def build_kg_graph():
     
     Workflow:
     1. translate_question -> Detect language (VI/EN), translate to EN if needed
-    2. query_similarity_check -> Check similarity with conversation context (embedding)
-    3. route_after_query_similarity_check -> Route based on similarity:
-       3a. If similarity >= 0.8 or no buffer -> skip LLM, go to safety_check
-       3b. If similarity < 0.8 -> classify_query (LLM) -> safety_check
+    2. classify_query -> LLM classify query type (follow_up, topic_change, off_topic)
+    3. route_after_classify_query -> Route based on query type:
+       3a. If off_topic -> not_mental_health (reject)
+       3b. If follow_up/topic_change -> safety_check
     4. safety_check -> Check if mental health related and risk level (with conditional enhancement)
     5. route_after_safety_check -> Route based on safety_check results:
        5a. If high-risk -> crisis_response -> END
@@ -191,8 +182,8 @@ def build_kg_graph():
 
     # Add nodes (all async now)
     builder.add_node("translate_question", translate_question_node)
-    builder.add_node("query_similarity_check", query_similarity_check_node)
-    builder.add_node("classify_query", query_classifier_node)
+    builder.add_node("classify_type_query", query_type_classifier_node)
+    builder.add_node("router", router_node)  # NEW NODE
     builder.add_node("safety_check", safety_check_node)
     builder.add_node("slot_filling", slot_filling_node)  # Chạy sau safety_check
     builder.add_node("crisis_response", crisis_response_node)
@@ -201,10 +192,14 @@ def build_kg_graph():
     builder.add_node("query_rewriter", query_rewriter_node)  # Rewrite query với slots + conversation
     
     # Diagnostic and treatment nodes
-    builder.add_node("diagnostic_check", diagnostic_check_node)
+    builder.add_node("diagnostic_retrieval", diagnostic_retrieval_node)
     builder.add_node("disease_conclusion", disease_conclusion_node)
     builder.add_node("treatment_retrieval", treatment_retrieval_node)
     builder.add_node("answer_with_treatment", answer_with_treatment_node)
+
+    # Theoretical retrieval and answer nodes
+    builder.add_node("theoretical_retrieval", theoretical_retrieval_node)
+    builder.add_node("answer_with_theoretical", answer_with_theoretical_node)
     
     # Graph retrieval and answer nodes
     builder.add_node("graph_retrieval", graph_retrieval_node)
@@ -216,26 +211,26 @@ def build_kg_graph():
     # Entry point - start with translation
     builder.set_entry_point("translate_question")
     
-    # Sequential flow: translate -> query_similarity_check
-    builder.add_edge("translate_question", "query_similarity_check")
-    
-    # Conditional routing after query similarity check
-    builder.add_conditional_edges(
-        "query_similarity_check",
-        route_after_query_similarity_check,
-        {
-            "classify_query": "classify_query",  # Nếu similarity < 0.8
-            "safety_check": "safety_check",  # Nếu similarity >= 0.8 hoặc không có buffer
-        },
-    )
+    # Sequential flow: translate -> classify_query (direct to LLM, no embedding similarity check)
+    builder.add_edge("translate_question", "classify_type_query")
     
     # Conditional routing after classify_query
     builder.add_conditional_edges(
-        "classify_query",
+        "classify_type_query",
         route_after_classify_query,
         {
-            "safety_check": "safety_check",  # follow_up or topic_change
+            "router": "router",  # follow_up or topic_change
             "not_mental_health": "not_mental_health",  # off_topic -> reject ngay
+        },
+    )
+
+    # NEW: Conditional routing after personal/theoretical classification
+    builder.add_conditional_edges(
+        "router",
+        route_after_personal_theoretical,
+        {
+            "theoretical_retrieval": "theoretical_retrieval",  # theoretical -> skip safety + slots
+            "safety_check": "safety_check",  # personal -> full diagnostic flow
         },
     )
 
@@ -245,10 +240,13 @@ def build_kg_graph():
         route_after_safety_check,
         {
             "crisis_response": "crisis_response",
-            "not_mental_health": "not_mental_health",
-            "slot_filling": "slot_filling",  # Chỉ chạy nếu safe & relevant
+            "slot_filling": "slot_filling",  # Personal questions -> full diagnostic flow
         },
     )
+    # Theoretical flow: theoretical_retrieval -> answer_with_theoretical -> END
+    builder.add_edge("theoretical_retrieval", "answer_with_theoretical")
+    builder.add_edge("answer_with_theoretical", "conversation_memory")
+    builder.add_edge("conversation_memory", END)
 
     # Crisis and non-relevant queries exit directly
     builder.add_edge("crisis_response", END)
@@ -267,9 +265,9 @@ def build_kg_graph():
     # Request more info exits directly (no retrieval)
     builder.add_edge("request_more_info", END)
 
-    # NEW DIAGNOSTIC FLOW: query_rewriter -> diagnostic_check -> disease_conclusion (auto)
-    builder.add_edge("query_rewriter", "diagnostic_check")
-    builder.add_edge("diagnostic_check", "disease_conclusion")  # Auto transition
+    # NEW DIAGNOSTIC FLOW: query_rewriter -> diagnostic_retrieval -> disease_conclusion (auto)
+    builder.add_edge("query_rewriter", "diagnostic_retrieval")
+    builder.add_edge("diagnostic_retrieval", "disease_conclusion")  # Auto transition
     
     # Route after disease conclusion based on whether disease was detected
     builder.add_conditional_edges(
@@ -291,11 +289,6 @@ def build_kg_graph():
     builder.add_edge("answer_with_graph", "conversation_memory")
     builder.add_edge("conversation_memory", END)
 
-    # Legacy dense flow (commented out, replaced by diagnostic flow)
-    # builder.add_edge("query_rewriter", "dense_retrieval")
-    # builder.add_edge("dense_retrieval", "answer")
-    # builder.add_edge("answer", "conversation_memory")
-    # builder.add_edge("conversation_memory", END)
 
     # Compile with PostgreSQL checkpointer for state persistence
     checkpointer = get_checkpointer()

@@ -31,7 +31,7 @@ async def process_safety_check(
     summary_context: str = ""
 ) -> Dict[str, bool]:
     """
-    Process safety check logic: check if question is mental health related and high-risk.
+    Process safety check logic: check if question indicates high-risk situation.
     
     Args:
         question: User question
@@ -41,7 +41,7 @@ async def process_safety_check(
         summary_context: Summary of conversation
     
     Returns:
-        Dict with is_mental_health_related and is_high_risk flags
+        Dict with is_high_risk flag
     """
     if conversation_buffer is None:
         conversation_buffer = []
@@ -75,7 +75,7 @@ async def process_safety_check(
         
         # Parse JSON response
         json_match = re.search(
-            r'\{[^{}]*"is_mental_health_related"[^{}]*\}',
+            r'\{[^{}]*"is_high_risk"[^{}]*\}',
             response,
             re.DOTALL
         )
@@ -85,19 +85,16 @@ async def process_safety_check(
             result = json.loads(json_str)
             
             return {
-                "is_mental_health_related": result.get("is_mental_health_related", True),
                 "is_high_risk": result.get("is_high_risk", False)
             }
         else:
             logger.warning(f"Could not parse JSON from LLM response: {response}")
             return {
-                "is_mental_health_related": True,
                 "is_high_risk": False
             }
             
     except Exception as e:
         logger.error(f"Error in process_safety_check: {e}", exc_info=True)
         return {
-            "is_mental_health_related": True,
             "is_high_risk": False
         }

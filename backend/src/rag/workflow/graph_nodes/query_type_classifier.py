@@ -5,12 +5,12 @@ Node wrapper for query classification logic
 from typing import Dict, Any
 import logging
 
-from src.rag.llm.answer_nodes.query_classifier import classify_query_type
+from src.rag.llm.answer_nodes.query_type_classifier import classify_query_type
 
 logger = logging.getLogger(__name__)
 
 
-async def query_classifier_node(state: Dict[str, Any]) -> Dict[str, Any]:
+async def query_type_classifier_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node: Classify query type (follow_up, topic_change, off_topic) using LLM.
     

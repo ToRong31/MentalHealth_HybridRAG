@@ -7,7 +7,7 @@ from typing import Dict, Any
 import time
 import asyncio
 
-from src.rag.llm.translator import GeminiTranslator, get_translator
+from src.rag.llm.answer_nodes import GeminiTranslator, get_translator
 
 logger = logging.getLogger(__name__)
 

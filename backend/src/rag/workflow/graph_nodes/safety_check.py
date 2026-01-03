@@ -9,13 +9,13 @@ from src.rag.llm.answer_nodes.safety_check import process_safety_check
 
 async def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Node: Check if question is mental health related and high-risk.
+    Node: Check if question indicates high-risk situation.
     
     Args:
         state: State dict with question, query_type, conversation context
     
     Returns:
-        Updated state with is_mental_health_related and is_high_risk flags
+        Updated state with is_high_risk flag
     """
     # Extract parameters from state
     question = state["question"]

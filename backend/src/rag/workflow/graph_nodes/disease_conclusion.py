@@ -118,7 +118,7 @@ async def disease_conclusion_node(state: KGState) -> KGState:
             state["diagnostic_reasoning"] = reasoning
             
             # Add to disease_detected list if confidence is high enough (>= 0.6)
-            if confidence >= 0.6:
+            if confidence >= 0.8:
                 disease_list = state.get("disease_detected", [])
                 if disease_list is None:
                     disease_list = []
