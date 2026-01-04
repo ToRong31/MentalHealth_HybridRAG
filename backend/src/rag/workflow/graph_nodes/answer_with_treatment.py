@@ -80,6 +80,8 @@ async def answer_with_treatment_node(state: KGState) -> KGState:
         logger.info(f"✅ Generated treatment answer (length: {len(answer_content)})")
         
         state["answer"] = answer_content
+        # Reset awaiting_treatment_confirmation flag after answering
+        state["awaiting_treatment_confirmation"] = False
         
     except Exception as e:
         logger.error(f"❌ Error generating treatment answer: {e}", exc_info=True)

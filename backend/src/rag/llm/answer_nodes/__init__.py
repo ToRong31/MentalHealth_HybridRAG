@@ -12,7 +12,7 @@ from .query_type_classifier import classify_query_type
 from .conversation_memory import update_conversation_memory, summarize_buffer
 from .answer_with_theoretical import generate_answer_with_theoretical
 from .translator import get_translator, GeminiTranslator
-from .router import classify_personal_theoretical
+from .router import router
 
 __all__ = [
     'process_safety_check',

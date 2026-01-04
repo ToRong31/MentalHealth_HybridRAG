@@ -133,17 +133,21 @@ async def disease_conclusion_node(state: KGState) -> KGState:
             
             # Generate conclusion message
             if language == "vi" or language == "vn":
-                conclusion = f"""Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có thể đang gặp phải: **{detected_disease}**
+                conclusion = f"""Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn **có dấu hiệu có thể mắc** {detected_disease}.
 
 **Phân tích:** {reasoning}
 
-Bạn có muốn tôi hướng dẫn cách điều trị và giải quyết vấn đề này không?"""
+**Lưu ý:** Đây chỉ là đánh giá sơ bộ dựa trên thông tin bạn cung cấp, không thay thế cho chẩn đoán y tế chuyên nghiệp.
+
+Bạn có muốn tôi gợi ý cho bạn một số cách chữa trị không?"""
             else:
-                conclusion = f"""Based on the symptoms you described, I believe you may be experiencing: **{detected_disease}**
+                conclusion = f"""Based on the symptoms you described, I observe that you **may show signs of possibly having** {detected_disease}.
 
 **Analysis:** {reasoning}
 
-Would you like me to guide you on treatment and solutions for this condition?"""
+**Note:** This is only a preliminary assessment based on the information you provided, and does not replace professional medical diagnosis.
+
+Would you like me to suggest some treatment options?"""
             
             state["answer"] = conclusion
             state["awaiting_treatment_confirmation"] = True

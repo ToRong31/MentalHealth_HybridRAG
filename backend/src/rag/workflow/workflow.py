@@ -59,12 +59,42 @@ def route_after_classify_query(state: KGState) -> Literal["router", "not_mental_
     # follow_up or topic_change -> classify personal/theoretical
     return "router"
 
-def route_after_personal_theoretical(state: KGState) -> Literal["theoretical_retrieval", "safety_check"]:
+def route_after_router(state: KGState) -> Literal["theoretical_retrieval", "safety_check", "treatment_retrieval", "conversation_memory"]:
     """
-    Routing logic sau khi classify personal/theoretical:
-    - Nếu theoretical -> theoretical_retrieval (skip safety + slot filling)
-    - Nếu personal -> safety_check (full diagnostic flow)
+    Routing logic after router node:
+    1. Check if awaiting treatment confirmation from previous disease_conclusion
+       - If awaiting and user says YES (from LLM) -> treatment_retrieval
+       - If awaiting and user says NO (from LLM) -> conversation_memory (ask if need other help, then END)
+    2. Otherwise, route based on query_nature:
+       - theoretical -> theoretical_retrieval
+       - personal -> safety_check
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    awaiting_treatment = state.get("awaiting_treatment_confirmation", False)
+    
+    if awaiting_treatment:
+        # Check LLM classification result
+        wants_treatment = state.get("wants_treatment", False)
+        
+        if wants_treatment:
+            logger.info("[ROUTING] User wants treatment (LLM classified) -> treatment_retrieval")
+            state["user_wants_treatment"] = True
+            return "treatment_retrieval"
+        else:
+            # User doesn't want treatment - offer other help and go to conversation_memory
+            logger.info("[ROUTING] User doesn't want treatment (LLM classified) -> conversation_memory (offer other help then END)")
+            language = state.get("user_language", "vi")
+            if language in ["vi", "vn"]:
+                state["answer"] = "Được rồi. Bạn có muốn tôi hỗ trợ gì thêm về vấn đề tâm lý không?"
+            else:
+                state["answer"] = "Okay. Is there anything else I can help you with?"
+            # Reset awaiting flag
+            state["awaiting_treatment_confirmation"] = False
+            return "conversation_memory"
+    
+    # Normal routing based on query nature
     query_nature = state.get("query_nature", "personal")
     
     if query_nature == "theoretical":
@@ -98,11 +128,15 @@ def route_after_slot_filling(state: KGState) -> Literal["query_rewriter", "reque
         return "request_more_info"
 
 
-def route_after_disease_conclusion(state: KGState) -> Literal["treatment_retrieval", "graph_retrieval"]:
+def route_after_disease_conclusion(state: KGState) -> Literal["conversation_memory", "graph_retrieval"]:
     """
     Routing logic after disease conclusion:
-    - If detected_disease exists (not empty) -> treatment_retrieval (có bệnh, lấy hướng dẫn điều trị)
-    - If detected_disease is empty -> graph_retrieval (không bệnh, dùng graph fallback)
+    - If detected_disease exists (not empty):
+      * Set awaiting_treatment_confirmation = True
+      * Ask user if they want treatment suggestions
+      * Go to conversation_memory -> END (wait for user response)
+    - If detected_disease is empty:
+      * Go to graph_retrieval (fallback)
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -110,9 +144,11 @@ def route_after_disease_conclusion(state: KGState) -> Literal["treatment_retriev
     detected_disease = state.get("detected_disease", "")
     
     if detected_disease:
-        logger.info(f"[ROUTING] Disease detected: '{detected_disease}' -> treatment_retrieval")
-        return "treatment_retrieval"
+        # Disease detected - ask for treatment confirmation
+        logger.info(f"[ROUTING] Disease detected: '{detected_disease}' -> Ask treatment confirmation -> conversation_memory -> END")
+        return "conversation_memory"
     else:
+        # No disease - fallback to graph
         logger.info("[ROUTING] No disease detected -> graph_retrieval")
         return "graph_retrieval"
 
@@ -224,13 +260,15 @@ def build_kg_graph():
         },
     )
 
-    # NEW: Conditional routing after personal/theoretical classification
+    # NEW: Conditional routing after router (handles treatment confirmation + personal/theoretical)
     builder.add_conditional_edges(
         "router",
-        route_after_personal_theoretical,
+        route_after_router,
         {
             "theoretical_retrieval": "theoretical_retrieval",  # theoretical -> skip safety + slots
             "safety_check": "safety_check",  # personal -> full diagnostic flow
+            "treatment_retrieval": "treatment_retrieval",  # User wants treatment
+            "conversation_memory": "conversation_memory",  # User doesn't want treatment -> ask if need other help -> END
         },
     )
 
@@ -243,10 +281,9 @@ def build_kg_graph():
             "slot_filling": "slot_filling",  # Personal questions -> full diagnostic flow
         },
     )
-    # Theoretical flow: theoretical_retrieval -> answer_with_theoretical -> END
+    # Theoretical flow: theoretical_retrieval -> answer_with_theoretical -> conversation_memory
     builder.add_edge("theoretical_retrieval", "answer_with_theoretical")
     builder.add_edge("answer_with_theoretical", "conversation_memory")
-    builder.add_edge("conversation_memory", END)
 
     # Crisis and non-relevant queries exit directly
     builder.add_edge("crisis_response", END)
@@ -274,19 +311,20 @@ def build_kg_graph():
         "disease_conclusion",
         route_after_disease_conclusion,
         {
-            "treatment_retrieval": "treatment_retrieval",  # Có bệnh -> lấy guidance
+            "conversation_memory": "conversation_memory",  # Có bệnh -> hỏi xác nhận -> END (chờ user trả lời)
             "graph_retrieval": "graph_retrieval",  # Không bệnh -> graph fallback
         },
     )
     
-    # Treatment flow: treatment_retrieval -> answer_with_treatment -> END
+    # Treatment flow: treatment_retrieval -> answer_with_treatment -> conversation_memory
     builder.add_edge("treatment_retrieval", "answer_with_treatment")
     builder.add_edge("answer_with_treatment", "conversation_memory")
-    builder.add_edge("conversation_memory", END)
     
-    # Graph flow: graph_retrieval -> answer_with_graph -> END
+    # Graph flow: graph_retrieval -> answer_with_graph -> conversation_memory
     builder.add_edge("graph_retrieval", "answer_with_graph")
     builder.add_edge("answer_with_graph", "conversation_memory")
+    
+    # All flows converge at conversation_memory -> END
     builder.add_edge("conversation_memory", END)
 
 

@@ -55,6 +55,7 @@ class KGState(TypedDict):
     
     # Treatment fields
     awaiting_treatment_confirmation: Optional[bool]  # Waiting for user to confirm treatment
+    wants_treatment: Optional[bool]  # LLM classification result: user wants treatment or not
     treatment_chunks: Optional[List[str]]  # Treatment chunks retrieved by disease
     treatment_node_ids: Optional[List[int]]  # Node IDs of treatment chunks
     user_wants_treatment: Optional[bool]  # User confirmed wanting treatment
