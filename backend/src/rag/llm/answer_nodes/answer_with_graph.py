@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Any
 
 from ..llm_gemini import llm
-from src.rag.prompts.loader import load_prompts
+from src.rag.prompts.loader import load_prompts, load_prompts_async
 from src.rag.utils.memory import format_buffer_for_context, format_summary_context
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ async def generate_answer_with_graph(
     # Load appropriate prompt based on user language
     if user_language == "vi":
         try:
-            answer_prompt_data = load_prompts("answer_nodes_prompt_vie.yaml")
+            answer_prompt_data = await load_prompts_async("answer_nodes_prompt_vie.yaml")
             system_instructions = answer_prompt_data.get("system_instructions", "")
             user_template = answer_prompt_data.get("user_template", "")
             
@@ -75,7 +75,7 @@ async def generate_answer_with_graph(
             raise
     else:
         try:
-            answer_prompt_data = load_prompts("answer_nodes_prompt_en.yaml")
+            answer_prompt_data = await load_prompts_async("answer_nodes_prompt_en.yaml")
             system_instructions = answer_prompt_data.get("system_instructions", "")
             user_template = answer_prompt_data.get("user_template", "")
             

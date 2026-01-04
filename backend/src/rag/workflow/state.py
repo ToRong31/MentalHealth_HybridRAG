@@ -61,4 +61,9 @@ class KGState(TypedDict):
     
     # Routing flags
     needs_apology_prefix: Optional[bool]  # Flag to add apology prefix for low confidence diagnosis
+    
+    # Assessment fields (Normal vs Disorder Classification)
+    assessment_category: Optional[str]  # "normal_response" | "adjustment_reaction" | "possible_disorder" | "likely_disorder"
+    assessment_explanation: Optional[str]  # Vietnamese explanation of assessment
+    assessment_confidence: Optional[float]  # Confidence score 0-1 for assessment
 

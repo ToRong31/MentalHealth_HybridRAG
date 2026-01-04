@@ -30,6 +30,10 @@ from .request_more_info import request_more_info_node
 from .answer_with_theoretical import answer_with_theoretical_node
 from .theoretical_retrieval import theoretical_retrieval_node
 
+# Assessment and normal/adjustment retrieval nodes
+from .assessment import assessment_node
+from .normal_adjustment_retrieval import normal_coping_retrieval_node, adjustment_retrieval_node
+
 __all__ = [
     # Translation
     'translate_question_node',
@@ -58,4 +62,9 @@ __all__ = [
     'answer_with_graph_node',
     'request_more_info_node',
     'answer_with_theoretical_node',
+    
+    # Assessment and normal/adjustment retrieval
+    'assessment_node',
+    'normal_coping_retrieval_node',
+    'adjustment_retrieval_node',
 ]

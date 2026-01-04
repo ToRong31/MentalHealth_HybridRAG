@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 from ..state import KGState
 from src.rag.llm.llm_gemini import llm
-from src.rag.prompts.loader import load_prompts
+from src.rag.prompts.loader import load_prompts_async
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def answer_with_treatment_node(state: KGState) -> KGState:
     
     try:
         # Load treatment answer prompt
-        prompt_templates = load_prompts("treatment_answer_prompt.yaml")
+        prompt_templates = await load_prompts_async("treatment_answer_prompt.yaml")
         system_prompt = prompt_templates.get("system", "")
         user_prompt_template = prompt_templates.get("user", "")
         

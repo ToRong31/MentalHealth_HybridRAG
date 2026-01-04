@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any
 
 from ..llm_gemini import llm
-from src.rag.prompts.loader import load_prompts, format_prompt
+from src.rag.prompts.loader import load_prompts_async, format_prompt
 from src.rag.utils.slots import get_default_slots
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ async def process_slot_filling(question: str) -> Dict[str, Any]:
     """
     try:
         # Load slot filling prompt
-        prompt_data = load_prompts("slot_filling_prompt.yaml")
+        prompt_data = await load_prompts_async("slot_filling_prompt.yaml")
         prompt_template = prompt_data.get("slot_filling_prompt", "")
         
         if not prompt_template:
