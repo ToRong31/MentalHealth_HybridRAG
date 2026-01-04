@@ -37,10 +37,12 @@ class CheckpointerManager:
     Attributes:
         _instance: Singleton instance
         _checkpointer: AsyncPostgresSaver instance for state persistence
+        _initialized: Flag to track initialization status
     """
     
     _instance: Optional['CheckpointerManager'] = None
     _checkpointer: Optional[AsyncPostgresSaver] = None
+    _initialized: bool = False
     
     def __new__(cls):
         """Ensure only one instance exists (singleton pattern)"""
@@ -50,8 +52,9 @@ class CheckpointerManager:
     
     def __init__(self):
         """Initialize checkpointer if not already initialized"""
-        if self._checkpointer is None:
+        if not self._initialized:
             self._initialize_checkpointer()
+            self._initialized = True
     
     def _initialize_checkpointer(self):
         """
@@ -84,6 +87,7 @@ class CheckpointerManager:
         try:
             # Create async connection pool with autocommit for schema setup
             # Note: autocommit is required for CREATE INDEX CONCURRENTLY
+            # Pool will auto-open on first connection (deprecation warning is non-critical)
             connection_pool = AsyncConnectionPool(
                 conninfo=db_uri,
                 max_size=20,      # Maximum connections in pool

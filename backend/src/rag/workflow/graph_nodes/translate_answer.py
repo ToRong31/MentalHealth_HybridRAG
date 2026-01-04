@@ -5,7 +5,7 @@ Translates answer back to user's language (Vietnamese if needed)
 import logging
 from typing import Dict, Any
 
-from src.rag.llm.translator import get_translator
+from src.rag.llm.answer_nodes  import get_translator
 
 logger = logging.getLogger(__name__)
 

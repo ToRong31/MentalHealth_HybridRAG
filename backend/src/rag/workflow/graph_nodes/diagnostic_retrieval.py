@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 diagnostic_retrieval = DenseRetrieval(collection_name="mental_health_diagnostic_support")
 
 
-async def diagnostic_check_node(state: KGState) -> KGState:
+async def diagnostic_retrieval_node(state: KGState) -> KGState:
     """
     Retrieve diagnostic chunks based on symptoms
     

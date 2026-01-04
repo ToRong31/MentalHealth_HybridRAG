@@ -36,6 +36,7 @@ class KGState(TypedDict):
     
     # Query Classification (for conditional enhancement)
     query_type: Optional[str]  # "follow_up" | "topic_change" | "off_topic"
+    query_nature: Optional[str]  # "personal" | "theoretical"
     should_enhance_query: Optional[bool]  # Whether to enhance query with buffer + summary
     query_similarity: Optional[float]  # Similarity score between query and conversation context
     is_topic_change: Optional[bool]  # Flag for topic change detection
@@ -48,6 +49,9 @@ class KGState(TypedDict):
     diagnostic_confidence: Optional[float]  # Confidence score 0-1
     diagnostic_reasoning: Optional[str]  # LLM reasoning for diagnosis
     disease_detected: Optional[List[str]]  # List of confirmed diseases (when confidence high enough)
+
+    theoretical_chunks: Optional[str]  # Chunks from theoretical retrieval
+    theoretical_metadata: Optional[Dict[str, Any]]  # Metadata from theoretical retrieval
     
     # Treatment fields
     awaiting_treatment_confirmation: Optional[bool]  # Waiting for user to confirm treatment
@@ -57,3 +61,4 @@ class KGState(TypedDict):
     
     # Routing flags
     needs_apology_prefix: Optional[bool]  # Flag to add apology prefix for low confidence diagnosis
+
