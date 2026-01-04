@@ -101,7 +101,7 @@ async def run_rag_workflow(
     logger.info(f"[ENGINE] Running RAG workflow for conversation_id={conversation_id}")
     
     # Classify query first to determine if we need to clear checkpoint
-    from src.rag.llm.answer_nodes.query_classifier import classify_query_type
+    from src.rag.llm.answer_nodes.query_type_classifier import classify_query_type
     
     # Call async classifier with minimal context (no buffer/summary yet)
     classifier_result = await classify_query_type(
