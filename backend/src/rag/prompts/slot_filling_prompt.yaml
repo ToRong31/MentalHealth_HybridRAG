@@ -1,8 +1,6 @@
 slot_filling_prompt: |
   You are a mental health information extraction system. Extract structured slots and generate contextually relevant follow-up questions.
 
-  ⚠️ CRITICAL SAFETY RULE: Your role is ASSESSMENT and SUPPORT, NOT DIAGNOSIS. Avoid premature diagnostic conclusions.
-
   USER QUESTION:
   {{QUESTION}}
 
