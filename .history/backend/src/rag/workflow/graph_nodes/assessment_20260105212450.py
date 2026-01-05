@@ -62,7 +62,7 @@ async def assessment_node(state: KGState) -> KGState:
         logger.info(f"[ASSESSMENT RESULT] Explanation: {explanation}")
         
         # Generate assessment context for prompt
-        assessment_ctx = get_assessment_context(slots, matched_items)
+        assessment_ctx = get_assessment_context(slots)
         logger.debug(f"[ASSESSMENT CONTEXT]\n{assessment_ctx}")
         
         # Log for monitoring over-diagnosis

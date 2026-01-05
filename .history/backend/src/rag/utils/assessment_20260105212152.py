@@ -263,7 +263,7 @@ def assess_disorder_likelihood(slots: Dict[str, Any], matched_items: List[Dict[s
     return (category, explanation, confidence)
 
 
-def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[Dict[str, Any]] = None) -> bool:
+def should_retrieve_disorder_content(slots: Dict[str, Any]) -> bool:
     """
     Decide whether to retrieve disorder-specific content or normal coping content.
     
@@ -271,17 +271,16 @@ def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[
     
     Args:
         slots: Dictionary containing extracted slot information
-        matched_items: List of matched items from normal_responses.jsonl database
     
     Returns:
-        True if should retrieve disorder content (diagnostic database)
-        False if should focus on coping/stress management (normal_responses database)
+        True if should retrieve disorder content
+        False if should focus on coping/stress management
     
     Logic:
         1. Check is_diagnosis_ready() first
         2. If True, run assess_disorder_likelihood()
         3. Route based on category:
-           - normal_stress, adjustment_reaction → False (coping content)
+           - normal_response, adjustment_reaction → False (coping content)
            - possible_disorder, likely_disorder → True (disorder content)
     """
     from .slots import is_diagnosis_ready
@@ -292,10 +291,10 @@ def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[
         return False
     
     # Assess disorder likelihood
-    category, explanation, confidence = assess_disorder_likelihood(slots, matched_items)
+    category, explanation, confidence = assess_disorder_likelihood(slots)
     
     # Route based on category
-    if category in ["normal_stress", "adjustment_reaction"]:
+    if category in ["normal_response", "adjustment_reaction"]:
         logger.info(f"[RETRIEVAL DECISION] Category '{category}' → retrieve COPING/STRESS content")
         return False
     
@@ -309,13 +308,12 @@ def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[
         return False
 
 
-def get_assessment_context(slots: Dict[str, Any], matched_items: List[Dict[str, Any]] = None) -> str:
+def get_assessment_context(slots: Dict[str, Any]) -> str:
     """
     Generate assessment context string for prompt injection.
     
     Args:
         slots: Dictionary containing extracted slot information
-        matched_items: List of matched items from normal_responses.jsonl database
     
     Returns:
         Formatted string with assessment information for LLM prompt
@@ -325,7 +323,7 @@ def get_assessment_context(slots: Dict[str, Any], matched_items: List[Dict[str, 
     if not is_diagnosis_ready(slots):
         return "Assessment: Insufficient information for disorder assessment. Focus on information gathering."
     
-    category, explanation, confidence = assess_disorder_likelihood(slots, matched_items)
+    category, explanation, confidence = assess_disorder_likelihood(slots)
     
     context = f"""
 Assessment Category: {category}
@@ -335,7 +333,7 @@ Confidence Level: {confidence:.2f}
 Response Guidelines:
 """
     
-    if category == "normal_stress":
+    if category == "normal_response":
         context += """- VALIDATE: Acknowledge this is a normal response to the situation
 - NORMALIZE: Reassure that many people experience this
 - EDUCATE: Explain this is NOT a disorder
@@ -364,4 +362,3 @@ Response Guidelines:
 - NORMALIZE HELP-SEEKING: Reassure that seeking help is strength"""
     
     return context
-
