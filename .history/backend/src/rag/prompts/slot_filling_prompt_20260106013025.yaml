@@ -157,23 +157,6 @@ slot_filling_prompt: |
   USER: "Mình chỉ muốn nói chuyện và chia sẻ cho nhẹ lòng"
   EXTRACT: need="listening"
   ASK: "Hiện tại bạn đang mang theo cảm xúc nào muốn chia sẻ?", "Có điều gì đặc biệt khiến bạn muốn trò chuyện hôm nay không?"
-  
-  EX7 - Intensity Extraction (CRITICAL - normalize to standard levels):
-  USER: "Dạ em thấy trung bình đến gần nghiêm trọng ạ. Có lúc nó lên mạnh kiểu 7/10, nhất là trước khi đi ngủ"
-  EXTRACT: intensity="high", emotion=["lo lắng"], symptom_fluctuation="tăng vào buổi tối trước khi ngủ"
-  WHY: "trung bình đến nghiêm trọng" → take higher = "high", "7/10" confirms "high" level
-  NOT: intensity="trung bình đến gần nghiêm trọng" ❌ (must normalize to standard level!)
-  NOT: intensity=null ❌ (user clearly provided intensity info!)
-  
-  EX8 - Functional Impairment Extraction:
-  USER: "Em vẫn cố đi làm nhưng sai sót liên tục, sếp nhắc nhiều lần rồi. Còn tối về thì không muốn làm gì cả"
-  EXTRACT: work_school_impact="vẫn đi làm nhưng sai sót liên tục, bị sếp nhắc nhở (moderate to significant)", daily_functioning="buổi tối không muốn làm gì, thiếu động lực", intensity="high"
-  WHY: Clear impact on work performance + motivation → REQUIRED info for assessment
-  
-  EX9 - Medical History with "không" answer:
-  USER: "Dạ không có bệnh gì, em khỏe mạnh"
-  EXTRACT: medical_history="không có tiền sử bệnh lý, khỏe mạnh"
-  NOT: medical_history=null ❌ (user answered, must extract as STRING!)
 
   ========== OUTPUT FORMAT (STRICT JSON) ==========
   

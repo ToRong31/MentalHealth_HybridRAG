@@ -330,14 +330,14 @@ def assess_disorder_likelihood(slots: Dict[str, Any], matched_items: List[Dict[s
         
         if route_type == "normal_stress":
             explanation = (
-                f"Các dấu hiệu cho thấy đây là phản ứng stress bình thường với tình huống cụ thể (điểm tổng: {total_score}). "
+                "Các dấu hiệu cho thấy đây là phản ứng stress bình thường với tình huống cụ thể. "
                 "Triệu chứng có mức độ nhẹ, thời gian ngắn, và chưa ảnh hưởng nghiêm trọng đến cuộc sống. "
                 "Đây KHÔNG phải là rối loạn tâm lý."
             )
             confidence = 0.75
         else:  # adjustment_reaction
             explanation = (
-                f"Đây có thể là phản ứng điều chỉnh (adjustment reaction) với biến cố sống hoặc áp lực (điểm tổng: {total_score}). "
+                "Đây có thể là phản ứng điều chỉnh (adjustment reaction) với biến cố sống hoặc áp lực. "
                 "Đây là phản ứng tự nhiên nhưng bạn có thể cần hỗ trợ để thích nghi tốt hơn. "
                 "Chưa đủ tiêu chuẩn chẩn đoán rối loạn tâm lý."
             )
@@ -372,32 +372,20 @@ def assess_disorder_likelihood(slots: Dict[str, Any], matched_items: List[Dict[s
         # Determine severity: possible_disorder vs likely_disorder
         elif max_item_score >= 5 or D >= 3 or total_score >= 8:
             category = "likely_disorder"
-            
-            # Build detailed score breakdown
-            score_details = f"điểm triệu chứng: {max_item_score}, thời gian: D={D}"
-            if severity_modifier > 0:
-                score_details += f", điểm mức độ: +{severity_modifier} ({modifier_breakdown})"
-            score_details += f", tổng: {total_score}"
-            
             explanation = (
-                "Các dấu hiệu cho thấy khả năng cao đây là rối loạn tâm lý cần được chuyên gia đánh giá. "
-                f"Đánh giá chi tiết: {score_details}. "
-                "Triệu chứng có mức độ cao, thời gian kéo dài, và/hoặc ảnh hưởng đáng kể đến cuộc sống. "
+                "Các dấu hiệu cho thấy khả năng cao đây là rối loạn tâm lý cần được chuyên gia đánh giá: "
+                f"Triệu chứng có mức độ cao (điểm cao nhất: {max_item_score}), "
+                f"thời gian kéo dài (mức độ: {D}), "
+                f"và tổng điểm đánh giá là {total_score}. "
                 "Mình khuyên bạn nên gặp chuyên gia (tâm lý sư hoặc bác sĩ) để được đánh giá chính xác và hỗ trợ phù hợp."
             )
             confidence = 0.75 + min((total_score - 8) * 0.02, 0.15)
         else:
             category = "possible_disorder"
-            
-            # Build score breakdown
-            score_details = f"điểm triệu chứng: {max_item_score}, D={D}"
-            if severity_modifier > 0:
-                score_details += f", mức độ: +{severity_modifier}"
-            score_details += f", tổng: {total_score}"
-            
             explanation = (
                 "Một số dấu hiệu gợi ý khả năng rối loạn tâm lý, nhưng chưa đủ rõ ràng để kết luận. "
-                f"Đánh giá: {score_details}. "
+                f"Triệu chứng có mức độ trung bình (điểm: {max_item_score}), "
+                f"thời gian: mức {D}, tổng điểm: {total_score}. "
                 "Cần theo dõi thêm về mức độ, thời gian, và tác động. "
                 "Nên tự theo dõi triệu chứng và cân nhắc tham khảo ý kiến chuyên gia nếu không cải thiện."
             )

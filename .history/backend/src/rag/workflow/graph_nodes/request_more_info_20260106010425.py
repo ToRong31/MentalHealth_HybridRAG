@@ -11,53 +11,37 @@ logger = logging.getLogger(__name__)
 async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node: Handle insufficient REQUIRED slots by returning follow-up questions.
-    If REQUIRED slots are filled but RELEVANT optional slots are missing,
-    ask about those instead of generic questions.
+    Questions have been filtered to only ask about REQUIRED_SLOTS.
     
     Args:
-        state: State dict with follow_up_questions (filtered for REQUIRED), 
-               optional_follow_up_questions (for RELEVANT optional slots),
-               required_missing_slots, relevant_missing_slots
+        state: State dict with follow_up_questions (already filtered for REQUIRED), required_missing_slots
     
     Returns:
         Updated state with answer containing follow-up questions and done=True
     """
     follow_up_questions = state.get("follow_up_questions", [])
-    optional_follow_up_questions = state.get("optional_follow_up_questions", [])
     required_missing = state.get("required_missing_slots", [])
-    relevant_missing_slots = state.get("relevant_missing_slots", [])
     
-    # Determine which questions to ask
+    logger.info(f"Insufficient REQUIRED slots filled. Requesting more information.")
+    logger.info(f"Missing REQUIRED slots: {required_missing}")
+    
+    # Build response with follow-up questions (already filtered to REQUIRED only)
     if follow_up_questions:
-        # Have REQUIRED questions → Ask them
-        questions_to_ask = follow_up_questions
-        logger.info(f"Insufficient REQUIRED slots. Requesting {len(questions_to_ask)} REQUIRED questions")
-        logger.info(f"Missing REQUIRED slots: {required_missing}")
-    elif optional_follow_up_questions:
-        # REQUIRED filled but have RELEVANT optional questions → Ask them
-        questions_to_ask = optional_follow_up_questions
-        logger.info(f"REQUIRED slots filled. Requesting {len(questions_to_ask)} RELEVANT optional questions")
-        logger.info(f"Relevant optional slots: {[s for s in relevant_missing_slots if s not in required_missing]}")
-    else:
-        questions_to_ask = []
-    
-    # Build response with follow-up questions
-    if questions_to_ask:
         # Natural Vietnamese response
         response_parts = [
             "Để tôi có thể hỗ trợ bạn tốt hơn, bạn có thể chia sẻ thêm một chút về tình huống của mình được không?"
         ]
         
         # Add questions naturally
-        for question in questions_to_ask:
+        for question in follow_up_questions:
             response_parts.append(f"\n{question}")
         
         answer = "\n".join(response_parts)
     else:
-        # Fallback if no follow-up questions generated - ask specific slots
+        # Fallback if no follow-up questions generated - ask specific REQUIRED slots
         logger.warning(f"⚠️ No follow_up_questions generated! Missing REQUIRED: {required_missing}")
         
-        # Build specific questions based on missing slots
+        # Build specific questions based on missing REQUIRED slots
         slot_questions = []
         slot_map = {
             "emotion": "Bạn đang cảm thấy thế nào? (ví dụ: lo lắng, buồn, căng thẳng, tức giận...)",
@@ -73,32 +57,20 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
             "substance_use": "Bạn có sử dụng chất kích thích (cà phê, rượu, thuốc lá...) hoặc thuốc không kê đơn nào không?",
             "medical_exclusion": "Bạn có tiền sử bệnh lý hoặc đang dùng thuốc/chất kích thích nào không?",
             "need": "Bạn cần tôi hỗ trợ điều gì? (lắng nghe, tư vấn, hay thông tin cụ thể?)",
-            "stress_level": "Bạn đánh giá mức độ stress hiện tại của mình ra sao?",
-            "physical_symptoms": "Bạn có triệu chứng vật lý nào không? (đau đầu, mất ngủ, tim đập nhanh...)",
-            "sleep_quality": "Giấc ngủ của bạn thế nào? (ngủ ngon, khó ngủ, hay thức giấc nhiều?)",
-            "coping_mechanisms": "Bạn đang làm gì để đối phó với tình trạng này?",
-            "support_system": "Bạn có người thân/bạn bè hỗ trợ không?"
+            "stress_level": "Bạn đánh giá mức độ stress hiện tại của mình ra sao?"
         }
         
-        # Prioritize REQUIRED first, then relevant optional
-        slots_to_ask = required_missing[:3] if required_missing else []
-        if len(slots_to_ask) < 3:
-            # Add relevant optional to fill up to 3
-            relevant_optional = [s for s in relevant_missing_slots if s not in required_missing]
-            slots_to_ask.extend(relevant_optional[:(3 - len(slots_to_ask))])
-        
-        for slot in slots_to_ask:
+        for slot in required_missing[:3]:  # Ask max 3 questions
             if slot in slot_map:
                 slot_questions.append(slot_map[slot])
         
         if slot_questions:
             answer = "Để tôi hiểu rõ hơn, bạn có thể cho tôi biết:\n\n" + "\n".join(f"• {q}" for q in slot_questions)
         else:
-            # Ultimate fallback only if no slots to ask at all
-            logger.warning("⚠️ No slots to ask - using ultimate fallback")
+            # Ultimate fallback
             answer = "Bạn có thể chia sẻ thêm về cảm xúc và tình huống bạn đang gặp phải được không?"
     
-    logger.info(f"Requesting more info with {len(questions_to_ask) if questions_to_ask else 0} questions")
+    logger.info(f"Requesting more info with {len(follow_up_questions)} REQUIRED questions")
     
     # Update state
     state["answer"] = answer

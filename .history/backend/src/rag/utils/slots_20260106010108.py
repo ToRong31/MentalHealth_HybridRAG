@@ -85,7 +85,7 @@ def merge_slots(existing_slots: Optional[Dict[str, Any]], new_slots: Dict[str, A
     Rules:
     - List fields (emotion, physical_symptoms, etc.): Append unique values (fixed dedup)
     - Scalar fields: Update only if new value is not None/empty
-    - Special fields (risk_level, intensity): Normalize then merge by "max severity wins"
+    - Special fields (risk_level, intensity): Merge by "max severity wins"
     - Preserve existing values when new value is None
     
     Args:
@@ -102,69 +102,6 @@ def merge_slots(existing_slots: Optional[Dict[str, Any]], new_slots: Dict[str, A
         "stress_level": ["low", "moderate", "high", "overwhelming"]
     }
     
-    # Normalization mappings for intensity (handle flexible LLM outputs)
-    INTENSITY_NORMALIZE = {
-        # Low variants
-        "nhẹ": "low", "nhe": "low", "thấp": "low", "mild": "low", "slight": "low",
-        "ít": "low", "không nhiều": "low", "minimal": "low",
-        
-        # Medium variants  
-        "trung bình": "medium", "trung binh": "medium", "vừa": "medium", "moderate": "medium",
-        "bình thường": "medium", "average": "medium", "fair": "medium",
-        
-        # High variants
-        "cao": "high", "mạnh": "high", "nặng": "high", "severe": "high", "strong": "high",
-        "khá cao": "high", "khá nặng": "high", "quite high": "high",
-        "nghiêm trọng": "high", "serious": "high", "significant": "high",
-        
-        # Very high variants
-        "rất cao": "very_high", "rất nặng": "very_high", "cực kỳ": "very_high",
-        "very high": "very_high", "extreme": "very_high", "intense": "very_high",
-        "không chịu nổi": "very_high", "unbearable": "very_high"
-    }
-    
-    def normalize_intensity(value: str) -> str:
-        """Normalize intensity value to standard levels, handling flexible descriptions."""
-        if not value or not isinstance(value, str):
-            return value
-            
-        value_lower = value.lower().strip()
-        
-        # Direct match
-        if value_lower in INTENSITY_NORMALIZE:
-            return INTENSITY_NORMALIZE[value_lower]
-        
-        # Partial match - check if any key is substring
-        for key, normalized in INTENSITY_NORMALIZE.items():
-            if key in value_lower:
-                # Handle compound descriptions like "trung bình đến cao"
-                # Return the higher severity if multiple found
-                if "cao" in value_lower or "nặng" in value_lower or "nghiêm trọng" in value_lower:
-                    return "high"
-                elif "trung bình" in value_lower or "vừa" in value_lower:
-                    return "medium"
-                return normalized
-        
-        # Check for numeric scale (e.g., "7/10", "8 out of 10")
-        import re
-        numeric_match = re.search(r'(\d+)\s*[/\\]\s*(\d+)', value_lower)
-        if numeric_match:
-            score = int(numeric_match.group(1))
-            max_score = int(numeric_match.group(2))
-            ratio = score / max_score
-            if ratio >= 0.8:
-                return "very_high"
-            elif ratio >= 0.6:
-                return "high"
-            elif ratio >= 0.4:
-                return "medium"
-            else:
-                return "low"
-        
-        # Default: return original value (will be handled by exception in merge)
-        logger.warning(f"[NORMALIZE] Could not normalize intensity: '{value}' - keeping original")
-        return value
-    
     # Initialize with defaults if no existing slots
     if not existing_slots:
         merged = get_default_slots()
@@ -178,11 +115,6 @@ def merge_slots(existing_slots: Optional[Dict[str, Any]], new_slots: Dict[str, A
         # Skip if new value is None or "none" or empty
         if new_value is None or new_value == "none" or new_value == []:
             continue
-        
-        # SPECIAL: Normalize intensity before processing
-        if key == "intensity" and isinstance(new_value, str):
-            new_value = normalize_intensity(new_value)
-            logger.debug(f"[NORMALIZE] intensity: original='{new_slots.get('intensity')}' → normalized='{new_value}'")
         
         # Handle list fields - append unique values (FIXED: proper dedup)
         if isinstance(new_value, list):
@@ -209,9 +141,6 @@ def merge_slots(existing_slots: Optional[Dict[str, Any]], new_slots: Dict[str, A
                 new_idx = severity_list.index(new_value) if new_value in severity_list else -1
                 # Keep the higher severity
                 if new_idx > existing_idx:
-                    merged[key] = new_value
-                elif new_idx == -1 and existing_idx == -1:
-                    # Both not in list → keep newer value
                     merged[key] = new_value
             except (ValueError, TypeError):
                 # If comparison fails, update with new value
@@ -493,33 +422,21 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
         if value is None or value == [] or value == "none":
             required_missing.append(slot_name)
     
-    # Check functional impairment (CRITICAL for severity assessment)
-    # UPGRADED: Now treated as REQUIRED (not just differential)
+    # Check functional impairment (IMPORTANT for severity assessment)
     # Need at least ONE of: daily_functioning or work_school_impact
     has_functional_info = (
         slots.get("daily_functioning") not in [None, "none"] or
         slots.get("work_school_impact") not in [None, "none"]
     )
     if not has_functional_info:
-        required_missing.append("functional_impairment")  # CHANGED: Now REQUIRED
+        differential_missing.append("functional_impairment")
     
     # Check differential diagnosis slots (CRITICAL for preventing misdiagnosis)
-    # UPGRADED: Medical exclusion now MORE STRICT
+    # If physical symptoms present, MUST check medical exclusion
     physical_symptoms = slots.get("physical_symptoms", [])
-    
-    # If physical symptoms present → MUST have BOTH medical_history AND substance_use
     if physical_symptoms and len(physical_symptoms) > 0:
-        if not slots.get("medical_history"):
-            required_missing.append("medical_history")  # UPGRADED: Now REQUIRED if physical symptoms
-        if not slots.get("substance_use"):
-            required_missing.append("substance_use")  # UPGRADED: Now REQUIRED if physical symptoms
-    else:
-        # No physical symptoms → still check but less strict
-        # Missing these is OK if no physical manifestations
-        if not slots.get("medical_history"):
-            differential_missing.append("medical_history_optional")
-        if not slots.get("substance_use"):
-            differential_missing.append("substance_use_optional")
+        if not slots.get("medical_history") and not slots.get("substance_use"):
+            differential_missing.append("medical_exclusion")
     
     # Logic: Sufficient if:
     # 1. ALL required slots filled (NO missing required slots) - CRITICAL for accurate assessment

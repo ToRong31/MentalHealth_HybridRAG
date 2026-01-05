@@ -136,7 +136,7 @@ def route_after_assessment(state: KGState) -> Literal["normal_coping_retrieval",
     NEW ROUTING: Route based on assessment category.
     
     Routes:
-    - normal_response → normal_coping_retrieval (focus coping, NOT disorder)
+    - normal_stress → normal_coping_retrieval (focus coping, NOT disorder)
     - adjustment_reaction → adjustment_retrieval (focus adjustment, NOT disorder)
     - possible_disorder / likely_disorder → query_rewriter → diagnostic_retrieval (current flow)
     - insufficient_info → query_rewriter (fallback to diagnostic flow)
@@ -148,8 +148,8 @@ def route_after_assessment(state: KGState) -> Literal["normal_coping_retrieval",
     
     logger.info(f"[ROUTING] route_after_assessment: category = {category}")
     
-    if category == "normal_response":
-        logger.info("[ROUTING] Normal response detected → normal_coping_retrieval")
+    if category == "normal_stress":
+        logger.info("[ROUTING] Normal stress detected → normal_coping_retrieval")
         return "normal_coping_retrieval"
     elif category == "adjustment_reaction":
         logger.info("[ROUTING] Adjustment reaction detected → adjustment_retrieval")
