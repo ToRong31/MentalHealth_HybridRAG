@@ -13,9 +13,7 @@ Logic:
 3. Parse duration into D score (0-3)
 4. Apply decision rules:
    - Normal/Low Risk: max_item_score ≤ 3 AND D ≤ 1 AND total_score ≤ 4
-   - Very Low Scores: total_score ≤ 0 OR max_item_score ≤ 1 → treat as normal/adjustment
-   - Likely Disorder: max_item_score ≥ 5 OR D ≥ 3 OR total_score ≥ 8
-   - Possible Disorder: Otherwise (scores in middle range)
+   - Otherwise: Route to diagnostic or support based on type
 
 PREREQUISITE: is_diagnosis_ready() = True (from slots.py)
 """
