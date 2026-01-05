@@ -8,6 +8,32 @@ from src.rag.llm.llm_gemini import LLMClient
 
 from src.rag.config import rag_settings
 
+
+# Load translator prompts once at module level to avoid blocking I/O during async runtime
+def _load_translator_prompts_once():
+    """Load translator prompts at module initialization (synchronous context)"""
+    path = "src/rag/prompts/translator_prompts.yaml"
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Prompt config file not found: {path}")
+    
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    
+    question_prompt = data.get("question_prompt", "").strip()
+    answer_prompt = data.get("answer_prompt", "").strip()
+    
+    if not question_prompt:
+        raise ValueError("question_prompt is missing or empty in YAML config")
+    if not answer_prompt:
+        raise ValueError("answer_prompt is missing or empty in YAML config")
+    
+    return question_prompt, answer_prompt
+
+
+# Module-level constants loaded once at import time
+_QUESTION_PROMPT_TEMPLATE, _ANSWER_PROMPT_TEMPLATE = _load_translator_prompts_once()
+
+
 class GeminiTranslator(LLMClient):
     """
     Translator chuyên dụng cho tư vấn tâm lý, kế thừa trực tiếp từ LLMClient.
@@ -18,35 +44,14 @@ class GeminiTranslator(LLMClient):
         self,
         model_name: str = rag_settings.GEMINI_MODEL_NAME,
         default_max_retries: int = 3,
-        prompt_config_path: str = "src/rag/prompts/translator_prompts.yaml",
     ):
         # Khởi tạo LLMClient (key_manager, model_name, ...)
         super().__init__(model_name=model_name)
 
         self.default_max_retries = default_max_retries
-        self._question_prompt_template = ""
-        self._answer_prompt_template = ""
-
-        self._load_prompts(prompt_config_path)
-
-    # ------------------- PROMPT LOADING ------------------- #
-
-    def _load_prompts(self, path: str):
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Prompt config file not found: {path}")
-
-        with open(path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-
-        # Fallback nhẹ nếu thiếu field trong YAML
-        self._question_prompt_template = data.get("question_prompt", "").strip()
-        self._answer_prompt_template = data.get("answer_prompt", "").strip()
-
-        if not self._question_prompt_template:
-            raise ValueError("question_prompt is missing or empty in YAML config")
-
-        if not self._answer_prompt_template:
-            raise ValueError("answer_prompt is missing or empty in YAML config")
+        # Use module-level prompts loaded at import time (no blocking I/O in __init__)
+        self._question_prompt_template = _QUESTION_PROMPT_TEMPLATE
+        self._answer_prompt_template = _ANSWER_PROMPT_TEMPLATE
 
     # ------------------- INTERNAL LLM CALL ------------------- #
 

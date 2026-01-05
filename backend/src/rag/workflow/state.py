@@ -47,7 +47,10 @@ class KGState(TypedDict):
     diagnostic_diseases: Optional[List[str]]  # List of diseases from diagnostic retrieval
     detected_disease: Optional[str]  # Disease name detected
     diagnostic_confidence: Optional[float]  # Confidence score 0-1
-    diagnostic_reasoning: Optional[str]  # LLM reasoning for diagnosis
+    diagnostic_reasoning: Optional[str]  # LLM reasoning for diagnosis (symptom matching analysis)
+    disease_description: Optional[str]  # What is this disease? (from chunks)
+    disease_symptoms: Optional[str]  # Main symptoms of the disease (from chunks)
+    disease_causes: Optional[str]  # Causes/triggers of the disease (from chunks)
     disease_detected: Optional[List[str]]  # List of confirmed diseases (when confidence high enough)
 
     theoretical_chunks: Optional[str]  # Chunks from theoretical retrieval
@@ -62,4 +65,9 @@ class KGState(TypedDict):
     
     # Routing flags
     needs_apology_prefix: Optional[bool]  # Flag to add apology prefix for low confidence diagnosis
+    
+    # Assessment fields (Normal vs Disorder Classification)
+    assessment_category: Optional[str]  # "normal_response" | "adjustment_reaction" | "possible_disorder" | "likely_disorder"
+    assessment_explanation: Optional[str]  # Vietnamese explanation of assessment
+    assessment_confidence: Optional[float]  # Confidence score 0-1 for assessment
 

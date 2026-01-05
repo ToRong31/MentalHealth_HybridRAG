@@ -4,11 +4,12 @@ Load và format prompts từ YAML files
 """
 import os
 import yaml
+import asyncio
 from pathlib import Path
 from typing import Dict, Any, Union
 
 
-def load_prompts(filename: str = None) -> Union[Dict[str, Any], Dict[str, str]]:
+def _load_prompts_sync(filename: str = None) -> Union[Dict[str, Any], Dict[str, str]]:
     """
     Load prompts from YAML files
     
@@ -52,6 +53,52 @@ def load_prompts(filename: str = None) -> Union[Dict[str, Any], Dict[str, str]]:
             prompts['not_mental_health_response'] = data.get('not_mental_health_response', '')
     
     return prompts
+
+
+def load_prompts(filename: str = None) -> Union[Dict[str, Any], Dict[str, str]]:
+    """
+    Synchronous version for module-level imports and non-async contexts.
+    
+    Args:
+        filename: Optional specific file to load (e.g., "therapist_prompt.yaml")
+                 If None, loads all prompts
+    
+    Returns:
+        If filename specified: Dictionary with prompt data from that file
+        If filename not specified: Dictionary with all prompt names and content
+    """
+    return _load_prompts_sync(filename)
+
+
+async def load_prompts_async(filename: str = None) -> Union[Dict[str, Any], Dict[str, str]]:
+    """
+    Async wrapper that uses asyncio.to_thread to avoid blocking the event loop.
+    Use this version inside async functions to prevent BlockingError.
+    
+    Args:
+        filename: Optional specific file to load (e.g., "therapist_prompt.yaml")
+                 If None, loads all prompts
+    
+    Returns:
+        If filename specified: Dictionary with prompt data from that file
+        If filename not specified: Dictionary with all prompt names and content
+    """
+    return await asyncio.to_thread(_load_prompts_sync, filename)
+
+
+def load_prompts_sync(filename: str = None) -> Union[Dict[str, Any], Dict[str, str]]:
+    """
+    Synchronous version for non-async contexts. Use load_prompts() in async code.
+    
+    Args:
+        filename: Optional specific file to load (e.g., "therapist_prompt.yaml")
+                 If None, loads all prompts
+    
+    Returns:
+        If filename specified: Dictionary with prompt data from that file
+        If filename not specified: Dictionary with all prompt names and content
+    """
+    return _load_prompts_sync(filename)
 
 
 def format_prompt(template: str, **kwargs) -> str:

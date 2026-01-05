@@ -46,6 +46,32 @@ slot_filling_prompt: |
      **PRIORITY RULE**: Ask about REQUIRED_SLOTS first (1-3 questions max)
      **LANGUAGE RULE**: Follow-up questions MUST be in VIETNAMESE (Tiếng Việt)
 
+  ========== CRITICAL: DURATION EXTRACTION RULES ==========
+  
+  **Duration is THE MOST IMPORTANT slot. Extract it carefully from ANY mention of time, even in long/noisy responses.**
+  
+  Common duration phrases in Vietnamese (ALWAYS extract these):
+  - "một tuần nay", "tầm một tuần", "khoảng một tuần"
+  - "hai tuần", "vài tuần", "mấy tuần"
+  - "một tháng", "hai tháng", "mấy tháng"
+  - "từ hôm qua", "từ tuần trước", "từ tháng trước"
+  - "dạo này", "gần đây", "lately" (mark as vague but still extract)
+  - "lâu rồi", "khá lâu", "đã lâu"
+  - "từ khi..." (extract context after "từ khi")
+  
+  **EXTRACTION PRIORITY**: Even if the user's response contains multiple pieces of information (greetings, formalities, explanations), you MUST identify and extract ANY time-related phrase into the duration slot.
+  
+  **Example**:
+  Input: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em bắt đầu phải chuẩn bị tài liệu cho buổi thuyết trình đó ạ."
+  
+  CORRECT extraction:
+  - duration: "một tuần nay" (or "tầm một tuần" or "khoảng một tuần")
+  - trigger: "chuẩn bị tài liệu cho buổi thuyết trình"
+  
+  WRONG: duration: null (keeping old value) ❌
+  
+  **ALWAYS UPDATE duration if a new time phrase is mentioned, even if duration already has a value from previous turns.**
+
   ========== RELEVANCE DETERMINATION ==========
   
   A missing slot is RELEVANT if:
@@ -479,6 +505,65 @@ slot_filling_prompt: |
   - Both "emotion" and "recent_life_events" are REQUIRED_SLOTS
   - Asked about these first to understand the user's state
   - Kept questions open and welcoming, no diagnostic assumptions
+
+  EXAMPLE 6 - Duration Extraction from Noisy Response (CRITICAL EXAMPLE):
+  CONTEXT: Bot asked "Cảm giác lo lắng này kéo dài bao lâu rồi?"
+  USER: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em bắt đầu phải chuẩn bị tài liệu cho buổi thuyết trình đó ạ."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": ["lo lắng"],  // from context
+      "primary_mood": "lo lắng",
+      "intensity": null,
+      "trigger": "chuẩn bị tài liệu cho buổi thuyết trình",  // ⭐ EXTRACTED
+      "duration": "một tuần nay",  // ⭐ CRITICAL: MUST extract "tầm một tuần nay"
+      "impact": null,
+      "risk_level": "unknown",
+      "need": null,
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": ["thuyết trình công việc"],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": "chuẩn bị thuyết trình",
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": ["work stress", "performance anxiety"],
+      "duration_certainty": "approximate"  // "tầm" = approximate
+    },
+    "missing_slots": ["intensity", "impact", "stress_level"],
+    "relevant_missing_slots": ["intensity", "impact"],
+    "follow_up_questions": [
+      "Cảm giác lo lắng này mạnh đến mức nào? Nhẹ, trung bình hay nghiêm trọng?",
+      "Nó có ảnh hưởng đến công việc hoặc sinh hoạt hằng ngày của bạn không?"
+    ]
+  }
+  
+  EXPLANATION:
+  - ⭐ CRITICAL: Duration "tầm một tuần nay" successfully extracted despite noise ("Dạ", "chắc cũng mới", "bác sĩ", "ạ")
+  - Also extracted trigger from same sentence: "chuẩn bị tài liệu cho buổi thuyết trình"
+  - Duration only 1 week + trigger is work presentation → likely acute work stress, NOT disorder
+  - recent_life_events also captured to differentiate stress vs disorder
+  - duration_certainty marked "approximate" because of "tầm" (approximately)
 
   ========== IMPORTANT NOTES ==========
   

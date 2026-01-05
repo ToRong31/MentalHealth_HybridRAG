@@ -18,7 +18,7 @@ def analyze_disease(
     slots: Dict[str, Any],
     conversation_buffer: list,
     summary_context: str
-) -> Tuple[str, float, str]:
+) -> Tuple[str, float, str, str, str, str]:
     """
     Analyze diagnostic chunks and conclude disease using LLM
     
@@ -30,7 +30,7 @@ def analyze_disease(
         summary_context: Summary of conversation
     
     Returns:
-        Tuple of (disease_name, confidence, reasoning)
+        Tuple of (disease_name, confidence, reasoning, disease_description, disease_symptoms, disease_causes)
     """
     logger.info(f"🧠 Analyzing disease from diagnostic chunks")
     
@@ -77,16 +77,19 @@ def analyze_disease(
             detected_disease = result.get("disease", "")
             confidence = float(result.get("confidence", 0.0))
             reasoning = result.get("reasoning", "")
+            disease_description = result.get("disease_description", "")
+            disease_symptoms = result.get("disease_symptoms", "")
+            disease_causes = result.get("disease_causes", "")
             
             logger.info(f"✅ Disease analysis: disease='{detected_disease}', confidence={confidence:.2f}")
             
-            return detected_disease, confidence, reasoning
+            return detected_disease, confidence, reasoning, disease_description, disease_symptoms, disease_causes
             
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Failed to parse diagnostic response: {e}")
             logger.error(f"Response content: {response_content}")
-            return "", 0.0, "Không thể phân tích kết quả"
+            return "", 0.0, "Không thể phân tích kết quả", "", "", ""
         
     except Exception as e:
         logger.error(f"❌ Error in disease analysis: {e}", exc_info=True)
-        return "", 0.0, f"Lỗi: {str(e)}"
+        return "", 0.0, f"Lỗi: {str(e)}", "", "", ""
