@@ -76,10 +76,12 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
     result["slots"] = merged_slots
     
     # Check if REQUIRED slots are sufficient for retrieval
-    is_sufficient, required_missing, _ = has_sufficient_slots(merged_slots)
+    is_sufficient, required_missing, differential_missing = has_sufficient_slots(merged_slots)
     
-    logger.info(f"[DEBUG] is_sufficient = {is_sufficient}, required_missing = {required_missing}")
-    logger.info(f"[DEBUG] Filled REQUIRED slots: {[s for s in ['emotion', 'primary_mood', 'intensity', 'trigger', 'duration', 'impact', 'need', 'stress_level'] if merged_slots.get(s) not in [None, [], 'none']]}")
+    logger.info(f"[SLOT SUFFICIENCY] is_sufficient = {is_sufficient}")
+    logger.info(f"[SLOT SUFFICIENCY] required_missing = {required_missing}")
+    logger.info(f"[SLOT SUFFICIENCY] differential_missing = {differential_missing}")
+    logger.info(f"[SLOT SUFFICIENCY] Filled REQUIRED slots: {[s for s in ['emotion', 'duration', 'impact', 'intensity', 'recent_life_events'] if merged_slots.get(s) not in [None, [], 'none'] and (not isinstance(merged_slots.get(s), list) or len(merged_slots.get(s)) > 0)]}")
     
     # Get follow-up questions and relevant missing slots
     follow_up_questions = result.get("follow_up_questions", [])

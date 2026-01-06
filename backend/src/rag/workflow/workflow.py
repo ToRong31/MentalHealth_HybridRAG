@@ -147,15 +147,19 @@ def route_after_slot_filling_simplified(state: KGState) -> Literal["query_rewrit
     from src.rag.utils.slots import has_sufficient_slots
     
     slots = state.get("slots", {})
-    has_sufficient = has_sufficient_slots(slots)
+    # FIXED: has_sufficient_slots returns tuple (is_sufficient, required_missing, differential_missing)
+    is_sufficient, required_missing, differential_missing = has_sufficient_slots(slots)
     
-    logger.info(f"[ROUTING] route_after_slot_filling_simplified: has_sufficient_slots = {has_sufficient}")
+    logger.info(f"[ROUTING] route_after_slot_filling_simplified: is_sufficient = {is_sufficient}")
+    logger.info(f"[ROUTING]   Required missing: {required_missing}")
+    logger.info(f"[ROUTING]   Differential missing: {differential_missing}")
     
-    if has_sufficient:
-        logger.info("[ROUTING] Sufficient slots → query_rewriter (diagnostic flow)")
+    if is_sufficient:
+        logger.info("[ROUTING] ✅ Sufficient slots → query_rewriter (diagnostic flow)")
         return "query_rewriter"
     else:
-        logger.info("[ROUTING] Insufficient slots → request_more_info")
+        logger.info(f"[ROUTING] ❌ Insufficient slots → request_more_info")
+        logger.info(f"[ROUTING]    Missing: {required_missing}")
         return "request_more_info"
 
 

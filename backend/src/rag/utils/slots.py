@@ -508,9 +508,18 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
                     slots["duration_certainty"] = certainty
             continue
         
-        # Check if slot is actually filled (not None, not empty list, not "none")
-        if value is None or value == [] or value == "none":
+        # Check if slot is actually filled (handle both list and scalar)
+        is_empty = False
+        if isinstance(value, list):
+            # List slot: must have at least one non-empty item
+            is_empty = len(value) == 0 or all(not item for item in value)
+        else:
+            # Scalar slot: must not be None, empty string, or "none"
+            is_empty = value is None or value == "" or value == "none"
+        
+        if is_empty:
             required_missing.append(slot_name)
+            logger.debug(f"[SLOT CHECK] Required slot '{slot_name}' is empty: {value}")
     
     # Check functional impairment (CRITICAL for severity assessment)
     # UPGRADED: Now treated as REQUIRED (not just differential)
@@ -519,9 +528,9 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
     work_impact = slots.get("work_school_impact", [])
     
     has_functional_info = (
-        (isinstance(daily_func, list) and len(daily_func) > 0) or
+        (isinstance(daily_func, list) and len(daily_func) > 0 and any(item for item in daily_func)) or
         (isinstance(daily_func, str) and daily_func and daily_func != "none") or
-        (isinstance(work_impact, list) and len(work_impact) > 0) or
+        (isinstance(work_impact, list) and len(work_impact) > 0 and any(item for item in work_impact)) or
         (isinstance(work_impact, str) and work_impact and work_impact != "none")
     )
     
@@ -529,7 +538,7 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
         required_missing.append("functional_impairment")  # CHANGED: Now REQUIRED
         logger.debug(f"[FUNCTIONAL CHECK] Missing functional impairment: daily_functioning={daily_func}, work_school_impact={work_impact}")
     else:
-        logger.debug(f"[FUNCTIONAL CHECK] Has functional info: daily_functioning={daily_func is not None}, work_school_impact={work_impact is not None}")
+        logger.debug(f"[FUNCTIONAL CHECK] Has functional info: daily_functioning={daily_func}, work_school_impact={work_impact}")
     
     # Check differential diagnosis slots (CRITICAL for preventing misdiagnosis)
     # If physical symptoms present, MUST check medical exclusion
@@ -544,15 +553,19 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
         if not has_medical_check:
             differential_missing.append("medical_exclusion")
     
-    # Check for recent life events (required to differentiate stress vs disorder)
-    recent_events = slots.get("recent_life_events", [])
-    if not recent_events or (isinstance(recent_events, list) and len(recent_events) == 0):
-        differential_missing.append("recent_life_events")
+    # NOTE: recent_life_events is already checked in REQUIRED_SLOTS loop above
+    # No need to check again here to avoid duplicate
     
-    # Logic: Sufficient if:
-    # 1. At most 1 required slot missing (FIXED: was <= 0, now <= 1)
-    # 2. AND at most 1 differential slot missing (for basic support response)
-    is_sufficient = len(required_missing) <= 1 and len(differential_missing) <= 1
+    # Logic: Sufficient ONLY if ALL required slots AND functional impairment are filled
+    # STRICT: Must have ZERO missing required slots (no tolerance)
+    # Also require at most 1 differential missing (lenient for differential)
+    is_sufficient = len(required_missing) == 0 and len(differential_missing) <= 1
+    
+    logger.info(f"[SLOT SUFFICIENCY CHECK]")
+    logger.info(f"  Required missing ({len(required_missing)}): {required_missing}")
+    logger.info(f"  Differential missing ({len(differential_missing)}): {differential_missing}")
+    logger.info(f"  Is sufficient: {is_sufficient}")
+    logger.info(f"  Current slots: emotion={slots.get('emotion')}, duration={slots.get('duration')}, impact={slots.get('impact')}, intensity={slots.get('intensity')}, recent_life_events={slots.get('recent_life_events')}")
     
     return is_sufficient, required_missing, differential_missing
 
