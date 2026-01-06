@@ -1,0 +1,293 @@
+{"chunk_id": "QE00", "title": "Acculturation difficulty", "type": "adjustment reaction", "text": "Problems resulting from the inability to adjust to a different culture or environment."}
+{"chunk_id": "QE01", "title": "Stress, not elsewhere classified", "type": "normal stress", "text": "Stress, not elsewhere classified"}
+{"chunk_id": "QE02", "title": "Social role conflict", "type": "adjustment reaction", "text": "Social role conflict"}
+{"chunk_id": "QE03", "title": "Social exclusion or rejection", "type": "adjustment reaction", "text": "Exclusion and rejection on the basis of personal characteristics such as physical appearance, sexual orientation, gender identity and expression, illness or behaviour."}
+{"chunk_id": "QE04", "title": "Target of perceived adverse discrimination or persecution", "type": "adjustment reaction", "text": "Persecution or discrimination, perceived as reality by an individual or real, on the basis of membership in some group (such as defined by skin colour, religion, ethnic origin, sexual orientation, gender identity and expression, etc.) rather than personal characteristics"}
+{"chunk_id": "QE0Y", "title": "Other specified problems associated with social or cultural environment", "type": "adjustment reaction", "text": "Other specified problems associated with social or cultural environment"}
+{"chunk_id": "QE0Z", "title": "Problems associated with social or cultural environment, unspecified", "type": "adjustment reaction", "text": "Problems associated with social or cultural environment, unspecified"}
+{"chunk_id": "QE10", "title": "Hazardous alcohol use", "type": "adjustment reaction", "text": "A pattern of alcohol use that appreciably increases the risk of harmful physical or mental health consequences to the user or to others to an extent that warrants attention and advice from health professionals..."}
+{"chunk_id": "QE11", "title": "Hazardous drug use", "type": "adjustment reaction", "text": "A pattern of use of psychoactive substance(s) other than nicotine or alcohol that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.0", "title": "Hazardous use of opioids", "type": "adjustment reaction", "text": "A pattern of opioid use that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.1", "title": "Hazardous use of cannabis", "type": "adjustment reaction", "text": "A pattern of cannabis use that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.2", "title": "Hazardous use of sedatives, hypnotics or anxiolytics", "type": "adjustment reaction", "text": "A pattern of use of sedatives, hypnotics or anxiolytics that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.3", "title": "Hazardous use of cocaine", "type": "adjustment reaction", "text": "A pattern of cocaine use that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.4", "title": "Hazardous use of stimulants including amphetamines or methamphetamine", "type": "adjustment reaction", "text": "A pattern of use of stimulants including amphetamines and methamphetamine that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.5", "title": "Hazardous use of caffeine", "type": "adjustment reaction", "text": "A pattern of caffeine use that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.6", "title": "Hazardous use of MDMA or related drugs", "type": "adjustment reaction", "text": "A pattern of use of MDMA (3,4-methylenedioxymethamphetamine) or related drugs that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.7", "title": "Hazardous use of dissociative drugs including ketamine or PCP", "type": "adjustment reaction", "text": "A pattern of use of dissociative drugs including ketamine and PCP (phencyclidine) that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.8", "title": "Hazardous use of other specified psychoactive substances", "type": "adjustment reaction", "text": "A pattern of use of other specified psychoactive substances that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE11.9", "title": "Hazardous use of unknown or unspecified psychoactive substances", "type": "adjustment reaction", "text": "A pattern of use of unknown or unspecified psychoactive substances that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE12", "title": "Hazardous nicotine use", "type": "adjustment reaction", "text": "A pattern of nicotine use that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE13", "title": "Tobacco use", "type": "adjustment reaction", "text": "Tobacco use"}
+{"chunk_id": "QE1Y", "title": "Other specified hazardous substance use", "type": "adjustment reaction", "text": "Other specified hazardous substance use"}
+{"chunk_id": "QE1Z", "title": "Hazardous substance use, unspecified", "type": "adjustment reaction", "text": "Hazardous substance use, unspecified"}
+{"chunk_id": "QE20", "title": "Lack of physical exercise", "type": "adjustment reaction", "text": "Lack of physical exercise"}
+{"chunk_id": "QE21", "title": "Hazardous gambling or betting", "type": "adjustment reaction", "text": "Hazardous gambling and betting refers to a pattern of gambling or betting that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE22", "title": "Hazardous gaming", "type": "adjustment reaction", "text": "Hazardous gaming refers to a pattern of gaming, either online or offline, that appreciably increases the risk of harmful physical or mental health consequences..."}
+{"chunk_id": "QE23", "title": "Problems with inappropriate diet or eating habits", "type": "adjustment reaction", "text": "Problems with inappropriate diet or eating habits"}
+{"chunk_id": "QE24", "title": "Problems with hygiene behaviours", "type": "adjustment reaction", "text": "Problems with hygiene behaviours"}
+{"chunk_id": "QE25", "title": "Problems with oral health behaviours", "type": "adjustment reaction", "text": "Problems with oral health behaviours"}
+{"chunk_id": "QE26", "title": "Problem with sun exposure behaviour", "type": "adjustment reaction", "text": "Problem with sun exposure behaviour"}
+{"chunk_id": "QE27", "title": "Problem with behaviours related to psychological health or wellbeing", "type": "adjustment reaction", "text": "Problem with behaviours related to psychological health or wellbeing"}
+{"chunk_id": "QE28", "title": "Problem with health literacy", "type": "adjustment reaction", "text": "Problem with health literacy"}
+{"chunk_id": "QE2Y", "title": "Problems with other specified health-related behaviours", "type": "adjustment reaction", "text": "Problems with other specified health-related behaviours"}
+{"chunk_id": "QE2Z", "title": "Problem with health-related behaviours, unspecified", "type": "adjustment reaction", "text": "Problem with health-related behaviours, unspecified"}
+{"chunk_id": "QE30", "title": "Insufficient social insurance support", "type": "adjustment reaction", "text": "Insufficient social insurance support"}
+{"chunk_id": "QE30.0", "title": "Insufficient social insurance support, aged", "type": "adjustment reaction", "text": "Insufficient social insurance support, aged"}
+{"chunk_id": "QE30.1", "title": "Insufficient social insurance support, disability", "type": "adjustment reaction", "text": "Insufficient social insurance support, disability"}
+{"chunk_id": "QE30.2", "title": "Insufficient social insurance support, unemployment", "type": "adjustment reaction", "text": "Insufficient social insurance support, unemployment"}
+{"chunk_id": "QE30.3", "title": "Insufficient social insurance support, family support", "type": "adjustment reaction", "text": "Insufficient social insurance support, family support"}
+{"chunk_id": "QE31", "title": "Insufficient social welfare support", "type": "adjustment reaction", "text": "Insufficient social welfare support"}
+{"chunk_id": "QE31.0", "title": "Insufficient social welfare support, child protection", "type": "adjustment reaction", "text": "Insufficient social welfare support, child protection"}
+{"chunk_id": "QE31.1", "title": "Insufficient social welfare support, protection against domestic violence", "type": "adjustment reaction", "text": "Insufficient social welfare support, protection against domestic violence"}
+{"chunk_id": "QE31.2", "title": "Insufficient social welfare support, protection against homelessness", "type": "adjustment reaction", "text": "Insufficient social welfare support, protection against homelessness"}
+{"chunk_id": "QE31.3", "title": "Insufficient social welfare support, post prison services", "type": "adjustment reaction", "text": "Insufficient social welfare support, post prison services"}
+{"chunk_id": "QE3Y", "title": "Other specified problems associated with social insurance or welfare", "type": "adjustment reaction", "text": "Other specified problems associated with social insurance or welfare"}
+{"chunk_id": "QE3Z", "title": "Problems associated with social insurance or welfare, unspecified", "type": "adjustment reaction", "text": "Problems associated with social insurance or welfare, unspecified"}
+{"chunk_id": "QE40", "title": "Problem associated with conviction in civil or criminal proceedings without imprisonment", "type": "adjustment reaction", "text": "Problem associated with conviction in civil or criminal proceedings without imprisonment"}
+{"chunk_id": "QE41", "title": "Problem associated with imprisonment and other incarceration", "type": "adjustment reaction", "text": "Problem associated with imprisonment and other incarceration"}
+{"chunk_id": "QE42", "title": "Problem associated with release from prison", "type": "adjustment reaction", "text": "Problem associated with release from prison"}
+{"chunk_id": "QE4Y", "title": "Other specified problems associated with the justice system", "type": "adjustment reaction", "text": "Other specified problems associated with the justice system"}
+{"chunk_id": "QE4Z", "title": "Problems associated with the justice system, unspecified", "type": "adjustment reaction", "text": "Problems associated with the justice system, unspecified"}
+{"chunk_id": "QE50", "title": "Problem associated with interpersonal interactions", "type": "adjustment reaction", "text": "Problem associated with interpersonal interactions"}
+{"chunk_id": "QE50.0", "title": "Problem associated with relationship with friend", "type": "adjustment reaction", "text": "Problem associated with relationship with friend"}
+{"chunk_id": "QE50.1", "title": "Relationships with teachers or classmates", "type": "adjustment reaction", "text": "Relationships with teachers or classmates"}
+{"chunk_id": "QE50.2", "title": "Problem associated with relationships with people at work", "type": "adjustment reaction", "text": "Problem associated with relationships with people at work"}
+{"chunk_id": "QE50.3", "title": "Relationships with neighbours, tenant or landlord", "type": "adjustment reaction", "text": "Relationships with neighbours, tenant or landlord"}
+{"chunk_id": "QE50.4", "title": "Relationship with parents, in-laws or other family members", "type": "adjustment reaction", "text": "Relationship with parents, in-laws or other family members"}
+{"chunk_id": "QE50.5", "title": "Discord with counsellors", "type": "adjustment reaction", "text": "Discord with counsellors"}
+{"chunk_id": "QE50.6", "title": "Inadequate social skills", "type": "adjustment reaction", "text": "Inadequate social skills"}
+{"chunk_id": "QE50.7", "title": "Personality difficulty", "type": "adjustment reaction", "text": "Personality difficulty refers to pronounced personality characteristics that may affect treatment or health services..."}
+{"chunk_id": "QE51", "title": "Problem associated with interactions with spouse or partner", "type": "adjustment reaction", "text": "Problem associated with interactions with spouse or partner"}
+{"chunk_id": "QE51.0", "title": "Relationship distress with spouse or partner", "type": "adjustment reaction", "text": "Substantial and sustained dissatisfaction with a spouse or intimate partner..."}
+{"chunk_id": "QE51.1", "title": "History of spouse or partner violence", "type": "adjustment reaction", "text": "Non-accidental acts of physical force, forced or coerced sexual acts..."}
+{"chunk_id": "QE52", "title": "Problem associated with interpersonal interactions in childhood", "type": "adjustment reaction", "text": "Problem associated with interpersonal interactions in childhood"}
+{"chunk_id": "QE52.0", "title": "Caregiver-child relationship problem", "type": "adjustment reaction", "text": "Substantial and sustained dissatisfaction within a caregiver-child relationship..."}
+{"chunk_id": "QE52.1", "title": "Loss of love relationship in childhood", "type": "adjustment reaction", "text": "Loss of an emotionally close relationship, such as of a parent, a sibling..."}
+{"chunk_id": "QE5Y", "title": "Other specified problems associated with relationships", "type": "adjustment reaction", "text": "Other specified problems associated with relationships"}
+{"chunk_id": "QE5Z", "title": "Problems associated with relationships, unspecified", "type": "adjustment reaction", "text": "Problems associated with relationships, unspecified"}
+{"chunk_id": "QE60", "title": "Absence of family member", "type": "adjustment reaction", "text": "Absence of family member"}
+{"chunk_id": "QE61", "title": "Disappearance or death of family member", "type": "adjustment reaction", "text": "Disappearance or death of family member"}
+{"chunk_id": "QE61.0", "title": "Loss or death of child", "type": "adjustment reaction", "text": "Loss or death of child"}
+{"chunk_id": "QE62", "title": "Uncomplicated bereavement", "type": "normal stress", "text": "Uncomplicated bereavement"}
+{"chunk_id": "QE6Y", "title": "Other specified problems associated with absence, loss or death of others", "type": "adjustment reaction", "text": "Other specified problems associated with absence, loss or death of others"}
+{"chunk_id": "QE6Z", "title": "Problems associated with absence, loss or death of others, unspecified", "type": "adjustment reaction", "text": "Problems associated with absence, loss or death of others, unspecified"}
+{"chunk_id": "QE70", "title": "Problems related to primary support group, including family circumstances", "type": "adjustment reaction", "text": "Problems related to primary support group, including family circumstances"}
+{"chunk_id": "QE70.0", "title": "Inadequate family support", "type": "adjustment reaction", "text": "Inadequate family support"}
+{"chunk_id": "QE70.1", "title": "Disruption of family by separation or divorce", "type": "adjustment reaction", "text": "Disruption of family by separation or divorce"}
+{"chunk_id": "QE70.2", "title": "Dependent relative needing care at home", "type": "adjustment reaction", "text": "Dependent relative needing care at home"}
+{"chunk_id": "QE80", "title": "Victim of crime or terrorism", "type": "normal stress", "text": "Victim of crime or terrorism"}
+{"chunk_id": "QE81", "title": "Exposure to disaster, war or other hostilities", "type": "normal stress", "text": "Exposure to disaster, war or other hostilities"}
+{"chunk_id": "QE82", "title": "Personal history of maltreatment", "type": "normal stress", "text": "Personal history of non-accidental acts of physical force..."}
+{"chunk_id": "QE82.0", "title": "Personal history of physical abuse", "type": "normal stress", "text": "Personal history of non-accidental acts of physical force..."}
+{"chunk_id": "QE82.1", "title": "Personal history of sexual abuse", "type": "normal stress", "text": "Personal history of forced or coerced sexual acts..."}
+{"chunk_id": "QE82.2", "title": "Personal history of psychological abuse", "type": "normal stress", "text": "Personal history of non-accidental verbal or symbolic act..."}
+{"chunk_id": "QE82.3", "title": "Personal history of neglect", "type": "normal stress", "text": "Personal history of egregious acts or omissions by a caregiver..."}
+{"chunk_id": "QE83", "title": "Personal frightening experience in childhood", "type": "normal stress", "text": "Personal frightening experience in childhood"}
+{"chunk_id": "QE84", "title": "Acute stress reaction", "type": "normal stress", "text": "Acute stress reaction refers to the development of transient emotional, somatic, cognitive..."}
+{"chunk_id": "QE8Y", "title": "Other specified problems associated with harmful or traumatic events", "type": "normal stress", "text": "Other specified problems associated with harmful or traumatic events"}
+{"chunk_id": "QE8Z", "title": "Problems associated with harmful or traumatic events, unspecified", "type": "normal stress", "text": "Problems associated with harmful or traumatic events, unspecified"}
+{"chunk_id": "QE90", "title": "Inadequate parental supervision or control", "type": "adjustment reaction", "text": "Lack of parental knowledge of what the child is doing or where the child is..."}
+{"chunk_id": "QE91", "title": "Parental overprotection", "type": "adjustment reaction", "text": "Parental overprotection"}
+{"chunk_id": "QE92", "title": "Altered pattern of family relationships in childhood", "type": "adjustment reaction", "text": "Departure of a family member or arrival of a new person into a family..."}
+{"chunk_id": "QE93", "title": "Removal from home in childhood", "type": "adjustment reaction", "text": "Removal from home in childhood"}
+{"chunk_id": "QE94", "title": "Institutional upbringing", "type": "adjustment reaction", "text": "Group foster care in which parenting responsibilities are largely taken over by some form of institution..."}
+{"chunk_id": "QE95", "title": "Inappropriate parental pressure or other abnormal qualities of upbringing", "type": "adjustment reaction", "text": "Parents forcing the child to be different from the local norm..."}
+{"chunk_id": "QE96", "title": "Events resulting in loss of self-esteem in childhood", "type": "adjustment reaction", "text": "Events resulting in a negative self-reappraisal by the child..."}
+{"chunk_id": "QE9Y", "title": "Other specified problems associated with upbringing", "type": "adjustment reaction", "text": "Other specified problems associated with upbringing"}
+{"chunk_id": "QE9Z", "title": "Problems associated with upbringing, unspecified", "type": "adjustment reaction", "text": "Problems associated with upbringing, unspecified"}
+{"chunk_id": "MB20", "title": "Symptoms, signs or clinical findings involving consciousness", "text": "Symptoms, signs, and clinical findings indicative of a disturbance in the state or quality of awareness of oneself and the environment, alertness, or clarity of the wakeful state."}
+{"chunk_id": "MB20.0", "title": "Stupor", "text": "Total or nearly total lack of spontaneous movement and marked decrease in reactivity to environment.\n\nInclusions:\n- Semicoma"}
+{"chunk_id": "MB20.1", "title": "Coma", "text": "Acute state lasting more than one hour and usually less than a month. The comatose patient is unresponsive, lying with their eyes closed and cannot be aroused even by vigorous and noxious stimuli. Motor responses to noxious stimulation are limited to reflexive behaviour. Etiologies include but are not limited to traumatic, anoxic, infectious, neoplastic, vascular, inflammatory and metabolic brain injuries."}
+{"chunk_id": "MB20.2", "title": "Clouding of consciousness", "text": "An impairment in the clarity of consciousness characterised by impaired ability to comprehend aspects of the environment or the self in relation to the environment, inattention, and abnormalities in thought processes, comprehension. It is typically accompanied by subjective experience of mental clouding described as feeling ‘foggy’. Clouding of consciousness is a common form of cognitive disturbance in Delirium, but it is not synonymous with Delirium because Delirium includes additional diagnostic requirements."}
+{"chunk_id": "MB21", "title": "Symptoms, signs or clinical findings involving cognition", "text": "Symptoms, signs, and clinical findings indicative of a disturbance in mental abilities and processes related to attention, memory, judgment, reasoning, problem solving, decision making, or comprehension, or the integration of these functions."}
+{"chunk_id": "MB21.0", "title": "Age-associated cognitive decline", "text": "A normative (non-pathological) deterioration of higher cortical functions such as thinking, reasoning, comprehension, calculation, learning, language, and judgment."}
+{"chunk_id": "MB21.1", "title": "Amnesia", "text": "An inability to recall past experiences, especially where recall is to be expected."}
+{"chunk_id": "MB21.2", "title": "Anosognosia", "text": "A lack of awareness or failure to recognize one's own illness, symptoms, or functional deficits, considered to be an aspect of the illness."}
+{"chunk_id": "MB21.3", "title": "Confabulation", "text": "The filling of memory gaps with fabricated, distorted, or misinterpreted memories about oneself or the world, without the conscious intention to deceive."}
+{"chunk_id": "MB21.4", "title": "Disorientation", "text": "Impairment in or loss of awareness of the position of the self in relation to place, time, situation, or other persons. In severe cases, the sense of personal identity may also be lost."}
+{"chunk_id": "MB21.5", "title": "Distractibility", "text": "Difficulty focusing on tasks; attention is easily diverted by extraneous stimuli."}
+{"chunk_id": "MB21.6", "title": "Impaired abstract thinking", "text": "The inability to use concepts and to make and understand generalizations, such as the identifying the properties or pattern shared by a variety of specific items or events."}
+{"chunk_id": "MB21.7", "title": "Impaired executive functioning", "text": "Impairment in higher-level cognitive abilities, such as planning, sequencing, concept formation, abstracting, and decision-making."}
+{"chunk_id": "MB21.8", "title": "Impaired judgment", "text": "Deficit in the capacity to make sound, reasoned, and responsible decisions."}
+{"chunk_id": "MB21.9", "title": "Perseveration", "text": "Persistent repetition of previously used words, phrases, or details that are not responsive to the demands of the situation."}
+{"chunk_id": "MB22", "title": "Symptoms or signs involving motivation or energy", "text": "Symptoms and signs involving motivation (the process that initiates, guides, and maintains goal-oriented behaviours) or energy (the strength and vitality required for sustained physical or mental activity)."}
+{"chunk_id": "MB22.0", "title": "Avolition", "text": "A general lack of drive, or lack of motivation to pursue meaningful goals (e.g., as evidenced by limited participation in work, school, or socializing with others)."}
+{"chunk_id": "MB22.1", "title": "Decreased libido", "text": "Decreased sexual desire or sexual activity compared with the patient's usual levels of sexual interest and functioning."}
+{"chunk_id": "MB22.2", "title": "Demoralization", "text": "Loss of confidence in one's ability to cope, with associated feelings of helplessness, hopelessness, and discouragement."}
+{"chunk_id": "MB22.3", "title": "Hopelessness", "text": "Little or no belief in a positive future."}
+{"chunk_id": "MB22.4", "title": "Increased energy", "text": "Increased physical or mental resources for activity, typically characterised by increased capacity for work and greater efficiency in responding to stimuli."}
+{"chunk_id": "MB22.5", "title": "Increased goal-directed activity", "text": "Increased planning of and participation in multiple activities (e.g. sexual, occupational, political, religious), compared to the individual's typical level of activity."}
+{"chunk_id": "MB22.6", "title": "Increased libido", "text": "Increased sexual desire or sexual activity compared with the patient's usual levels of sexual interest and functioning."}
+{"chunk_id": "MB22.7", "title": "Tiredness", "text": "Feeling of reduced alertness and an accompanying decrease in mental acuity, in some cases resulting in an impulse or tendency to fall asleep."}
+{"chunk_id": "MB23", "title": "Symptoms or signs involving appearance or behaviour", "text": "Symptoms or signs involving appearance or behaviour"}
+{"chunk_id": "MB23.0", "title": "Aggressive behaviour", "text": "Actions intended to threaten or hurt another person or to damage property that may be physical, verbal, or symbolic (e.g., acting against the other person's interests). Aggressive behaviour may be appropriate and self-protective, or inappropriate, hostile, and destructive."}
+{"chunk_id": "MB23.1", "title": "Antisocial behaviour", "text": "Behaviour in which the basic rights of others or major age-appropriate societal norms, rules, or laws, are violated."}
+{"chunk_id": "MB23.2", "title": "Avoidance behaviour", "text": "The act of keeping away from circumstances, situations, or stimuli that cause anxiety or other negative emotions in the individual."}
+{"chunk_id": "MB23.3", "title": "Bradyphrenia", "text": "Slowness of thoughts or fatigability of initiative"}
+{"chunk_id": "MB23.4", "title": "Compulsions", "text": "Repetitive behaviours or rituals (e.g., washing, checking) or mental acts (e.g., repeating words silently) that the individual feels driven to perform in response to an obsession, according to rigid rules, or to achieve a sense of ‘completeness’."}
+{"chunk_id": "MB23.5", "title": "Coprolalia", "text": "Involuntary swearing or the involuntary utterance of obscene words or socially inappropriate and derogatory remarks, often in Tourette syndrome."}
+{"chunk_id": "MB23.6", "title": "Disorganised behaviour", "text": "Behaviour including posture, gait, and other activity that is unpredictable or not goal-directed (e.g., shouting at strangers on the street)."}
+{"chunk_id": "MB23.7", "title": "Disheveled appearance", "text": "Untidy or unkempt appearance reflecting a lack of attention to one or more aspects of hygiene, grooming, or dress."}
+{"chunk_id": "MB23.8", "title": "Disruptive behaviour", "text": "Behaviour that causes disorder and turmoil in others or one's environment (e.g., angry outbursts, arguments, disobedience)."}
+{"chunk_id": "MB23.9", "title": "Echolalia", "text": "The automatic repetition of vocalizations, words, or phrases uttered by another person, which may be immediate or delayed (e.g., repetition of phrases earlier heard on television), without meaningful communicative function. Echolalia is a common feature of communication abnormalities in Autism spectrum disorder, but may also occur in other Mental, behavioural or neurodevelopmental disorders and certain neurological conditions, among children with severe visual impairment, and occasionally in typically developing children. Echolalia does not include repetition as a normal feature of language acquisition in early childhood development."}
+{"chunk_id": "MB24", "title": "Symptoms or signs involving mood or affect", "text": "Symptoms and signs involving the regulation and expression of emotions or feeling states."}
+{"chunk_id": "MB24.0", "title": "Ambivalence", "text": "Conflicting ideas, wishes, or feelings toward a person, thing or situation that are distressing and may create difficulties in making decisions."}
+{"chunk_id": "MB24.1", "title": "Anger", "text": "An emotional state related to one's psychological interpretation of having been threatened that may range in intensity from mild irritation to intense fury and rage."}
+{"chunk_id": "MB24.2", "title": "Anhedonia", "text": "Inability to experience pleasure from normally pleasurable activities."}
+{"chunk_id": "MB24.3", "title": "Anxiety", "text": "Apprehensiveness or anticipation of future danger or misfortune accompanied by a feeling of worry, distress, or somatic symptoms of tension. The focus of anticipated danger may be internal or external.\n\nInclusions:\n- Nervous tension"}
+{"chunk_id": "MB24.4", "title": "Apathy", "text": "A reduction or lack of feeling, emotion, interest, or concern; a state of indifference."}
+{"chunk_id": "MB24.5", "title": "Depressed mood", "text": "Negative affective state characterised by low mood, sadness, emptiness, hopelessness, or dejection"}
+{"chunk_id": "MB24.6", "title": "Disturbance of affect", "text": "A disturbance in the expression or outward manifestation of mood."}
+{"chunk_id": "MB24.7", "title": "Dysphoria", "text": "An unpleasant mood state, which can include feelings of depression, anxiety, discontent, irritability, and unhappiness"}
+{"chunk_id": "MB24.8", "title": "Elevated mood", "text": "A positive mood state typically characterised by increased energy and self-esteem which may be out of proportion to the individual's life circumstances."}
+{"chunk_id": "MB24.9", "title": "Euphoria", "text": "An exaggerated feeling of physical and emotional well-being and vitality."}
+{"chunk_id": "MB25", "title": "Symptoms or signs involving form of thought", "text": "Symptoms and signs involving the logical sequence and coherence of thought, typically manifest in speech, including thought disorder (circumstantiality, tangentiality, disorganised thinking and incoherence), flight of ideas, neologisms, and thought blocking."}
+{"chunk_id": "MB25.0", "title": "Symptoms or signs of thought disorder", "text": "Disturbances in the associative thought process typically manifest in speech or writing that range from circumstantiality to incoherence. These may be indicative of Schizophrenia and other primary psychotic disorders but can also occur in other mental disorders (e.g., Delirium)."}
+{"chunk_id": "MB25.1", "title": "Flight of ideas", "text": "A nearly continuous flow of thoughts, usually manifested in speech, with rapid changes from topic to topic that are often based on understandable associations, distracting stimuli, or plays on words. In severe cases, the changes may be so rapid that speech is disorganised and incoherent."}
+{"chunk_id": "MB25.2", "title": "Neologisms", "text": "The invention of new words that have meaning only to the person using them. May also include the use of existing words in ways that are inconsistent with their common meaning."}
+{"chunk_id": "MB25.3", "title": "Thought blocking", "text": "A phenomenon usually manifested by the person's speech being suddenly interrupted by silences, experienced as a quick and total emptying of the mind."}
+{"chunk_id": "MB26", "title": "Symptoms or signs involving content of thought", "text": "Symptoms and signs involving content of thought include delusions, experiences of influence, passivity, and control, grandiosity, homicidal ideation, identity disturbance, obsessions, overvalued ideas, paranoid ideation, referential thinking, suspiciousness, and suicidal ideation."}
+{"chunk_id": "MB26.0", "title": "Delusion", "text": "A belief that is demonstrably untrue or not shared by others, usually based on incorrect inference about external reality. The belief is firmly held with conviction and is not, or is only briefly, susceptible to modification by experience or evidence that contradicts it. The belief is not ordinarily accepted by other members or the person's culture or subculture (i.e., it is not an article of religious faith)."}
+{"chunk_id": "MB26.1", "title": "Experiences of influence, passivity, and control", "text": "The experience that one's feelings, impulses, thoughts, bodily functions, or behaviour are under the control of another person or other external force instead of under one's own control. These experiences may or may not be accompanied by a delusional belief that provides an explanation for the subjective experience."}
+{"chunk_id": "MB26.2", "title": "Grandiosity", "text": "Exaggerated self-esteem or an unrealistic belief in one's superiority, importance, capacities, or identity."}
+{"chunk_id": "MB26.3", "title": "Homicidal ideation", "text": "Thoughts, ideas, or ruminations about killing another person, which range from vague ideas of revenge to detailed and fully formulated plans but do not include actual homicidal attempts."}
+{"chunk_id": "MB26.4", "title": "Identity disturbance", "text": "Distortion or inconsistency in the sense or view of sameness and historical continuity of one's self."}
+{"chunk_id": "MB26.5", "title": "Obsessions", "text": "Repetitive and persistent thoughts (e.g., of contamination), images (e.g., of violent scenes), or impulses/urges (e.g., to stab someone) that are experienced as intrusive, unwanted, and are commonly associated with anxiety."}
+{"chunk_id": "MB26.6", "title": "Overvalued ideas", "text": "Unreasonable and sustained beliefs that are maintained with less than delusional intensity (i.e., the person is able to acknowledge the possibility that the belief may not be true). An alternative use of this term is to refer to conventional or plausible thoughts (e.g., religious concepts, political ideas, or excessively idealistic beliefs) that are held with such a level of intensity so that the person's life is taken up by them."}
+{"chunk_id": "MB26.7", "title": "Paranoid ideation", "text": "Ideation, not held with delusional intensity, involving suspiciousness or beliefs of being harassed, persecuted, or unfairly treated by others."}
+{"chunk_id": "MB26.8", "title": "Referential thinking", "text": "Ideation, not held with delusional intensity, that random or coincidental events are of particular and unusual significance to the person."}
+{"chunk_id": "MB26.9", "title": "Suspiciousness", "text": "The behaviour of others is viewed with anxiety, mistrust, or hostility and perceived as potentially threatening."}
+{"chunk_id": "MB27", "title": "Symptoms or signs involving perceptual disturbance", "text": "Symptoms and signs involving a disruption in sensory perception, including depersonalization, derealization, and hallucinations in any modality."}
+{"chunk_id": "MB27.0", "title": "Depersonalisation", "text": "Experiencing the self as strange or unreal, or feeling detached from, or as though one were an outside observer of, one’s thoughts, feelings, sensations, body, or actions. Depersonalization may take the form of emotional and/or physical numbing, a sense of watching oneself from a distance or ‘being in a play’, or perceptual alterations (e.g., a distorted sense of time)."}
+{"chunk_id": "MB27.1", "title": "Derealisation", "text": "Experiencing other persons, objects, or the world as strange or unreal (e.g., dreamlike, distant, foggy, lifeless, colourless, or visually distorted) or feeling detached from one’s surroundings."}
+{"chunk_id": "MB27.2", "title": "Hallucinations", "text": "Sensory perceptions of any modality occurring in the absence of the appropriate (external) stimulus. The person may or may not have insight into the unreal nature of the perception."}
+{"chunk_id": "MB27.3", "title": "Disturbance of body image", "text": "Excessively negative, distorted, or inaccurate perception of one's own body or parts of it."}
+{"chunk_id": "MB27.4", "title": "Illusions", "text": "A misinterpretation of a true sensation (e.g., hearing voices in the sound of running water, the perception of figures in shadows)."}
+{"chunk_id": "MB28", "title": "Symptoms or signs related to personality features", "text": "Symptoms and signs involving the characteristics or qualities possessed by a person that uniquely influence his or her cognition, motivations, and behaviours in various situations."}
+{"chunk_id": "MB28.0", "title": "Attention seeking", "text": "A tendency to engage in behaviour designed to attract notice and to make oneself the focus of others’ attention."}
+{"chunk_id": "MB28.1", "title": "Callousness", "text": "Lack of concern for the feelings or problems of others; a lack of guilt or remorse about the negative or harmful effects of one's actions on others."}
+{"chunk_id": "MB28.2", "title": "Eccentricity", "text": "A tendency toward appearance or behaviour that is odd, unusual, peculiar, or unconventional, and is inconsistent with cultural or subcultural norms."}
+{"chunk_id": "MB28.3", "title": "Entitlement", "text": "The belief that one is inherently deserving of privileges or special treatment."}
+{"chunk_id": "MB28.4", "title": "Hostility", "text": "A tendency to experience persistent or frequent angry feelings, especially in response to minor slights and insults, and to adopt an unfriendly or threatening attitude in interactions with others."}
+{"chunk_id": "MB28.5", "title": "Impulsivity", "text": "A tendency to act on the spur of the moment in response to immediate stimuli, characterised by lack of deliberation and failure to consider risks and consequences before acting. Impulsivity may reflect a desire for immediate rewards or an inability to delay gratification."}
+{"chunk_id": "MB28.6", "title": "Indecisiveness", "text": "A tendency to have difficulty making decisions or committing to a course of action."}
+{"chunk_id": "MB28.7", "title": "Irresponsibility", "text": "A pattern of disregard for and failure to honour obligations or commitments; a lack of respect for and follow-through on agreements or promises; carelessness with others' property."}
+{"chunk_id": "MB28.8", "title": "Low frustration tolerance", "text": "Diminished ability to regulate one's emotions and behaviour in response to frustrating circumstances."}
+{"chunk_id": "MB28.9", "title": "Low self-esteem", "text": "Low appraisal of one's self-worth."}
+{"chunk_id": "MB29", "title": "Symptoms or signs involving eating and related behaviour", "text": "Symptoms and signs related to disturbances in the regulation or form of eating behaviour that are not developmentally appropriate or culturally sanctioned, including avoidant or restrictive eating, binge eating, decreased appetite, eating of non-nutritive substances, increased appetite, purging behaviour, and rumination-regurgitation."}
+{"chunk_id": "MB29.0", "title": "Avoidant or restrictive eating", "text": "Acceptance of only a limited diet, which may be defined in terms of a specific dietary composition or sensory features of food, that is inconsistent with cultural or subcultural norms."}
+{"chunk_id": "MB29.1", "title": "Binge eating", "text": "An episode in which an individual eats notably more than usual and feels that she or he is unable to stop or limit the amount or type of food eaten."}
+{"chunk_id": "MB29.2", "title": "Eating of non-nutritive substances", "text": "Consumption of non-food objects and materials (e.g., clay, soil, chalk, plaster, plastic, metal and paper) or raw food ingredients (e.g., large quantities of salt or corn flour)."}
+{"chunk_id": "MB29.3", "title": "Purging behaviour", "text": "Behaviour aimed at the removal of ingested food from the body with the specific intention to lose weight or prevent weight gain (e.g., self-induced vomiting, laxative abuse, or the use of enemas)."}
+{"chunk_id": "MB29.4", "title": "Rumination-regurgitation", "text": "Rechewing of previously swallowed food that has been brought back to the mouth through regurgitation, which may then be reswallowed or spat out."}
+{"chunk_id": "MB2A", "title": "Symptoms or signs involving elimination", "text": "Symptoms and signs involving the behavioural components of defecation (soiling, faecal elimination) and urination."}
+{"chunk_id": "MB2A.0", "title": "Soiling", "text": "The passage of faeces in clothing, bed, or other inappropriate places in an individual who has reached a developmental age where faecal continence is ordinarily expected."}
+{"chunk_id": "MB2A.1", "title": "Wetting", "text": "The voiding of urine into clothes or bed, which may occur during the day or night in an individual who has reached a developmental age where urinary continence is ordinarily expected."}
+{"chunk_id": "MB2Y", "title": "Other specified mental or behavioural symptoms, signs or clinical findings", "text": "Other specified mental or behavioural symptoms, signs or clinical findings"}
+{"chunk_id": "MB40", "title": "Sensation disturbance", "text": "Sensation disturbance"}
+{"chunk_id": "MB40.0", "title": "Asomatognosia", "text": "Lack of awareness of the conditions of all or parts of one’s body"}
+{"chunk_id": "MB40.1", "title": "Allodynia", "text": "Pain due to a normally non-painful stimulus"}
+{"chunk_id": "MB40.2", "title": "Anacusis", "text": "Anacusis"}
+{"chunk_id": "MB40.3", "title": "Anaesthesia of skin", "text": "Partial or complete loss of sensation affecting the skin, most commonly affecting a circumscribed area and resulting from sensory nerve damage as from injury or leprosy.\n\nInclusions:\n- Numbness of skin"}
+{"chunk_id": "MB40.4", "title": "Tingling fingers or feet or toes", "text": "Tingling fingers or feet or toes"}
+{"chunk_id": "MB40.5", "title": "Hyperaesthesia", "text": "Increased sensibility to stimuli of sense"}
+{"chunk_id": "MB40.6", "title": "Dysesthesia", "text": "Dysesthesia"}
+{"chunk_id": "MB40.7", "title": "Acroparaesthesia", "text": "Severe pain in the extremities"}
+{"chunk_id": "MB40.8", "title": "Analgesia", "text": "Insensibility to pain"}
+{"chunk_id": "MB40.9", "title": "Neurological neglect syndrome", "text": "Neurological neglect syndrome"}
+{"chunk_id": "MB41", "title": "Disturbances of smell or taste", "text": "Disturbances of smell or taste include anosmia, parosmia, parageusia, and other disturbances of smell or taste."}
+{"chunk_id": "MB41.0", "title": "Anosmia", "text": "Anosmia"}
+{"chunk_id": "MB41.1", "title": "Parosmia", "text": "Parosmia"}
+{"chunk_id": "MB41.2", "title": "Dysgeusia", "text": "A disorder characterised by an alteration of the sense of taste\n\nInclusions:\n- cacogeusia\n- ageusia"}
+{"chunk_id": "MB41.3", "title": "Hyposmia", "text": "Decreased ability to smell"}
+{"chunk_id": "MB42", "title": "Phonophobia", "text": "Hypersensitivity to sounds"}
+{"chunk_id": "MB43", "title": "Dyssomnia", "text": "Difficulties to fall asleep, or to remain sleeping"}
+{"chunk_id": "MB44", "title": "Abnormalities of gait or mobility", "text": "Abnormalities of gait or mobility include ataxic gait, paralytic gait, difficulty in walking, immobility, and other abnormalities of gait or mobility."}
+{"chunk_id": "MB44.0", "title": "Ataxic gait", "text": "Inclusions:\n- Staggering gait"}
+{"chunk_id": "MB44.1", "title": "Paralytic gait", "text": "A collection of gait abnormalities due to affected motor control, sensory feedback, and muscle strength.\n\nInclusions:\n- Spastic gait"}
+{"chunk_id": "MB44.2", "title": "Difficulty in walking", "text": "Difficulty in walking"}
+{"chunk_id": "MB44.3", "title": "Immobility", "text": "Inclusions:\n- Bedfast\n- Chairfast"}
+{"chunk_id": "MB45", "title": "Lack of coordination", "text": "Other lack of coordination is a lack of coordination other than abnormal involuntary movements and abnormalities of gait and mobility."}
+{"chunk_id": "MB45.0", "title": "Ataxia, unspecified", "text": "Ataxia, unspecified"}
+{"chunk_id": "MB45.1", "title": "Automatism", "text": "Repetitive unconscious gestures such as lip smacking, chewing or swallowing"}
+{"chunk_id": "MB45.2", "title": "Atonia", "text": "Loss of muscle tone"}
+{"chunk_id": "MB45.3", "title": "Head drop", "text": "Head drop"}
+{"chunk_id": "MB45.4", "title": "Intention tremor", "text": "Cerebellar tremor characterised by a broad course and low frequency"}
+{"chunk_id": "MB46", "title": "Abnormal involuntary movements", "text": "Abnormal involuntary movements include abnormal head movements, tremor, cramp, spasm, fasciculation, and other abnormal involuntary movements"}
+{"chunk_id": "MB46.0", "title": "Asterixis", "text": "Asterixis"}
+{"chunk_id": "MB46.1", "title": "Abnormal head movements", "text": "Abnormal head movements"}
+{"chunk_id": "MB46.2", "title": "Athetosis", "text": "Twisting and writhing movements"}
+{"chunk_id": "MB46.3", "title": "Drop attack", "text": "A sudden spontaneous fall while standing and recovery within seconds or minutes"}
+{"chunk_id": "MB46.4", "title": "Titubation", "text": "Head tremor of cerebellar origin"}
+{"chunk_id": "MB46.5", "title": "Shuddering", "text": "Shuddering"}
+{"chunk_id": "MB47", "title": "Abnormality of tonus or reflex", "text": "Abnormality of tonus or reflex"}
+{"chunk_id": "MB47.0", "title": "Abnormal reflex", "text": "Abnormal reflex"}
+{"chunk_id": "MB47.1", "title": "Abnormal posture", "text": "Abnormal posture"}
+{"chunk_id": "MB47.2", "title": "Clonus", "text": "A series of involuntary muscle contractions and relaxations"}
+{"chunk_id": "MB47.3", "title": "Cramp or spasm", "text": "Cramp or spasm"}
+{"chunk_id": "MB47.4", "title": "Dystonia", "text": "Sustained muscle contraction, involuntary movements that can lead to fixed abnormal postures"}
+{"chunk_id": "MB47.5", "title": "Fasciculation", "text": "Fasciculation"}
+{"chunk_id": "MB47.6", "title": "Meningismus", "text": "Meningismus"}
+{"chunk_id": "MB47.7", "title": "Muscle fibrillation", "text": "An involuntary muscle contraction and relaxation in a muscle fiber"}
+{"chunk_id": "MB47.8", "title": "Muscular hypertonia", "text": "Muscular hypertonia"}
+{"chunk_id": "MB47.9", "title": "Myotonia", "text": "Slow relaxation of the muscles after voluntary contraction"}
+{"chunk_id": "MB48", "title": "Dizziness or giddiness", "text": "Terms which may refer to a sense of spatial disorientation, motion of the environment, or lightheadedness. Dizziness is a general feeling of being off-balance. Giddiness is the feeling that you or your surroundings are moving or spinning."}
+{"chunk_id": "MB48.0", "title": "Vertigo", "text": "Vertigo"}
+{"chunk_id": "MB48.1", "title": "Disorder of equilibrium", "text": "Disorder of equilibrium"}
+{"chunk_id": "MB48.2", "title": "Exertional dizziness", "text": "Exertional dizziness"}
+{"chunk_id": "MB48.3", "title": "Light-headedness", "text": "Light-headedness"}
+{"chunk_id": "MB48.4", "title": "Presyncope", "text": "Presyncope"}
+{"chunk_id": "MB49", "title": "Aura", "text": "Reversible visual and/or sensory symptoms prior to a seizure (few seconds) or migraine with aura (20 minutes)"}
+{"chunk_id": "MB4A", "title": "Apraxia", "text": "Apraxia"}
+{"chunk_id": "MB4B", "title": "Symbolic dysfunctions", "text": "Symbolic dysfunctions"}
+{"chunk_id": "MB4B.0", "title": "Dyslexia and alexia", "text": "Dyslexia and alexia refer to the loss, usually in adulthood, of a previous ability to read fluently and to accurately comprehend written material that is inconsistent with general level of intellectual functioning and is acquired after the developmental period in individuals who had previously attained these skills, such as due to a stroke or other brain injury."}
+{"chunk_id": "MB4B.1", "title": "Agnosia", "text": "Agnosia refers to the inability to recognize objects, shapes, people, sounds, or smells, which occurs despite otherwise normal functioning of the specific sense and is not accounted for by memory impairment."}
+{"chunk_id": "MB4B.2", "title": "Acalculia", "text": "Acalculia refers to the loss, usually in adulthood, of a previous ability to perform simple mathematical calculations that is inconsistent with general level of intellectual functioning and is acquired after the developmental period in individuals who had previously attained these skills, such as due to a stroke or other brain injury."}
+{"chunk_id": "MB4B.3", "title": "Agraphia", "text": "Agraphia refers to the loss, usually in adulthood, of a previous ability to write that is inconsistent with general level of intellectual functioning and is acquired after the developmental period in individuals who had previously attained these skills, such as due to a stroke or other brain injury."}
+{"chunk_id": "MB4B.4", "title": "Anomia", "text": "Acquired difficulty in retrieving previously used vocabulary, particularly nouns and verbs."}
+{"chunk_id": "MB4B.5", "title": "Dyscalculia", "text": "Dyscalculia refers to acquired difficulty with performing simple mathematical calculations that is inconsistent with general level of intellectual functioning, with onset after the developmental period in individuals who had previously attained these skills, such as due to a stroke or other brain injury."}
+{"chunk_id": "MB4C", "title": "Gerstmann syndrome", "text": "Gerstmann syndrome is a very rare neurological disorder characterised by the specific association of acalculia, finger agnosia, left-right disorientation, and agraphia, which is supposed to be secondary to a focal subcortical white matter damage in the parietal lobe."}
+{"chunk_id": "MB4D", "title": "Headache, not elsewhere classified", "text": "Headache with characteristic features suggesting that it is a unique diagnostic entity, a finding or complaint, but not fulfilling criteria for any of the headache disorders described above."}
+{"chunk_id": "MB50", "title": "Tetraplegia", "text": "Inclusions:\n- Quadriplegia"}
+{"chunk_id": "MB50.0", "title": "Flaccid tetraplegia", "text": "This is a severe or complete loss of motor function in all four limbs with limp and relaxed muscles."}
+{"chunk_id": "MB50.1", "title": "Spastic tetraplegia", "text": "This is a severe or complete loss of motor function in all four limbs with involuntary contractions."}
+{"chunk_id": "MB51", "title": "Diplegia of upper extremities", "text": "This is a loss of motor control in both arms.\n\nInclusions:\n- paralysis of both upper limbs\n- Paralysis of both arms"}
+{"chunk_id": "MB51.0", "title": "Flaccid diplegia of upper extremities", "text": "Flaccid diplegia of upper extremities"}
+{"chunk_id": "MB51.1", "title": "Spastic diplegia of upper extremities", "text": "Spastic diplegia of upper extremities"}
+{"chunk_id": "MB52", "title": "Diplegia of lower extremities", "text": "Diplegia of lower extremities"}
+{"chunk_id": "MB53", "title": "Hemiplegia", "text": "This is a severe or complete loss of motor function on one side of the body."}
+{"chunk_id": "MB53.0", "title": "Alternating hemiplegia", "text": "Alternating hemiplegia"}
+{"chunk_id": "MB53.1", "title": "Flaccid hemiplegia", "text": "This is a severe or complete loss of motor function on one side of the body with limp and relaxed muscles."}
+{"chunk_id": "MB53.2", "title": "Spastic hemiplegia", "text": "This is a severe or complete loss of motor function on one side of the body with involuntary contractions."}
+{"chunk_id": "MB54", "title": "Monoplegia of upper extremity", "text": "This is a loss of motor control in one arm.\n\nInclusions:\n- paralysis of upper limb\n- Paralysis of arm"}
+{"chunk_id": "MB54.0", "title": "Flaccid monoplegia of upper extremity", "text": "Flaccid monoplegia of upper extremity"}
+{"chunk_id": "MB54.1", "title": "Spastic monoplegia of upper extremity", "text": "Spastic monoplegia of upper extremity"}
+{"chunk_id": "MB55", "title": "Monoplegia of lower extremity", "text": "This is a loss of motor control in one leg.\n\nInclusions:\n- paralysis of lower limb\n- Paralysis of leg"}
+{"chunk_id": "MB55.0", "title": "Flaccid monoplegia of lower extremity", "text": "Flaccid monoplegia of lower extremity"}
+{"chunk_id": "MB55.1", "title": "Spastic monoplegia of lower extremity", "text": "Spastic monoplegia of lower extremity"}
+{"chunk_id": "MB56", "title": "Paraplegia", "text": "Paraplegia"}
+{"chunk_id": "MB57", "title": "Functional level of injury of spinal cord", "text": "Note:\nThese codes are not to be used alone. Code first injury or condition."}
+{"chunk_id": "MB57.0", "title": "Functional level of injury of cervical spinal cord", "text": "Note:\nThese codes are not to be used alone. Code first injury or condition."}
+{"chunk_id": "MB57.1", "title": "Functional level of injury of thoracic spinal cord", "text": "Note:\nThese codes are not to be used alone. Code first injury or condition."}
+{"chunk_id": "MB57.2", "title": "Functional level of injury of lumbar spinal cord", "text": "Note:\nThese codes are not to be used alone. Code first injury or condition."}
+{"chunk_id": "MB57.3", "title": "Functional level of injury of spinal cord, sacrum", "text": "Note:\nThese codes are not to be used alone. Code first injury or condition."}
+{"chunk_id": "MB5Y", "title": "Other specified paralytic symptoms", "text": "Note:\nFor primary coding, the following categories are to be used only when the relevant paralytic syndrome (complete) (incomplete) is reported without further specification, or is stated to be old or longstanding but of unspecified cause."}
+{"chunk_id": "MB5Z", "title": "Paralytic symptoms, unspecified", "text": "Note:\nFor primary coding, the following categories are to be used only when the relevant paralytic syndrome (complete) (incomplete) is reported without further specification, or is stated to be old or longstanding but of unspecified cause."}
+{"chunk_id": "MB60", "title": "Sleeptalking", "text": "Sleeptalking"}
+{"chunk_id": "MB6Y", "title": "Other specified symptoms or signs involving the nervous system", "text": "Other specified symptoms or signs involving the nervous system"}
+{"chunk_id": "MB70", "title": "Clinical findings in cerebrospinal fluid", "text": "Clinical findings in cerebrospinal fluid"}
+{"chunk_id": "MB70.0", "title": "Abnormal level of enzymes in cerebrospinal fluid", "text": "Abnormal level of enzymes in cerebrospinal fluid"}
+{"chunk_id": "MB70.1", "title": "Abnormal level of hormones in cerebrospinal fluid", "text": "Abnormal level of hormones in cerebrospinal fluid"}
+{"chunk_id": "MB70.2", "title": "Abnormal level of drugs, medicaments and biological substances in cerebrospinal fluid", "text": "Abnormal level of drugs, medicaments and biological substances in cerebrospinal fluid"}
+{"chunk_id": "MB70.3", "title": "Abnormal level of substances chiefly nonmedicinal as to source in cerebrospinal fluid", "text": "Abnormal level of substances chiefly nonmedicinal as to source in cerebrospinal fluid"}
+{"chunk_id": "MB70.4", "title": "Abnormal immunological findings in cerebrospinal fluid", "text": "Abnormal immunological findings in cerebrospinal fluid"}
+{"chunk_id": "MB70.5", "title": "Abnormal microbiological findings in cerebrospinal fluid", "text": "Abnormal microbiological findings in cerebrospinal fluid"}
+{"chunk_id": "MB70.6", "title": "Abnormal cytological findings in cerebrospinal fluid", "text": "Abnormal cytological findings in cerebrospinal fluid"}
+{"chunk_id": "MB70.7", "title": "Abnormal histological findings in cerebrospinal fluid", "text": "Abnormal histological findings in cerebrospinal fluid"}
+{"chunk_id": "MB70.8", "title": "Other abnormal findings in cerebrospinal fluid", "text": "Other abnormal findings in cerebrospinal fluid"}
+{"chunk_id": "MB71", "title": "Clinical findings on diagnostic imaging of central nervous system", "text": "Clinical findings on diagnostic imaging of central nervous system is findings on diagnostic imaging of the brain or the spinal cord which don't appear in normal status of the body. Diagnostic imaging refers to technologies that doctors use to look inside body for clues about a medical condition. X-rays, CT scans, nuclear medicine scans, MRI scans and ultrasound are all types of diagnostic imaging."}
+{"chunk_id": "MB71.0", "title": "Intracranial space-occupying lesion", "text": "Intracranial space-occupying lesion"}
+{"chunk_id": "MB72", "title": "Results of function studies of the nervous system", "text": "Results of function studies of the nervous system"}
+{"chunk_id": "MB7Y", "title": "Other specified clinical findings in the nervous system", "text": "Other specified clinical findings in the nervous system"}
+{"chunk_id": "MB9Y", "title": "Other specified symptoms, signs or clinical findings of the nervous system", "text": "Other specified symptoms, signs or clinical findings of the nervous system"}

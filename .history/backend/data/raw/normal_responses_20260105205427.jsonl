@@ -203,7 +203,6 @@
 {"chunk_id": "MB50.1", "title": "Spastic tetraplegia", "type": "adjustment reaction", "score": 99, "text": "This is a severe or complete loss of motor function..."}
 {"chunk_id": "MB51.0", "title": "Flaccid diplegia of upper extremities", "type": "adjustment reaction", "score": 99, "text": "Flaccid diplegia of upper extremities"}
 {"chunk_id": "MB51.1", "title": "Spastic diplegia of upper extremities", "type": "adjustment reaction", "score": 99, "text": "Spastic diplegia of upper extremities"}
-{"chunk_id": "MB52", "title": "Diplegia of lower extremities", "type": "adjustment reaction", "score": 99, "text": "Diplegia of lower extremities"}
 {"chunk_id": "MB53.0", "title": "Alternating hemiplegia", "type": "adjustment reaction", "score": 99, "text": "Alternating hemiplegia"}
 {"chunk_id": "MB53.1", "title": "Flaccid hemiplegia", "type": "adjustment reaction", "score": 99, "text": "This is a severe or complete loss of motor function..."}
 {"chunk_id": "MB53.2", "title": "Spastic hemiplegia", "type": "adjustment reaction", "score": 99, "text": "This is a severe or complete loss of motor function..."}

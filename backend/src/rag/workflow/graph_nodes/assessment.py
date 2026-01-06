@@ -13,6 +13,8 @@ Why both?
 
 import logging
 from ..state import KGState
+from src.rag.utils.assessment import assess_severity_only, assess_disorder_likelihood, get_assessment_context
+from src.rag.utils.normal_response_matcher import match_symptoms_to_database
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +38,7 @@ async def assessment_node(state: KGState) -> KGState:
         - severity_level, severity_breakdown, severity_confidence (for routing)
         - assessment_category, assessment_explanation, assessment_confidence (for context)
     """
-    from src.rag.utils.assessment import assess_severity_only, assess_disorder_likelihood, get_assessment_context
-    from src.rag.utils.normal_response_matcher import match_symptoms_to_database
-    
+
     slots = state.get("slots", {})
     
     logger.info("=" * 80)

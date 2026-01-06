@@ -13,9 +13,7 @@ Logic:
 3. Parse duration into D score (0-3)
 4. Apply decision rules:
    - Normal/Low Risk: max_item_score ≤ 3 AND D ≤ 1 AND total_score ≤ 4
-   - Very Low Scores: total_score ≤ 0 OR max_item_score ≤ 1 → treat as normal/adjustment
-   - Likely Disorder: max_item_score ≥ 5 OR D ≥ 3 OR total_score ≥ 8
-   - Possible Disorder: Otherwise (scores in middle range)
+   - Otherwise: Route to diagnostic or support based on type
 
 PREREQUISITE: is_diagnosis_ready() = True (from slots.py)
 """
@@ -153,104 +151,9 @@ def determine_route_type(matched_items: List[Dict[str, Any]]) -> str:
     return route_type
 
 
-def assess_severity_only(slots: Dict[str, Any], matched_items: List[Dict[str, Any]] = None) -> Tuple[str, Dict[str, Any], float]:
-    """
-    NEW: Assess ONLY severity level - NO binary classification.
-    
-    This replaces assess_disorder_likelihood() premature binary decision.
-    Focus: HOW SEVERE are symptoms, NOT whether it's a disorder.
-    
-    Severity Levels (based on score thresholds):
-    - mild: total_score ≤ 4, max_item_score ≤ 3, D ≤ 1
-    - moderate: total_score 5-7, or (max_item_score 4-5 and D ≤ 2)
-    - severe: total_score 8-12, or (max_item_score ≥ 6 or D = 3)
-    - crisis: score 99 (emergency), or total_score > 12
-    
-    Args:
-        slots: Dictionary containing extracted slot information
-        matched_items: List of matched items from normal_responses.jsonl
-    
-    Returns:
-        Tuple of (severity_level, severity_breakdown, confidence)
-        - severity_level: "mild" | "moderate" | "severe" | "crisis"
-        - severity_breakdown: Dict with scores, duration, and factors
-        - confidence: 0.0-1.0
-    """
-    # Handle empty matched_items
-    if matched_items is None:
-        matched_items = []
-        logger.warning("No matched_items provided, will use only duration-based assessment")
-    
-    # Check for emergency situations (score 99)
-    emergency_items = [item for item in matched_items if item.get("score", 0) == 99]
-    if emergency_items:
-        emergency_titles = [item.get("title", "") for item in emergency_items]
-        logger.critical(f"EMERGENCY: Detected critical symptoms: {emergency_titles}")
-        return (
-            "crisis",
-            {
-                "max_item_score": 99,
-                "duration_score": 0,
-                "total_score": 99,
-                "severity_modifier": 0,
-                "emergency_items": emergency_titles
-            },
-            0.95
-        )
-    
-    # Step 1: Parse duration score
-    duration_text = slots.get("duration", "")
-    D = parse_duration_score(duration_text)
-    
-    # Step 2: Calculate scores (including severity modifiers)
-    max_item_score, total_score, severity_modifier, modifier_breakdown = calculate_scores(matched_items, D, slots)
-    
-    # Step 3: Determine severity level (NO binary classification)
-    logger.info(f"[SEVERITY] max_item_score={max_item_score}, D={D}, severity_modifier={severity_modifier}, total_score={total_score}")
-    
-    # Crisis level
-    if total_score > 12:
-        severity_level = "crisis"
-        confidence = 0.85
-        
-    # Severe level
-    elif total_score >= 8 or max_item_score >= 6 or D == 3:
-        severity_level = "severe"
-        confidence = 0.75 + min((total_score - 8) * 0.02, 0.15)
-        
-    # Moderate level
-    elif total_score >= 5 or (max_item_score >= 4 and D >= 2):
-        severity_level = "moderate"
-        confidence = 0.70
-        
-    # Mild level
-    else:
-        severity_level = "mild"
-        confidence = 0.65
-    
-    # Build severity breakdown
-    severity_breakdown = {
-        "max_item_score": max_item_score,
-        "duration_score": D,
-        "severity_modifier": severity_modifier,
-        "total_score": total_score,
-        "modifier_breakdown": modifier_breakdown,
-        "matched_items_count": len(matched_items)
-    }
-    
-    logger.info(f"[RESULT] Severity Level: {severity_level} - Confidence: {confidence:.2f}")
-    
-    return (severity_level, severity_breakdown, confidence)
-
-
 def assess_disorder_likelihood(slots: Dict[str, Any], matched_items: List[Dict[str, Any]] = None) -> Tuple[str, str, float]:
     """
-    DEPRECATED: This function implements premature binary classification.
-    
-    Use assess_severity_only() instead for Phase 1 implementation.
-    This function is kept for backward compatibility only.
-    
-    Classification whether symptoms are normal response or disorder using score-based logic.
+    Classify whether symptoms are normal response or disorder using score-based logic.
     
     This function is COMPLEMENTARY to is_diagnosis_ready():
     - is_diagnosis_ready(): "Đủ điều kiện để assess chưa?" → True/False
@@ -327,30 +230,8 @@ def assess_disorder_likelihood(slots: Dict[str, Any], matched_items: List[Dict[s
         
     # High scores or long duration → Need professional assessment
     else:
-        # ⚠️ FIXED: Check for negative or very low scores first
-        if total_score <= 0 or max_item_score <= 1:
-            # Very low/negative scores → treat as normal stress/adjustment
-            category = route_type  # "normal_stress" or "adjustment_reaction"
-            
-            if route_type == "normal_stress":
-                explanation = (
-                    "Các dấu hiệu cho thấy đây là phản ứng stress nhẹ với tình huống cụ thể. "
-                    f"Triệu chứng có mức độ rất nhẹ (điểm: {total_score}), chưa đủ tiêu chuẩn cho rối loạn tâm lý. "
-                    "Bạn có thể tự quản lý bằng các kỹ thuật giảm stress cơ bản."
-                )
-                confidence = 0.70
-            else:  # adjustment_reaction
-                explanation = (
-                    f"Dấu hiệu cho thấy phản ứng nhẹ với tình huống/biến cố (điểm: {total_score}). "
-                    "Đây là phản ứng tự nhiên và chưa ở mức độ rối loạn. "
-                    "Bạn có thể cần hỗ trợ để thích nghi tốt hơn."
-                )
-                confidence = 0.65
-            
-            logger.info(f"[RESULT] Category: {category} (Low Score Override) - Confidence: {confidence:.2f}")
-            
         # Determine severity: possible_disorder vs likely_disorder
-        elif max_item_score >= 5 or D >= 3 or total_score >= 8:
+        if max_item_score >= 5 or D >= 3 or total_score >= 8:
             category = "likely_disorder"
             explanation = (
                 "Các dấu hiệu cho thấy khả năng cao đây là rối loạn tâm lý cần được chuyên gia đánh giá: "
@@ -382,7 +263,7 @@ def assess_disorder_likelihood(slots: Dict[str, Any], matched_items: List[Dict[s
     return (category, explanation, confidence)
 
 
-def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[Dict[str, Any]] = None) -> bool:
+def should_retrieve_disorder_content(slots: Dict[str, Any]) -> bool:
     """
     Decide whether to retrieve disorder-specific content or normal coping content.
     
@@ -390,17 +271,16 @@ def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[
     
     Args:
         slots: Dictionary containing extracted slot information
-        matched_items: List of matched items from normal_responses.jsonl database
     
     Returns:
-        True if should retrieve disorder content (diagnostic database)
-        False if should focus on coping/stress management (normal_responses database)
+        True if should retrieve disorder content
+        False if should focus on coping/stress management
     
     Logic:
         1. Check is_diagnosis_ready() first
         2. If True, run assess_disorder_likelihood()
         3. Route based on category:
-           - normal_stress, adjustment_reaction → False (coping content)
+           - normal_response, adjustment_reaction → False (coping content)
            - possible_disorder, likely_disorder → True (disorder content)
     """
     from .slots import is_diagnosis_ready
@@ -411,10 +291,10 @@ def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[
         return False
     
     # Assess disorder likelihood
-    category, explanation, confidence = assess_disorder_likelihood(slots, matched_items)
+    category, explanation, confidence = assess_disorder_likelihood(slots)
     
     # Route based on category
-    if category in ["normal_stress", "adjustment_reaction"]:
+    if category in ["normal_response", "adjustment_reaction"]:
         logger.info(f"[RETRIEVAL DECISION] Category '{category}' → retrieve COPING/STRESS content")
         return False
     
@@ -428,13 +308,12 @@ def should_retrieve_disorder_content(slots: Dict[str, Any], matched_items: List[
         return False
 
 
-def get_assessment_context(slots: Dict[str, Any], matched_items: List[Dict[str, Any]] = None) -> str:
+def get_assessment_context(slots: Dict[str, Any]) -> str:
     """
     Generate assessment context string for prompt injection.
     
     Args:
         slots: Dictionary containing extracted slot information
-        matched_items: List of matched items from normal_responses.jsonl database
     
     Returns:
         Formatted string with assessment information for LLM prompt
@@ -444,7 +323,7 @@ def get_assessment_context(slots: Dict[str, Any], matched_items: List[Dict[str, 
     if not is_diagnosis_ready(slots):
         return "Assessment: Insufficient information for disorder assessment. Focus on information gathering."
     
-    category, explanation, confidence = assess_disorder_likelihood(slots, matched_items)
+    category, explanation, confidence = assess_disorder_likelihood(slots)
     
     context = f"""
 Assessment Category: {category}
@@ -454,7 +333,7 @@ Confidence Level: {confidence:.2f}
 Response Guidelines:
 """
     
-    if category == "normal_stress":
+    if category == "normal_response":
         context += """- VALIDATE: Acknowledge this is a normal response to the situation
 - NORMALIZE: Reassure that many people experience this
 - EDUCATE: Explain this is NOT a disorder
@@ -483,4 +362,3 @@ Response Guidelines:
 - NORMALIZE HELP-SEEKING: Reassure that seeking help is strength"""
     
     return context
-

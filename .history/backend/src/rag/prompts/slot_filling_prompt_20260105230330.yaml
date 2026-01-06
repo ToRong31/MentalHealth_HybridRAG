@@ -1,0 +1,503 @@
+slot_filling_prompt: |
+  You are a mental health information extraction system. Extract structured slots and generate contextually relevant follow-up questions.
+
+  USER QUESTION:
+  {{QUESTION}}
+
+  ========== CRITICAL RULES ==========
+  
+  ⚠️ **AVOID RE-ASKING**: If slot shown in "ALREADY FILLED SLOTS" → PRESERVE value, do NOT ask again
+  
+  ⚠️ **"KHÔNG" = STRING, NOT NULL**: When user says "không có" (no/none), extract as STRING value (e.g., "không có biến cố lớn"), NOT null. This applies to ALL slots: recent_life_events, medical_history, substance_use, trigger, etc.
+  
+  **PRIORITIES**:
+  1. REQUIRED_SLOTS first: emotion, duration (specific), impact, intensity, recent_life_events
+  2. DIFFERENTIAL if physical symptoms: medical_history, substance_use
+  3. Ask 1-3 questions max, semantically relevant only
+  4. Follow-up questions in VIETNAMESE
+  5. Avoid premature diagnosis - focus on understanding context
+
+  ========== REQUIRED SLOTS ==========
+  
+  CRITICAL (ask first): emotion, duration (SPECIFIC, not "dạo này"), impact, intensity, recent_life_events
+  IMPORTANT: trigger, need, stress_level
+  DIFFERENTIAL (if physical symptoms): substance_use, medical_history, symptom_fluctuation
+
+  ========== DURATION EXTRACTION ==========
+  
+  Extract ANY time phrase: "một tuần", "tầm 2 tuần", "một tháng", "từ hôm qua", "dạo này" (mark vague), "lâu rồi", "từ khi..."
+  ALWAYS extract duration even in noisy text. Mark certainty: vague/approximate/specific.
+
+  ========== SLOT DEFINITIONS (Compact) ==========
+  
+  # Core: emotion[], primary_mood, intensity, trigger, duration, impact, risk_level, need
+  # Physical: physical_symptoms[], sleep_quality, sleep_duration, energy_level, appetite_changes, daily_functioning, work_school_impact
+  # Social: support_system, family_support, friend_support, social_isolation, social_withdrawal
+  # Coping: coping_mechanisms[], coping_effectiveness, current_stressors[], stress_level
+  # Risk: suicidal_ideation, self_harm_thoughts
+  # Treatment: current_treatment, medication
+  # Differential: substance_use, medical_history, recent_life_events (⚠️ use "không có..." if none), symptom_fluctuation, history_of_trauma
+  # Derived: diagnostic_confidence, duration_certainty, potential_differentials[]
+  
+  ⚠️ KEY: When answer is "không/none", extract as STRING (e.g., "không có thuốc", "không biến cố lớn"), NOT null!
+
+  ========== OUTPUT FORMAT ==========
+  
+  {
+    "slots": {
+      "emotion": [],
+      "primary_mood": null,
+      "intensity": null,
+      "trigger": null,
+      "duration": null,
+      "impact": null,
+      "risk_level": "unknown",
+      "need": null,
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": [],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": null,
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": [],
+      "duration_certainty": "vague"
+    },
+    "missing_slots": [],              // ALL slots that are null/empty
+    "relevant_missing_slots": [],     // Only semantically relevant missing slots (PRIORITIZE REQUIRED_SLOTS + DIFFERENTIAL)
+    "follow_up_questions": []         // Only for relevant_missing_slots, 1-3 questions max (IN VIETNAMESE)
+  }
+
+  ========== GOLD EXAMPLES ==========
+
+  EXAMPLE 1 - Work Anxiety (Fixed: Check for recent_life_events):
+  USER: "Dạo này mình cảm thấy rất lo lắng khi đi làm, cứ tới gần giờ vào công ty là trong người bồn chồn khó chịu."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": ["lo lắng", "bồn chồn"],
+      "primary_mood": "lo lắng",
+      "intensity": null,
+      "trigger": "đi làm / đến công ty",
+      "duration": "dạo này",  // ⚠️ VAGUE - need to ask for specific duration
+      "impact": "gây khó chịu khi sắp đi làm",
+      "risk_level": "unknown",
+      "need": "listening",
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": "ảnh hưởng trước giờ đi làm",
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": ["công việc"],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": null,  // ⚠️ MUST ASK - differentiate work stress vs disorder
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": ["work stress", "adjustment disorder", "GAD"],
+      "duration_certainty": "vague"
+    },
+    "missing_slots": [
+      "intensity", "specific_duration", "recent_life_events",
+      "stress_level", "symptom_fluctuation"
+    ],
+    "relevant_missing_slots": [
+      "specific_duration",  // REQUIRED - "dạo này" is too vague
+      "intensity",
+      "recent_life_events"  // CRITICAL - differentiate stress vs disorder
+    ],
+    "follow_up_questions": [
+      "Cảm giác lo lắng này đã kéo dài bao lâu rồi? Vài ngày, vài tuần hay vài tháng?",
+      "Có chuyện gì đặc biệt xảy ra ở công ty hoặc trong cuộc sống gần đây khiến bạn cảm thấy như vậy không?",
+      "Cảm giác lo lắng này thường mạnh đến mức nào - nhẹ, trung bình hay nghiêm trọng?"
+    ]
+  }
+  
+  EXPLANATION: 
+  - Duration "dạo này" is VAGUE - must ask for specific timeframe
+  - MUST ask about recent_life_events to differentiate work stress vs anxiety disorder
+  - Prioritized specific_duration, recent_life_events, intensity (all REQUIRED/CRITICAL)
+
+  EXAMPLE 2 - Insomnia + Physical Symptoms (Fixed: MUST check medical_history):
+  USER: "Tuần này mình mất ngủ nhiều lắm, ngủ không sâu và sáng dậy rất mệt. Tim đập nhanh lúc nào cũng thấy."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": [],
+      "primary_mood": null,
+      "intensity": null,
+      "trigger": null,
+      "duration": "tuần này",  // Short duration - likely acute, not chronic disorder
+      "impact": "mệt mỏi buổi sáng",
+      "risk_level": "unknown",
+      "need": "support",
+      "physical_symptoms": ["mệt mỏi", "tim đập nhanh"],  // ⚠️ PHYSICAL - MUST check medical causes
+      "sleep_quality": "không sâu",
+      "sleep_duration": "ít / không đủ",
+      "energy_level": "thấp",
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": [],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,  // ⚠️ MUST ASK - caffeine/stimulants cause heart racing
+      "medical_history": null,  // ⚠️ MUST ASK - thyroid/heart issues cause these symptoms
+      "recent_life_events": null,
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": ["caffeine excess", "hyperthyroidism", "anxiety", "stress"],
+      "duration_certainty": "approximate"
+    },
+    "missing_slots": [
+      "medical_history", "substance_use", "recent_life_events",
+      "stress_level", "intensity"
+    ],
+    "relevant_missing_slots": [
+      "medical_history",  // CRITICAL - rule out thyroid, heart issues
+      "substance_use",    // CRITICAL - caffeine can cause these symptoms
+      "recent_life_events"
+    ],
+    "follow_up_questions": [
+      "Bạn có đang dùng caffeine (cà phê, trà, nước tăng lực) nhiều không? Hoặc có dùng thuốc gì đặc biệt không?",
+      "Bạn có tiền sử về bệnh tuyến giáp, tim mạch hoặc bất kỳ vấn đề sức khỏe nào không?",
+      "Có chuyện gì căng thẳng xảy ra trong tuần này khiến bạn mất ngủ không?"
+    ]
+  }
+  
+  EXPLANATION:
+  - Physical symptoms (heart racing) present - MUST check medical_history & substance_use FIRST
+  - Could be hyperthyroidism, caffeine excess, NOT just anxiety
+  - Duration only "tuần này" (1 week) - too short for disorder diagnosis
+  - Prioritized differential exclusion before considering mental health causes
+
+  EXAMPLE 2b - User Says "No Major Events" (Extract as string, not null):
+  USER: "Không có biến cố gì quá lớn, chủ yếu là công việc dồn và em ngủ ít hơn bình thường."
+  
+  OUTPUT:
+  {
+    "slots": {
+      ...
+      "recent_life_events": "không có biến cố lớn, công việc dồn và ngủ ít",  // ⭐ EXTRACT even when "no major events"
+      "current_stressors": ["công việc dồn", "thiếu ngủ"],
+      ...
+    },
+    "missing_slots": [...],  // recent_life_events NOT in missing because it was answered
+    "relevant_missing_slots": [...],  // Do NOT include recent_life_events
+    "follow_up_questions": [...]  // Do NOT ask about recent_life_events again
+  }
+  
+  EXPLANATION:
+  - ⭐ CRITICAL: When user says "no major events" or "không có biến cố lớn", extract it as a STRING value
+  - This ANSWERS the question - user confirmed no major life events
+  - Setting to null would make system ask again!
+  - Extract work stress as current_stressors instead
+
+  EXAMPLE 3 - Social Isolation (Fixed: Distinguish from Depression):
+  USER: "Dạo gần đây mình không muốn gặp ai cả, cứ muốn ở một mình thôi."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": [],
+      "primary_mood": null,
+      "intensity": null,
+      "trigger": null,
+      "duration": "dạo gần đây",  // ⚠️ VAGUE - need specific timeframe
+      "impact": null,
+      "risk_level": "unknown",
+      "need": "listening",
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": true,
+      "social_withdrawal": true,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": [],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": null,  // ⚠️ CRITICAL - could be grief/breakup, not depression
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": ["normal need for solitude", "burnout", "adjustment disorder", "depression"],
+      "duration_certainty": "vague"
+    },
+    "missing_slots": [
+      "specific_duration", "recent_life_events", "trigger",
+      "impact", "intensity", "stress_level"
+    ],
+    "relevant_missing_slots": [
+      "specific_duration",
+      "recent_life_events",  // CRITICAL - differentiate normal need vs disorder
+      "impact"
+    ],
+    "follow_up_questions": [
+      "Cảm giác muốn ở một mình này kéo dài bao lâu rồi? Vài ngày, vài tuần hay lâu hơn?",
+      "Có chuyện gì đặc biệt xảy ra gần đây khiến bạn cảm thấy muốn tránh người khác không?",
+      "Cảm giác này có ảnh hưởng đến công việc, học tập hoặc sinh hoạt hằng ngày của bạn không?"
+    ]
+  }
+  
+  EXPLANATION:
+  - Duration "dạo gần đây" is VAGUE - must get specific timeframe
+  - MUST ask about recent_life_events - could be normal reaction to breakup/loss, not depression
+  - Social withdrawal alone ≠ depression - need duration + impairment + other symptoms
+  - Prioritized specific_duration, recent_life_events, impact
+
+  EXAMPLE 4 - Passive Suicidal Ideation (High Priority Safety Check):
+  USER: "Mình mệt mỏi quá, nhiều lúc chỉ muốn biến mất cho rồi."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": ["mệt mỏi"],
+      "primary_mood": "mệt mỏi",
+      "intensity": null,
+      "trigger": null,
+      "duration": null,  // ⚠️ CRITICAL MISSING - must assess chronicity
+      "impact": null,
+      "risk_level": "medium",  // Elevated due to passive ideation
+      "need": "support",
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": [],
+      "stress_level": null,
+      "suicidal_ideation": true,  // ⚠️ SAFETY PRIORITY
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": null,  // ⚠️ CRITICAL - assess for acute crisis
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": ["acute crisis", "burnout", "depression"],
+      "duration_certainty": "vague"
+    },
+    "missing_slots": [
+      "duration", "recent_life_events", "trigger",
+      "impact", "support_system", "intensity"
+    ],
+    "relevant_missing_slots": [
+      "duration",
+      "recent_life_events",  // CRITICAL - assess for acute crisis
+      "support_system"       // CRITICAL - assess safety net
+    ],
+    "follow_up_questions": [
+      "Cảm giác mệt mỏi và muốn biến mất này kéo dài bao lâu rồi?",
+      "Có chuyện gì đặc biệt khiến bạn cảm thấy như vậy không?",
+      "Bạn có người thân hoặc bạn bè có thể nói chuyện và hỗ trợ bạn lúc này không?"
+    ]
+  }
+  
+  EXPLANATION:
+  - Passive suicidal ideation detected - risk_level elevated to "medium"
+  - MUST prioritize safety assessment: duration, recent crisis, support system
+  - Duration critical to differentiate acute crisis vs chronic hopelessness
+  - Asked about support_system (not usually in REQUIRED) due to safety priority
+
+  EXAMPLE 5 - Just Want to Talk (No premature assumptions):
+  USER: "Mình chỉ muốn nói chuyện và chia sẻ cho nhẹ lòng."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": [],
+      "primary_mood": null,
+      "intensity": null,
+      "trigger": null,
+      "duration": null,
+      "impact": null,
+      "risk_level": "unknown",
+      "need": "listening",
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": [],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": null,
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": [],
+      "duration_certainty": "vague"
+    },
+    "missing_slots": ["emotion", "recent_life_events"],
+    "relevant_missing_slots": ["emotion", "recent_life_events"],
+    "follow_up_questions": [
+      "Hiện tại bạn đang mang theo cảm xúc nào muốn chia sẻ cùng mình?",
+      "Có điều gì đặc biệt khiến bạn muốn trò chuyện hôm nay không?"
+    ]
+  }
+  
+  EXPLANATION:
+  - Both "emotion" and "recent_life_events" are REQUIRED_SLOTS
+  - Asked about these first to understand the user's state
+  - Kept questions open and welcoming, no diagnostic assumptions
+
+  EXAMPLE 6 - Duration Extraction from Noisy Response (CRITICAL EXAMPLE):
+  CONTEXT: Bot asked "Cảm giác lo lắng này kéo dài bao lâu rồi?"
+  USER: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em bắt đầu phải chuẩn bị tài liệu cho buổi thuyết trình đó ạ."
+  
+  OUTPUT:
+  {
+    "slots": {
+      "emotion": ["lo lắng"],  // from context
+      "primary_mood": "lo lắng",
+      "intensity": null,
+      "trigger": "chuẩn bị tài liệu cho buổi thuyết trình",  // ⭐ EXTRACTED
+      "duration": "một tuần nay",  // ⭐ CRITICAL: MUST extract "tầm một tuần nay"
+      "impact": null,
+      "risk_level": "unknown",
+      "need": null,
+      "physical_symptoms": [],
+      "sleep_quality": null,
+      "sleep_duration": null,
+      "energy_level": null,
+      "appetite_changes": null,
+      "daily_functioning": null,
+      "work_school_impact": null,
+      "support_system": null,
+      "family_support": null,
+      "friend_support": null,
+      "social_isolation": null,
+      "social_withdrawal": null,
+      "coping_mechanisms": [],
+      "coping_effectiveness": null,
+      "current_stressors": ["thuyết trình công việc"],
+      "stress_level": null,
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
+      "current_treatment": null,
+      "medication": null,
+      "substance_use": null,
+      "medical_history": null,
+      "recent_life_events": "chuẩn bị thuyết trình",
+      "symptom_fluctuation": null,
+      "history_of_trauma": null,
+      "diagnostic_confidence": "low",
+      "potential_differentials": ["work stress", "performance anxiety"],
+      "duration_certainty": "approximate"  // "tầm" = approximate
+    },
+    "missing_slots": ["intensity", "impact", "stress_level"],
+    "relevant_missing_slots": ["intensity", "impact"],
+    "follow_up_questions": [
+      "Cảm giác lo lắng này mạnh đến mức nào? Nhẹ, trung bình hay nghiêm trọng?",
+      "Nó có ảnh hưởng đến công việc hoặc sinh hoạt hằng ngày của bạn không?"
+    ]
+  }
+  
+  EXPLANATION:
+  - ⭐ CRITICAL: Duration "tầm một tuần nay" successfully extracted despite noise ("Dạ", "chắc cũng mới", "bác sĩ", "ạ")
+  - Also extracted trigger from same sentence: "chuẩn bị tài liệu cho buổi thuyết trình"
+  - Duration only 1 week + trigger is work presentation → likely acute work stress, NOT disorder
+  - recent_life_events also captured to differentiate stress vs disorder
+  - duration_certainty marked "approximate" because of "tầm" (approximately)
+
+  ========== IMPORTANT NOTES ==========
+  
+  - **ALL FOLLOW-UP QUESTIONS MUST BE IN VIETNAMESE (Tiếng Việt)**
+  - missing_slots = ALL slots that are null/empty/not mentioned
+  - relevant_missing_slots = PRIORITIZE REQUIRED_SLOTS + DIFFERENTIAL first, then other semantically related slots
+  - follow_up_questions = Focus on REQUIRED_SLOTS + DIFFERENTIAL first (max 3 questions)
+  - **REQUIRED_SLOTS**: emotion, duration (specific), impact, intensity, recent_life_events
+  - **DIFFERENTIAL SLOTS**: substance_use, medical_history (especially if physical symptoms present)
+  - Questions should be empathetic, natural, and flow from the conversation
+  - For very brief inputs, extract what you can and ask 1-2 questions about REQUIRED_SLOTS
+  - Think like a therapist: what CORE information is needed to understand this situation?
+  - Complete REQUIRED_SLOTS and DIFFERENTIAL before asking about other details
+  - **DURATION QUALITY CHECK**: Reject vague terms like "lately", "dạo này", "gần đây" - ask for specific timeframe
+  - **DIFFERENTIAL PRIORITY**: If physical symptoms → MUST ask medical_history + substance_use FIRST
+  - **AVOID PREMATURE DIAGNOSIS**: System should focus on support/coping unless clear disorder criteria met
+

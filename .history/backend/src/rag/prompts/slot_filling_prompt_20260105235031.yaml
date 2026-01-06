@@ -62,11 +62,10 @@ slot_filling_prompt: |
   ASK: "Bạn có đang dùng caffeine nhiều không?", "Có tiền sử về bệnh tuyến giáp, tim mạch không?"
   WHY: Heart racing → MUST rule out medical causes (thyroid, caffeine) before anxiety
   
-  EX3 - Compound Sentence (extract FULL context - both "không có X" AND "nhưng Y"):
-  USER: "Biến cố lớn thì không có gì kiểu mất mát hay đổi việc, nhưng gần đây em deadline dồn, ngủ thất thường, với lại em uống cà phê nhiều hơn bình thường"
-  EXTRACT: recent_life_events="không có biến cố lớn (mất mát/đổi việc), nhưng gần đây có deadline dồn, ngủ thất thường", current_stressors=["deadline dồn", "công việc nhiều"], substance_use="cà phê nhiều hơn bình thường"
-  NOT: recent_life_events="không có biến cố lớn" ❌ (missing critical "nhưng..." context!)
-  WHY: User gave FULL context including stress factors after "nhưng" - extract ALL parts, not just the "không có" part
+  EX3 - "Không có" = String, NOT null:
+  USER: "Không có biến cố gì lớn, chủ yếu là công việc dồn"
+  EXTRACT: recent_life_events="không có biến cố lớn, công việc dồn", current_stressors=["công việc"]
+  NOT: recent_life_events=null ❌ (this would make system ask again!)
   
   EX4 - Duration in Noisy Text:
   USER: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em chuẩn bị thuyết trình"

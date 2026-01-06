@@ -10,11 +10,6 @@ slot_filling_prompt: |
   
   ⚠️ **"KHÔNG" = STRING, NOT NULL**: When user says "không có" (no/none), extract as STRING value (e.g., "không có biến cố lớn"), NOT null. This applies to ALL slots: recent_life_events, medical_history, substance_use, trigger, etc.
   
-  ⚠️ **COMPOUND SENTENCES**: When user says "không có X, NHƯNG có Y", extract FULL context including BOTH parts:
-  - Example: "không có biến cố lớn, nhưng deadline dồn, ngủ ít" → recent_life_events = "không có biến cố lớn (mất mát/đổi việc), nhưng gần đây deadline dồn, ngủ thất thường"
-  - DO NOT extract only the "không có X" part and ignore "nhưng Y"
-  - The "nhưng Y" part is CRITICAL context that explains current stress/situation
-  
   **PRIORITIES**:
   1. REQUIRED_SLOTS first: emotion, duration (specific), impact, intensity, recent_life_events
   2. DIFFERENTIAL if physical symptoms: medical_history, substance_use
@@ -41,13 +36,10 @@ slot_filling_prompt: |
   # Coping: coping_mechanisms[], coping_effectiveness, current_stressors[], stress_level
   # Risk: suicidal_ideation, self_harm_thoughts
   # Treatment: current_treatment, medication
-  # Differential: substance_use, medical_history, recent_life_events, symptom_fluctuation, history_of_trauma
+  # Differential: substance_use, medical_history, recent_life_events (⚠️ use "không có..." if none), symptom_fluctuation, history_of_trauma
+  # Derived: diagnostic_confidence, duration_certainty, potential_differentials[]
   
-  ⚠️ CRITICAL EXTRACTION RULES:
-  - recent_life_events: Extract FULL context when user answers. Include both "không có X" AND "nhưng có Y" if present.
-    Examples: "không có biến cố lớn, nhưng deadline dồn, ngủ ít" → "không có biến cố lớn (mất mát/đổi việc), nhưng gần đây deadline dồn, ngủ thất thường"
-  - substance_use: Extract specific substances AND amounts. E.g., "uống cà phê nhiều hơn" → "cà phê nhiều hơn bình thường"
-  - When answer is "không/none", extract as STRING with full context, NOT null!
+  ⚠️ KEY: When answer is "không/none", extract as STRING (e.g., "không có thuốc", "không biến cố lớn"), NOT null!
 
   ========== EXAMPLES ==========
 
@@ -62,11 +54,10 @@ slot_filling_prompt: |
   ASK: "Bạn có đang dùng caffeine nhiều không?", "Có tiền sử về bệnh tuyến giáp, tim mạch không?"
   WHY: Heart racing → MUST rule out medical causes (thyroid, caffeine) before anxiety
   
-  EX3 - Compound Sentence (extract FULL context - both "không có X" AND "nhưng Y"):
-  USER: "Biến cố lớn thì không có gì kiểu mất mát hay đổi việc, nhưng gần đây em deadline dồn, ngủ thất thường, với lại em uống cà phê nhiều hơn bình thường"
-  EXTRACT: recent_life_events="không có biến cố lớn (mất mát/đổi việc), nhưng gần đây có deadline dồn, ngủ thất thường", current_stressors=["deadline dồn", "công việc nhiều"], substance_use="cà phê nhiều hơn bình thường"
-  NOT: recent_life_events="không có biến cố lớn" ❌ (missing critical "nhưng..." context!)
-  WHY: User gave FULL context including stress factors after "nhưng" - extract ALL parts, not just the "không có" part
+  EX3 - "Không có" = String, NOT null:
+  USER: "Không có biến cố gì lớn, chủ yếu là công việc dồn"
+  EXTRACT: recent_life_events="không có biến cố lớn, công việc dồn", current_stressors=["công việc"]
+  NOT: recent_life_events=null ❌ (this would make system ask again!)
   
   EX4 - Duration in Noisy Text:
   USER: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em chuẩn bị thuyết trình"
@@ -134,7 +125,6 @@ slot_filling_prompt: |
 
   ⚠️ CRITICAL: 
   - ALL fields must be present
-  - List fields MUST be arrays []: emotion, physical_symptoms, coping_mechanisms, current_stressors, potential_differentials
-  - NEVER use string for list fields - e.g., emotion=["lo lắng"] NOT emotion="lo lắng"
-  - "không/none" answers → extract as STRING in scalar fields (medical_history, recent_life_events, etc.), not null
-  - Follow-up questions must be an array of strings in VIETNAMESE
+  - Arrays [] must be arrays, NOT strings
+  - "không/none" answers → extract as STRING in the field value, not null
+  - Follow-up questions in VIETNAMESE

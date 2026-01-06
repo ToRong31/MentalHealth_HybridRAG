@@ -396,23 +396,6 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
         if value is None or value == [] or value == "none":
             required_missing.append(slot_name)
     
-    # Check functional impairment (CRITICAL for severity assessment)
-    # UPGRADED: Now treated as REQUIRED (not just differential)
-    # Need at least ONE of: daily_functioning or work_school_impact
-    daily_func = slots.get("daily_functioning")
-    work_impact = slots.get("work_school_impact")
-    
-    has_functional_info = (
-        (daily_func is not None and daily_func != "none" and daily_func != [] and daily_func != "") or
-        (work_impact is not None and work_impact != "none" and work_impact != [] and work_impact != "")
-    )
-    
-    if not has_functional_info:
-        required_missing.append("functional_impairment")  # CHANGED: Now REQUIRED
-        logger.debug(f"[FUNCTIONAL CHECK] Missing functional impairment: daily_functioning={daily_func}, work_school_impact={work_impact}")
-    else:
-        logger.debug(f"[FUNCTIONAL CHECK] Has functional info: daily_functioning={daily_func is not None}, work_school_impact={work_impact is not None}")
-    
     # Check differential diagnosis slots (CRITICAL for preventing misdiagnosis)
     # If physical symptoms present, MUST check medical exclusion
     physical_symptoms = slots.get("physical_symptoms", [])

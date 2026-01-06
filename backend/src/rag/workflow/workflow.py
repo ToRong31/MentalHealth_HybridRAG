@@ -138,8 +138,10 @@ def route_after_slot_filling_simplified(state: KGState) -> Literal["query_rewrit
     Removed assessment/screening as they were not providing value.
     
     Routes:
-    - Sufficient slots → query_rewriter → diagnostic_retrieval
-    - Insufficient slots → request_more_info
+    - normal_response → normal_coping_retrieval (focus coping, NOT disorder)
+    - adjustment_reaction → adjustment_retrieval (focus adjustment, NOT disorder)
+    - possible_disorder / likely_disorder → query_rewriter → diagnostic_retrieval (current flow)
+    - insufficient_info → query_rewriter (fallback to diagnostic flow)
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -148,8 +150,15 @@ def route_after_slot_filling_simplified(state: KGState) -> Literal["query_rewrit
     
     slots = state.get("slots", {})
     
-    if has_sufficient_slots(slots):
-        logger.info("[ROUTING] Sufficient slots → query_rewriter → diagnostic_retrieval")
+    if category == "normal_response":
+        logger.info("[ROUTING] Normal response detected → normal_coping_retrieval")
+        return "normal_coping_retrieval"
+    elif category == "adjustment_reaction":
+        logger.info("[ROUTING] Adjustment reaction detected → adjustment_retrieval")
+        return "adjustment_retrieval"
+    else:
+        # possible_disorder, likely_disorder, or insufficient_info → proceed to diagnostic flow
+        logger.info(f"[ROUTING] {category} → diagnostic flow (query_rewriter)")
         return "query_rewriter"
     else:
         logger.info("[ROUTING] Insufficient slots → request_more_info")
