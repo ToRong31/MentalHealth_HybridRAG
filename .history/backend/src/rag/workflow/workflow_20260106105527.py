@@ -21,9 +21,6 @@ from .graph_nodes import (
     request_more_info_node,
     answer_with_theoretical_node,
     theoretical_retrieval_node,
-    assessment_node,
-    normal_coping_retrieval_node,
-    adjustment_retrieval_node,
 )
 
 # Import new diagnostic and treatment nodes
@@ -31,7 +28,6 @@ from .graph_nodes.diagnostic_retrieval import diagnostic_retrieval_node
 from .graph_nodes.disease_conclusion import disease_conclusion_node
 from .graph_nodes.treatment_retrieval import treatment_retrieval_node
 from .graph_nodes.answer_with_treatment import answer_with_treatment_node
-from .graph_nodes.diagnostic_screening import diagnostic_screening_node
 
 logger = logging.getLogger(__name__)
 
@@ -110,10 +106,10 @@ def route_after_router(state: KGState) -> Literal["theoretical_retrieval", "safe
     return "safety_check"
 
 
-def route_after_slot_filling(state: KGState) -> Literal["assessment", "request_more_info"]:
+def route_after_slot_filling(state: KGState) -> Literal["query_rewriter", "request_more_info"]:
     """
     Routing logic sau khi slot filling:
-    - Nếu đủ slots -> assessment (NEW: assess normal vs disorder)
+    - Nếu đủ slots -> query_rewriter (rewrite query với slots + conversation)
     - Nếu thiếu slots -> request_more_info (hỏi thêm)
     """
     has_sufficient = state.get("has_sufficient_slots", False)
@@ -124,74 +120,15 @@ def route_after_slot_filling(state: KGState) -> Literal["assessment", "request_m
     logger.info(f"[ROUTING] has_sufficient_slots in state.keys(): {'has_sufficient_slots' in state}")
     logger.info(f"[ROUTING] All slot-related keys: {[k for k in state.keys() if 'slot' in k.lower()]}")
     logger.info(f"[ROUTING] Direct access state['has_sufficient_slots']: {state.get('has_sufficient_slots', 'KEY NOT FOUND')}")
-    logger.info(f"[ROUTING] Will route to: {'assessment' if has_sufficient else 'request_more_info'}")
+    logger.info(f"[ROUTING] Will route to: {'query_rewriter' if has_sufficient else 'request_more_info'}")
     
     if has_sufficient:
-        return "assessment"
+        return "query_rewriter"
     else:
         return "request_more_info"
 
 
-def route_after_slot_filling_simplified(state: KGState) -> Literal["query_rewriter", "request_more_info"]:
-    """
-    Simplified routing: Check if we have enough slots, then go directly to diagnostic retrieval.
-    Removed assessment/screening as they were not providing value.
-    
-    Routes:
-    - Sufficient slots → query_rewriter (proceed to diagnostic flow)
-    - Insufficient slots → request_more_info (request more information)
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    from src.rag.utils.slots import has_sufficient_slots
-    
-    slots = state.get("slots", {})
-    has_sufficient = has_sufficient_slots(slots)
-    
-    logger.info(f"[ROUTING] route_after_slot_filling_simplified: has_sufficient_slots = {has_sufficient}")
-    
-    if has_sufficient:
-        logger.info("[ROUTING] Sufficient slots → query_rewriter (diagnostic flow)")
-        return "query_rewriter"
-    else:
-        logger.info("[ROUTING] Insufficient slots → request_more_info")
-        return "request_more_info"
-
-
-def route_after_screening(state: KGState) -> Literal["query_rewriter", "normal_coping_retrieval", "adjustment_retrieval"]:
-    """
-    Route after diagnostic screening based on screening results.
-    
-    Screening Results:
-    - disorder_suspected: Go to full diagnostic flow (query_rewriter → diagnostic_retrieval)
-    - subclinical: Go to adjustment support (monitoring + coping)
-    - non_clinical: Go to normal coping strategies
-    
-    This routing happens AFTER universal screening, not before.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    screening_result = state.get("screening_result", "disorder_suspected")
-    severity_level = state.get("severity_level", "moderate")
-    
-    logger.info(f"[ROUTING] route_after_screening: screening_result = {screening_result}, severity = {severity_level}")
-    
-    if screening_result == "disorder_suspected":
-        logger.info("[ROUTING] Disorder suspected → full diagnostic flow (query_rewriter)")
-        return "query_rewriter"
-    
-    elif screening_result == "subclinical":
-        logger.info("[ROUTING] Subclinical level → adjustment support")
-        return "adjustment_retrieval"
-    
-    else:  # non_clinical
-        logger.info("[ROUTING] Non-clinical → normal coping strategies")
-        return "normal_coping_retrieval"
-
-
-def route_after_disease_conclusion(state: KGState) -> Literal["treatment_retrieval", "graph_retrieval"]:
+def route_after_disease_conclusion(state: KGState) -> Literal["conversation_memory", "graph_retrieval"]:
     """
     Routing logic after disease conclusion:
     - If detected_disease exists (not empty):
@@ -285,16 +222,10 @@ def build_kg_graph():
     builder.add_node("router", router_node)  # NEW NODE
     builder.add_node("safety_check", safety_check_node)
     builder.add_node("slot_filling", slot_filling_node)  # Chạy sau safety_check
-    builder.add_node("assessment", assessment_node)  # Assess severity only (no binary classification)
-    builder.add_node("diagnostic_screening", diagnostic_screening_node)  # NEW: Universal disorder screening
     builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
     builder.add_node("request_more_info", request_more_info_node)  # Hỏi thêm nếu thiếu slots
     builder.add_node("query_rewriter", query_rewriter_node)  # Rewrite query với slots + conversation
-    
-    # Assessment-based retrieval nodes (NEW)
-    builder.add_node("normal_coping_retrieval", normal_coping_retrieval_node)  # Normal stress content
-    builder.add_node("adjustment_retrieval", adjustment_retrieval_node)  # Adjustment reaction content
     
     # Diagnostic and treatment nodes
     builder.add_node("diagnostic_retrieval", diagnostic_retrieval_node)
@@ -358,20 +289,20 @@ def build_kg_graph():
     builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
-    # Conditional routing after slot filling (SIMPLIFIED - no assessment/screening)
+    # Conditional routing after slot filling
     builder.add_conditional_edges(
         "slot_filling",
-        route_after_slot_filling_simplified,
+        route_after_slot_filling,
         {
-            "query_rewriter": "query_rewriter",  # Đủ slots → query rewriter → diagnostic
-            "request_more_info": "request_more_info",  # Thiếu slots → hỏi thêm
+            "query_rewriter": "query_rewriter",  # Đủ slots -> rewrite query
+            "request_more_info": "request_more_info",  # Thiếu slots -> hỏi thêm
         },
     )
 
     # Request more info exits directly (no retrieval)
     builder.add_edge("request_more_info", END)
 
-    # DIAGNOSTIC FLOW: query_rewriter → diagnostic_retrieval → disease_conclusion (auto)
+    # NEW DIAGNOSTIC FLOW: query_rewriter -> diagnostic_retrieval -> disease_conclusion (auto)
     builder.add_edge("query_rewriter", "diagnostic_retrieval")
     builder.add_edge("diagnostic_retrieval", "disease_conclusion")  # Auto transition
     
