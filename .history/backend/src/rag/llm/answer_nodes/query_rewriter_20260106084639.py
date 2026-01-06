@@ -48,13 +48,12 @@ async def rewrite_query_with_slots(
     try:
         from src.rag.utils.slots import build_query_context_from_slots
         
-        # Build context from slots ONLY - no original question text for better retrieval precision
+        # Build context from slots ONLY (no assessment/screening info for retrieval)
         slot_context = build_query_context_from_slots(slots)
         
-        if not slot_context:
-            logger.warning("⚠️ No slot context available - cannot rewrite query without slots")
-            # Fallback: extract key symptoms from original question
-            return f"triệu chứng: {original_question}"
+        if not slot_context and not conversation_buffer and not summary_context:
+            logger.info("No context available (slots, buffer, or summary), using original query")
+            return original_question
         
         # Format conversation memory (use only last 3 pairs)
         recent_buffer = conversation_buffer[-3:] if conversation_buffer else []
@@ -70,13 +69,12 @@ async def rewrite_query_with_slots(
             logger.warning("Rewrite template not loaded, using original query")
             return original_question
         
-        # Use slot-based query only (no original question to avoid verbose text)
         prompt = format_prompt(
             QUERY_REWRITE_TEMPLATE,
-            ORIGINAL_QUESTION=slot_context or "No symptoms extracted",  # Use slots as "query"
+            ORIGINAL_QUESTION=original_question,
             SLOT_CONTEXT=slot_context or "No structured context extracted",
-            CONVERSATION_BUFFER=buffer_text if conversation_buffer else "No recent conversation",
-            CONVERSATION_SUMMARY=summary_text if summary_context else "No previous summary"
+            CONVERSATION_BUFFER=buffer_text,
+            CONVERSATION_SUMMARY=summary_text
         )
         
         # ========== BEGIN: QUERY REWRITE DEBUG LOG (Remove when done) ==========
