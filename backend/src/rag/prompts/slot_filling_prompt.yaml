@@ -1,5 +1,5 @@
 slot_filling_prompt: |
-  You are a mental health information extraction system. Extract structured slots and generate contextually relevant follow-up questions.
+  You are a mental health information extraction system. Extract structured slots as LISTS and generate contextually relevant follow-up questions.
 
   USER QUESTION:
   {{QUESTION}}
@@ -8,126 +8,195 @@ slot_filling_prompt: |
   
   ⚠️ **AVOID RE-ASKING**: If slot shown in "ALREADY FILLED SLOTS" → PRESERVE value, do NOT ask again
   
-  ⚠️ **"KHÔNG" = STRING, NOT NULL**: When user says "không có" (no/none), extract as STRING value (e.g., "không có biến cố lớn"), NOT null. This applies to ALL slots: recent_life_events, medical_history, substance_use, trigger, etc.
+  ⚠️ **ALL SLOTS ARE LISTS** (except booleans & derived fields): Extract all values as lists to accumulate information across conversation turns
+  - Example: User mentions "stress at work" → trigger = ["work stress"]
+  - Next turn: User mentions "family issues" → trigger = ["work stress", "family issues"] (merged)
+  - This allows capturing multiple triggers, life events, symptoms, etc. over conversation
   
-  ⚠️ **COMPOUND SENTENCES**: When user says "không có X, NHƯNG có Y", extract FULL context including BOTH parts:
-  - Example: "không có biến cố lớn, nhưng deadline dồn, ngủ ít" → recent_life_events = "không có biến cố lớn (mất mát/đổi việc), nhưng gần đây deadline dồn, ngủ thất thường"
-  - DO NOT extract only the "không có X" part and ignore "nhưng Y"
-  - The "nhưng Y" part is CRITICAL context that explains current stress/situation
+  ⚠️ **"NO/NONE" = STRING IN LIST**: When user says "no/none" (không có), extract as STRING in list, NOT empty list
+  - Example: "No major life events" → recent_life_events = ["no major life events (no loss/job change)"]
+  - Example: "No medical conditions" → medical_history = ["no medical conditions"]
+  
+  ⚠️ **COMPOUND SENTENCES**: When user says "no X, BUT Y", extract FULL context including BOTH parts as separate items:
+  - Example: "No major life events, but work deadlines piling up, irregular sleep" 
+    → recent_life_events = ["no major life events (no loss/job change)", "work deadlines increasing", "irregular sleep pattern"]
+  - DO NOT extract only the "no X" part and ignore "but Y"
+  - The "but Y" part is CRITICAL context that explains current stress/situation
   
   **PRIORITIES**:
   1. REQUIRED_SLOTS first: emotion, duration (specific), impact, intensity, recent_life_events
   2. DIFFERENTIAL if physical symptoms: medical_history, substance_use
   3. Ask 1-3 questions max, semantically relevant only
-  4. Follow-up questions in VIETNAMESE
+  4. Follow-up questions in VIETNAMESE (user's language)
   5. Avoid premature diagnosis - focus on understanding context
 
   ========== REQUIRED SLOTS ==========
   
-  CRITICAL (ask first): emotion, duration (SPECIFIC, not "dạo này"), impact, intensity, recent_life_events
+  CRITICAL (ask first): emotion, duration (SPECIFIC, not vague like "lately"), impact, intensity, recent_life_events
   IMPORTANT: trigger, need, stress_level
   DIFFERENTIAL (if physical symptoms): substance_use, medical_history, symptom_fluctuation
 
   ========== DURATION EXTRACTION ==========
   
-  Extract ANY time phrase: "một tuần", "tầm 2 tuần", "một tháng", "từ hôm qua", "dạo này" (mark vague), "lâu rồi", "từ khi..."
+  Extract ANY time phrase as list: "one week", "about 2 weeks", "one month", "since yesterday", "lately" (mark vague), "long time", "since..."
   ALWAYS extract duration even in noisy text. Mark certainty: vague/approximate/specific.
+  Extract as list: duration = ["one week", "since presentation preparation"]
 
-  ========== SLOT DEFINITIONS (Compact) ==========
+  ========== SLOT DEFINITIONS ==========
   
-  # Core: emotion[], primary_mood, intensity, trigger, duration, impact, risk_level, need
-  # Physical: physical_symptoms[], sleep_quality, sleep_duration, energy_level, appetite_changes, daily_functioning, work_school_impact
-  # Social: support_system, family_support, friend_support, social_isolation, social_withdrawal
-  # Coping: coping_mechanisms[], coping_effectiveness, current_stressors[], stress_level
-  # Risk: suicidal_ideation, self_harm_thoughts
-  # Treatment: current_treatment, medication
-  # Differential: substance_use, medical_history, recent_life_events, symptom_fluctuation, history_of_trauma
+  **ALL SLOTS ARE LISTS [] (except booleans & derived fields)**:
+  
+  # Core Emotional (all lists):
+  - emotion: [] (e.g., ["anxious", "worried"])
+  - primary_mood: [] (e.g., ["depressed", "low"])
+  - intensity: [] (e.g., ["high", "overwhelming"])
+  - trigger: [] (e.g., ["work stress", "family conflict"])
+  - duration: [] (e.g., ["2 weeks", "since last month"])
+  - impact: [] (e.g., ["work performance decreased", "avoiding social events"])
+  - risk_level: [] (e.g., ["medium", "elevated"])
+  - need: [] (e.g., ["someone to listen", "advice on coping"])
+  
+  # Physical & Functional (all lists):
+  - physical_symptoms: [] (e.g., ["rapid heartbeat", "headaches"])
+  - sleep_quality: [] (e.g., ["poor", "frequent waking"])
+  - sleep_duration: [] (e.g., ["4-5 hours", "less than normal"])
+  - energy_level: [] (e.g., ["very low", "exhausted"])
+  - appetite_changes: [] (e.g., ["decreased appetite", "eating less"])
+  - daily_functioning: [] (e.g., ["moderate impairment", "difficulty focusing"])
+  - work_school_impact: [] (e.g., ["missing deadlines", "reduced productivity"])
+  
+  # Social & Support (lists):
+  - support_system: [] (e.g., ["has family", "close friends available"])
+  - family_support: [] (e.g., ["supportive parents", "understanding spouse"])
+  - friend_support: [] (e.g., ["has close friends", "can talk to friends"])
+  - social_isolation: null (boolean - true/false/null)
+  - social_withdrawal: null (boolean - true/false/null)
+  
+  # Coping & Stress (lists):
+  - coping_mechanisms: [] (e.g., ["exercise", "meditation", "talking to friends"])
+  - coping_effectiveness: [] (e.g., ["somewhat helpful", "not working well"])
+  - current_stressors: [] (e.g., ["work deadlines", "family issues", "financial concerns"])
+  - stress_level: [] (e.g., ["high", "overwhelming"])
+  
+  # Risk (booleans):
+  - suicidal_ideation: null (boolean)
+  - self_harm_thoughts: null (boolean)
+  
+  # Treatment (lists):
+  - current_treatment: [] (e.g., ["therapy", "medication"])
+  - medication: [] (e.g., ["antidepressant", "sleep aid"])
+  
+  # Differential Diagnosis (lists):
+  - substance_use: [] (e.g., ["increased coffee intake", "alcohol use"])
+  - medical_history: [] (e.g., ["thyroid condition", "no medical conditions"])
+  - recent_life_events: [] (e.g., ["job loss", "relationship breakup", "no major events"])
+  - symptom_fluctuation: [] (e.g., ["constant", "comes and goes"])
+  - history_of_trauma: [] (e.g., ["childhood trauma", "no trauma history"])
+  
+  # Derived Fields (scalars):
+  - diagnostic_confidence: "low" (scalar: low/medium/high)
+  - potential_differentials: [] (list of potential diagnoses)
+  - duration_certainty: "vague" (scalar: vague/approximate/specific)
   
   ⚠️ CRITICAL EXTRACTION RULES:
-  - recent_life_events: Extract FULL context when user answers. Include both "không có X" AND "nhưng có Y" if present.
-    Examples: "không có biến cố lớn, nhưng deadline dồn, ngủ ít" → "không có biến cố lớn (mất mát/đổi việc), nhưng gần đây deadline dồn, ngủ thất thường"
-  - substance_use: Extract specific substances AND amounts. E.g., "uống cà phê nhiều hơn" → "cà phê nhiều hơn bình thường"
-  - When answer is "không/none", extract as STRING with full context, NOT null!
+  - **ALL extractions go into LISTS**: Even single values → duration = ["2 weeks"] NOT duration = "2 weeks"
+  - **recent_life_events**: Extract FULL context. Break "no X, but Y" into separate list items:
+    * "No major events, but deadline stress, irregular sleep" → ["no major life events (no loss/job change)", "work deadlines increasing", "irregular sleep pattern"]
+  - **substance_use**: Extract substances with context → ["increased coffee intake beyond normal", "no alcohol use"]
+  - **"no/none" answers**: Extract as STRING in list → medical_history = ["no medical conditions"] NOT []
+  - **Empty vs "no"**: Empty [] means not answered yet, ["no ..."] means user said "no"
 
   ========== EXAMPLES ==========
 
-  EX1 - Vague Duration → Ask Specific:
+  EX1 - Vague Duration → Ask Specific (Vietnamese user):
   USER: "Dạo này mình cảm thấy rất lo lắng khi đi làm"
-  EXTRACT: emotion=["lo lắng"], trigger="đi làm", duration="dạo này" (vague), work_school_impact="ảnh hưởng"
+  EXTRACT: emotion=["lo lắng"], trigger=["đi làm"], duration=["dạo này"], work_school_impact=["ảnh hưởng công việc"]
+  NOTE: duration_certainty="vague" - need to ask for specific timeframe
   ASK: "Cảm giác lo lắng này đã kéo dài bao lâu rồi? Vài ngày, vài tuần hay vài tháng?", "Có chuyện gì đặc biệt xảy ra gần đây không?"
   
   EX2 - Physical Symptoms → Check Medical:
   USER: "Tuần này mất ngủ, tim đập nhanh lúc nào cũng thấy"
-  EXTRACT: duration="tuần này", physical_symptoms=["tim đập nhanh"], sleep_quality="poor"
+  EXTRACT: duration=["tuần này"], physical_symptoms=["tim đập nhanh", "mất ngủ"], sleep_quality=["kém"]
   ASK: "Bạn có đang dùng caffeine nhiều không?", "Có tiền sử về bệnh tuyến giáp, tim mạch không?"
-  WHY: Heart racing → MUST rule out medical causes (thyroid, caffeine) before anxiety
+  WHY: Heart racing → MUST rule out medical causes (thyroid, caffeine) before psychological diagnosis
   
-  EX3 - Compound Sentence (extract FULL context - both "không có X" AND "nhưng Y"):
+  EX3 - Compound Sentence (extract as SEPARATE list items):
   USER: "Biến cố lớn thì không có gì kiểu mất mát hay đổi việc, nhưng gần đây em deadline dồn, ngủ thất thường, với lại em uống cà phê nhiều hơn bình thường"
-  EXTRACT: recent_life_events="không có biến cố lớn (mất mát/đổi việc), nhưng gần đây có deadline dồn, ngủ thất thường", current_stressors=["deadline dồn", "công việc nhiều"], substance_use="cà phê nhiều hơn bình thường"
-  NOT: recent_life_events="không có biến cố lớn" ❌ (missing critical "nhưng..." context!)
-  WHY: User gave FULL context including stress factors after "nhưng" - extract ALL parts, not just the "không có" part
+  EXTRACT: 
+    recent_life_events = ["không có biến cố lớn (mất mát/đổi việc)", "deadline công việc dồn dập", "ngủ thất thường"]
+    current_stressors = ["deadline dồn", "công việc nhiều"]
+    substance_use = ["cà phê nhiều hơn bình thường"]
+  NOT: recent_life_events = ["không có biến cố lớn"] ❌ (missing "nhưng..." context!)
+  WHY: User gave FULL context - break into separate list items, don't lose information
   
   EX4 - Duration in Noisy Text:
   USER: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em chuẩn bị thuyết trình"
-  EXTRACT: duration="một tuần nay" (approximate), trigger="chuẩn bị thuyết trình", recent_life_events="thuyết trình công việc"
-  NOTE: Extract time phrase despite noise ("Dạ", "chắc", "bác sĩ", "ạ")
+  EXTRACT: duration=["một tuần nay", "từ khi chuẩn bị thuyết trình"], trigger=["chuẩn bị thuyết trình"], recent_life_events=["thuyết trình công việc"]
+  NOTE: Extract time phrases despite noise ("Dạ", "chắc", "bác sĩ", "ạ"). Can extract multiple duration contexts.
   
   EX5 - Safety Priority:
   USER: "Mình mệt mỏi quá, nhiều lúc chỉ muốn biến mất"
-  EXTRACT: emotion=["mệt mỏi"], suicidal_ideation=true, risk_level="medium"
+  EXTRACT: emotion=["mệt mỏi", "tuyệt vọng"], suicidal_ideation=true, risk_level=["medium"]
   ASK: "Cảm giác này kéo dài bao lâu rồi?", "Có chuyện gì đặc biệt xảy ra không?", "Bạn có người hỗ trợ lúc này không?"
-  WHY: Passive ideation → prioritize duration, crisis assessment, support system
+  WHY: Passive suicidal ideation → prioritize duration, crisis assessment, support system
   
   EX6 - Just Listening Need:
   USER: "Mình chỉ muốn nói chuyện và chia sẻ cho nhẹ lòng"
-  EXTRACT: need="listening"
-  ASK: "Hiện tại bạn đang mang theo cảm xúc nào muốn chia sẻ?", "Có điều gì đặc biệt khiến bạn muốn trò chuyện hôm nay không?"
-
-  ========== OUTPUT FORMAT (STRICT JSON) ==========
-  
-  Return valid JSON with this EXACT structure:
+  EXTRACT: need=["someone to listen", "share feelings"]
+  ASK: "Hiện tại bạn đang mang theo cảm xúc n (ALL slots are lists [] except booleans and derived fields):
   
   {
     "slots": {
       "emotion": [],
-      "primary_mood": null,
-      "intensity": null,
-      "trigger": null,
-      "duration": null,
-      "impact": null,
-      "risk_level": "unknown",
-      "need": null,
+      "primary_mood": [],
+      "intensity": [],
+      "trigger": [],
+      "duration": [],
+      "impact": [],
+      "risk_level": [],
+      "need": [],
       "physical_symptoms": [],
-      "sleep_quality": null,
-      "sleep_duration": null,
-      "energy_level": null,
-      "appetite_changes": null,
-      "daily_functioning": null,
-      "work_school_impact": null,
-      "support_system": null,
-      "family_support": null,
-      "friend_support": null,
+      "sleep_quality": [],
+      "sleep_duration": [],
+      "energy_level": [],
+      "appetite_changes": [],
+      "daily_functioning": [],
+      "work_school_impact": [],
+      "support_system": [],
+      "family_support": [],
+      "friend_support": [],
       "social_isolation": null,
       "social_withdrawal": null,
       "coping_mechanisms": [],
-      "coping_effectiveness": null,
+      "coping_effectiveness": [],
       "current_stressors": [],
-      "stress_level": null,
+      "stress_level": [],
       "suicidal_ideation": null,
       "self_harm_thoughts": null,
-      "current_treatment": null,
-      "medication": null,
-      "substance_use": null,
-      "medical_history": null,
-      "recent_life_events": null,
-      "symptom_fluctuation": null,
-      "history_of_trauma": null,
+      "current_treatment": [],
+      "medication": [],
+      "substance_use": [],
+      "medical_history": [],
+      "recent_life_events": [],
+      "symptom_fluctuation": [],
+      "history_of_trauma": [],
       "diagnostic_confidence": "low",
       "potential_differentials": [],
       "duration_certainty": "vague"
     },
     "missing_slots": [],
+    "relevant_missing_slots": [],
+    "follow_up_questions": []
+  }
+
+  ⚠️ CRITICAL OUTPUT RULES: 
+  - **ALL fields must be present**
+  - **ALL slots are LISTS []** except: social_isolation, social_withdrawal, suicidal_ideation, self_harm_thoughts (booleans), diagnostic_confidence, duration_certainty (scalars)
+  - **Single values go in list**: duration=["2 weeks"] NOT duration="2 weeks"
+  - **"no/none" → STRING IN LIST**: medical_history=["no medical conditions"] NOT medical_history=[] or null
+  - **Empty [] vs ["no ..."]**: [] means not asked yet, ["no..."] means user said "no"
+  - **Compound sentences → separate items**: Break "no X, but Y, and Z" into ["no X (clarification)", "Y", "Z"]
+  - **Follow-up questions**: Array of strings in VIETNAMESE (user's language)
     "relevant_missing_slots": [],
     "follow_up_questions": []
   }
