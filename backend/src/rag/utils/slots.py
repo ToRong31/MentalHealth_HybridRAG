@@ -1,4 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Phân loại slots để quản lý luồng hội thoại tốt hơn
 DIAGNOSTIC_SLOTS = {
@@ -32,43 +35,43 @@ def get_default_slots() -> Dict[str, Any]:
     """
     return {
         "emotion": [],
-        "primary_mood": None,
-        "intensity": None,
-        "trigger": None,
-        "duration": None,
-        "impact": None,
-        "risk_level": "unknown",  # Changed from "none" to "unknown" - avoid false safety
-        "need": None,
-        "stress_level": None,
+        "primary_mood": [],  # Changed to list - mood can evolve over conversation
+        "intensity": [],  # Changed to list - intensity can vary across symptoms
+        "trigger": [],  # Changed to list - user can have multiple triggers
+        "duration": [],  # Changed to list - different symptoms may have different durations
+        "impact": [],  # Changed to list - multiple impact areas
+        "risk_level": [],  # Changed to list - risk can change over conversation
+        "need": [],  # Changed to list - user may have multiple needs
+        "stress_level": [],  # Changed to list - stress can vary
         "physical_symptoms": [],
-        "sleep_quality": None,
-        "sleep_duration": None,
-        "energy_level": None,
-        "appetite_changes": None,
-        "daily_functioning": None,
-        "work_school_impact": None,
-        "support_system": None,
-        "family_support": None,
-        "friend_support": None,
-        "social_isolation": None,
-        "social_withdrawal": None,
+        "sleep_quality": [],  # Changed to list - can describe multiple sleep issues
+        "sleep_duration": [],  # Changed to list - sleep duration can vary
+        "energy_level": [],  # Changed to list - energy can fluctuate
+        "appetite_changes": [],  # Changed to list - multiple appetite changes
+        "daily_functioning": [],  # Changed to list - functioning in different areas
+        "work_school_impact": [],  # Changed to list - multiple impact areas
+        "support_system": [],  # Changed to list - multiple support sources
+        "family_support": [],  # Changed to list - various family support aspects
+        "friend_support": [],  # Changed to list - various friend support aspects
+        "social_isolation": None,  # Boolean - keep as scalar
+        "social_withdrawal": None,  # Boolean - keep as scalar
         "coping_mechanisms": [],
-        "coping_effectiveness": None,
+        "coping_effectiveness": [],  # Changed to list - effectiveness of different coping strategies
         "current_stressors": [],
-        "suicidal_ideation": None,
-        "self_harm_thoughts": None,
-        "current_treatment": None,
-        "medication": None,
+        "suicidal_ideation": None,  # Boolean - keep as scalar for safety
+        "self_harm_thoughts": None,  # Boolean - keep as scalar for safety
+        "current_treatment": [],  # Changed to list - user may have multiple treatments
+        "medication": [],  # Changed to list - user may take multiple medications
         # Differential diagnosis slots - để tránh chẩn đoán sai
-        "substance_use": None,           # Rượu/bia/cafein/thuốc
-        "medical_history": None,         # Bệnh nền: tim mạch, tuyến giáp, etc.
-        "recent_life_events": None,      # Biến cố lớn: mất việc, chia tay, etc.
-        "symptom_fluctuation": None,     # Liên tục hay ngắt quãng
-        "history_of_trauma": None,       # Chấn thương tâm lý trong quá khứ
+        "substance_use": [],  # Changed to list - can use multiple substances
+        "medical_history": [],  # Changed to list - can have multiple conditions
+        "recent_life_events": [],  # Changed to list - can have multiple life events
+        "symptom_fluctuation": [],  # Changed to list - different symptoms have different patterns
+        "history_of_trauma": [],  # Changed to list - can have multiple traumatic experiences
         # Derived fields để kiểm soát chẩn đoán
-        "diagnostic_confidence": "low",  # low/medium/high
+        "diagnostic_confidence": "low",  # low/medium/high - scalar derived field
         "potential_differentials": [],   # Danh sách các bệnh có thể nhầm lẫn
-        "duration_certainty": "vague",   # vague/approximate/specific
+        "duration_certainty": "vague",   # vague/approximate/specific - scalar derived field
     }
 
 
@@ -163,34 +166,78 @@ def build_slot_context(slots: Dict[str, Any]) -> str:
     if slots.get("emotion"):
         context_parts.append(f"Emotions: {', '.join(slots['emotion'])}")
     if slots.get("primary_mood"):
-        context_parts.append(f"Primary mood: {slots['primary_mood']}")
+        moods = slots['primary_mood']
+        if isinstance(moods, list) and moods:
+            context_parts.append(f"Primary moods: {', '.join(moods)}")
+        elif isinstance(moods, str):  # Backward compatibility
+            context_parts.append(f"Primary mood: {moods}")
     if slots.get("intensity"):
-        context_parts.append(f"Intensity: {slots['intensity']}")
+        intensities = slots['intensity']
+        if isinstance(intensities, list) and intensities:
+            context_parts.append(f"Intensity levels: {', '.join(intensities)}")
+        elif isinstance(intensities, str):  # Backward compatibility
+            context_parts.append(f"Intensity: {intensities}")
     if slots.get("trigger"):
-        context_parts.append(f"Trigger: {slots['trigger']}")
+        triggers = slots['trigger']
+        if isinstance(triggers, list) and triggers:
+            context_parts.append(f"Triggers: {', '.join(triggers)}")
+        elif isinstance(triggers, str):  # Backward compatibility
+            context_parts.append(f"Trigger: {triggers}")
     if slots.get("duration"):
+        durations = slots['duration']
         duration_certainty = slots.get("duration_certainty", "vague")
-        context_parts.append(f"Duration: {slots['duration']} (certainty: {duration_certainty})")
+        if isinstance(durations, list) and durations:
+            context_parts.append(f"Durations: {', '.join(durations)} (certainty: {duration_certainty})")
+        elif isinstance(durations, str):  # Backward compatibility
+            context_parts.append(f"Duration: {durations} (certainty: {duration_certainty})")
     if slots.get("impact"):
-        context_parts.append(f"Impact: {slots['impact']}")
+        impacts = slots['impact']
+        if isinstance(impacts, list) and impacts:
+            context_parts.append(f"Impacts: {', '.join(impacts)}")
+        elif isinstance(impacts, str):  # Backward compatibility
+            context_parts.append(f"Impact: {impacts}")
 
     # Physical & functional
     if slots.get("physical_symptoms"):
         context_parts.append(f"Physical symptoms: {', '.join(slots['physical_symptoms'])}")
     if slots.get("sleep_quality"):
-        context_parts.append(f"Sleep quality: {slots['sleep_quality']}")
+        quality = slots['sleep_quality']
+        if isinstance(quality, list) and quality:
+            context_parts.append(f"Sleep quality: {', '.join(quality)}")
+        elif isinstance(quality, str):  # Backward compatibility
+            context_parts.append(f"Sleep quality: {quality}")
     if slots.get("sleep_duration"):
-        context_parts.append(f"Sleep duration: {slots['sleep_duration']}")
+        duration = slots['sleep_duration']
+        if isinstance(duration, list) and duration:
+            context_parts.append(f"Sleep duration: {', '.join(duration)}")
+        elif isinstance(duration, str):  # Backward compatibility
+            context_parts.append(f"Sleep duration: {duration}")
     if slots.get("energy_level"):
-        context_parts.append(f"Energy level: {slots['energy_level']}")
+        energy = slots['energy_level']
+        if isinstance(energy, list) and energy:
+            context_parts.append(f"Energy levels: {', '.join(energy)}")
+        elif isinstance(energy, str):  # Backward compatibility
+            context_parts.append(f"Energy level: {energy}")
     if slots.get("daily_functioning"):
-        context_parts.append(f"Daily functioning: {slots['daily_functioning']}")
+        functioning = slots['daily_functioning']
+        if isinstance(functioning, list) and functioning:
+            context_parts.append(f"Daily functioning: {', '.join(functioning)}")
+        elif isinstance(functioning, str):  # Backward compatibility
+            context_parts.append(f"Daily functioning: {functioning}")
     if slots.get("work_school_impact"):
-        context_parts.append(f"Work/school impact: {slots['work_school_impact']}")
+        impact = slots['work_school_impact']
+        if isinstance(impact, list) and impact:
+            context_parts.append(f"Work/school impact: {', '.join(impact)}")
+        elif isinstance(impact, str):  # Backward compatibility
+            context_parts.append(f"Work/school impact: {impact}")
 
     # Social & support
     if slots.get("support_system"):
-        context_parts.append(f"Support system: {slots['support_system']}")
+        support = slots['support_system']
+        if isinstance(support, list) and support:
+            context_parts.append(f"Support system: {', '.join(support)}")
+        elif isinstance(support, str):  # Backward compatibility
+            context_parts.append(f"Support system: {support}")
     if slots.get("social_isolation") is True:
         context_parts.append("Social isolation: Yes")
     if slots.get("social_withdrawal") is True:
@@ -202,17 +249,37 @@ def build_slot_context(slots: Dict[str, Any]) -> str:
     if slots.get("current_stressors"):
         context_parts.append(f"Current stressors: {', '.join(slots['current_stressors'])}")
     if slots.get("stress_level"):
-        context_parts.append(f"Stress level: {slots['stress_level']}")
+        stress = slots['stress_level']
+        if isinstance(stress, list) and stress:
+            context_parts.append(f"Stress levels: {', '.join(stress)}")
+        elif isinstance(stress, str):  # Backward compatibility
+            context_parts.append(f"Stress level: {stress}")
 
     # Differential diagnosis information (CRITICAL FOR PREVENTING PREMATURE DIAGNOSIS)
     if slots.get("recent_life_events"):
-        context_parts.append(f"Recent life events: {slots['recent_life_events']}")
+        events = slots['recent_life_events']
+        if isinstance(events, list) and events:
+            context_parts.append(f"Recent life events: {', '.join(events)}")
+        elif isinstance(events, str):  # Backward compatibility
+            context_parts.append(f"Recent life events: {events}")
     if slots.get("substance_use"):
-        context_parts.append(f"Substance use: {slots['substance_use']}")
+        substances = slots['substance_use']
+        if isinstance(substances, list) and substances:
+            context_parts.append(f"Substance use: {', '.join(substances)}")
+        elif isinstance(substances, str):  # Backward compatibility
+            context_parts.append(f"Substance use: {substances}")
     if slots.get("medical_history"):
-        context_parts.append(f"Medical history: {slots['medical_history']}")
+        history = slots['medical_history']
+        if isinstance(history, list) and history:
+            context_parts.append(f"Medical history: {', '.join(history)}")
+        elif isinstance(history, str):  # Backward compatibility
+            context_parts.append(f"Medical history: {history}")
     if slots.get("symptom_fluctuation"):
-        context_parts.append(f"Symptom pattern: {slots['symptom_fluctuation']}")
+        fluctuation = slots['symptom_fluctuation']
+        if isinstance(fluctuation, list) and fluctuation:
+            context_parts.append(f"Symptom patterns: {', '.join(fluctuation)}")
+        elif isinstance(fluctuation, str):  # Backward compatibility
+            context_parts.append(f"Symptom pattern: {fluctuation}")
     
     # Diagnostic caution flags
     diagnostic_confidence = slots.get("diagnostic_confidence", "low")
@@ -220,7 +287,11 @@ def build_slot_context(slots: Dict[str, Any]) -> str:
     
     # Needs
     if slots.get("need"):
-        context_parts.append(f"What they need: {slots['need']}")
+        needs = slots['need']
+        if isinstance(needs, list) and needs:
+            context_parts.append(f"What they need: {', '.join(needs)}")
+        elif isinstance(needs, str):  # Backward compatibility
+            context_parts.append(f"What they need: {needs}")
 
     if not context_parts:
         return ""
@@ -271,19 +342,34 @@ def get_slot_keywords(slots: Dict[str, Any]) -> List[str]:
             # Focus on stress/adjustment/coping
             keywords.extend(["stress", "adjustment", "support", "wellbeing"])
     
-    primary_mood = slots.get("primary_mood")
-    if primary_mood:
-        keywords.append(primary_mood.lower())
+    primary_moods = slots.get("primary_mood", [])
+    if primary_moods:
+        if isinstance(primary_moods, list):
+            keywords.extend([m.lower() for m in primary_moods if m])
+        elif isinstance(primary_moods, str):  # Backward compatibility
+            keywords.append(primary_moods.lower())
     
     # Stress-related keywords
-    if slots.get("stress_level") or slots.get("current_stressors"):
+    stress_level = slots.get("stress_level", [])
+    current_stressors = slots.get("current_stressors", [])
+    has_stress_info = (
+        (isinstance(stress_level, list) and len(stress_level) > 0) or
+        (isinstance(stress_level, str) and stress_level) or
+        (isinstance(current_stressors, list) and len(current_stressors) > 0)
+    )
+    if has_stress_info:
         keywords.extend(["stress", "pressure", "workload", "tension", "worry", "stress management", "relaxation"])
     
     # Energy/fatigue keywords
-    if slots.get("energy_level"):
-        energy = slots.get("energy_level", "").lower()
-        if "low" in energy or "thấp" in energy:
-            keywords.extend(["fatigue", "tired", "exhaustion", "energy", "rest"])
+    energy_levels = slots.get("energy_level", [])
+    if energy_levels:
+        energy_list = energy_levels if isinstance(energy_levels, list) else [energy_levels]
+        for energy in energy_list:
+            if energy:
+                energy_lower = energy.lower()
+                if "low" in energy_lower or "thấp" in energy_lower:
+                    keywords.extend(["fatigue", "tired", "exhaustion", "energy", "rest"])
+                    break  # Only add once
     
     # Physical symptoms keywords
     physical = slots.get("physical_symptoms", [])
@@ -301,16 +387,20 @@ def get_slot_keywords(slots: Dict[str, Any]) -> List[str]:
         keywords.extend(["coping", "strategy", "technique", "manage", "handle", "skills"])
     
     # Trigger keywords (if specific)
-    trigger = slots.get("trigger")
-    if trigger:
-        trigger_lower = trigger.lower()
-        # Add common trigger-related terms
-        if "work" in trigger_lower or "công việc" in trigger_lower:
-            keywords.extend(["work", "job", "career", "professional", "work-life balance"])
-        if "family" in trigger_lower or "gia đình" in trigger_lower:
-            keywords.extend(["family", "relationship", "home", "communication"])
-        if "school" in trigger_lower or "học" in trigger_lower:
-            keywords.extend(["school", "study", "education", "academic", "learning"])
+    triggers = slots.get("trigger", [])
+    if triggers:
+        # Handle both list and string (backward compatibility)
+        trigger_list = triggers if isinstance(triggers, list) else [triggers]
+        for trigger in trigger_list:
+            if trigger:
+                trigger_lower = trigger.lower()
+                # Add common trigger-related terms
+                if "work" in trigger_lower or "công việc" in trigger_lower:
+                    keywords.extend(["work", "job", "career", "professional", "work-life balance"])
+                if "family" in trigger_lower or "gia đình" in trigger_lower:
+                    keywords.extend(["family", "relationship", "home", "communication"])
+                if "school" in trigger_lower or "học" in trigger_lower:
+                    keywords.extend(["school", "study", "education", "academic", "learning"])
     
     # Remove duplicates and empty strings
     keywords = list(dict.fromkeys([k for k in keywords if k]))  # Preserve order
@@ -323,7 +413,7 @@ def validate_duration(duration_text: Optional[str]) -> Tuple[bool, str]:
     Kiểm tra xem duration có cụ thể không.
     
     Args:
-        duration_text: Duration string from slot
+        duration_text: Duration string or list from slot
     
     Returns:
         Tuple of (is_specific, certainty_level)
@@ -332,6 +422,23 @@ def validate_duration(duration_text: Optional[str]) -> Tuple[bool, str]:
     """
     if not duration_text:
         return False, "vague"
+    
+    # If list, check the most specific duration
+    if isinstance(duration_text, list):
+        if not duration_text:
+            return False, "vague"
+        # Check all durations and return best certainty
+        best_is_specific = False
+        best_certainty = "vague"
+        for dur in duration_text:
+            if dur:
+                is_spec, cert = validate_duration(dur)  # Recursive call
+                if cert == "specific":
+                    return True, "specific"
+                elif cert == "approximate" and best_certainty == "vague":
+                    best_is_specific = is_spec
+                    best_certainty = cert
+        return best_is_specific, best_certainty
     
     duration_lower = duration_text.lower()
     
@@ -384,7 +491,16 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
         
         # Special handling for duration - validate quality
         if slot_name == "duration":
-            is_specific, certainty = validate_duration(value)
+            # Handle both list and string
+            if isinstance(value, list):
+                if not value or len(value) == 0:
+                    required_missing.append("duration")
+                    continue
+                # Check if any duration is specific
+                is_specific, certainty = validate_duration(value)
+            else:
+                is_specific, certainty = validate_duration(value)
+            
             if not is_specific:
                 required_missing.append("specific_duration")
                 # Update slot certainty for later use
@@ -399,12 +515,14 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
     # Check functional impairment (CRITICAL for severity assessment)
     # UPGRADED: Now treated as REQUIRED (not just differential)
     # Need at least ONE of: daily_functioning or work_school_impact
-    daily_func = slots.get("daily_functioning")
-    work_impact = slots.get("work_school_impact")
+    daily_func = slots.get("daily_functioning", [])
+    work_impact = slots.get("work_school_impact", [])
     
     has_functional_info = (
-        (daily_func is not None and daily_func != "none" and daily_func != [] and daily_func != "") or
-        (work_impact is not None and work_impact != "none" and work_impact != [] and work_impact != "")
+        (isinstance(daily_func, list) and len(daily_func) > 0) or
+        (isinstance(daily_func, str) and daily_func and daily_func != "none") or
+        (isinstance(work_impact, list) and len(work_impact) > 0) or
+        (isinstance(work_impact, str) and work_impact and work_impact != "none")
     )
     
     if not has_functional_info:
@@ -417,11 +535,18 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
     # If physical symptoms present, MUST check medical exclusion
     physical_symptoms = slots.get("physical_symptoms", [])
     if physical_symptoms and len(physical_symptoms) > 0:
-        if not slots.get("medical_history") and not slots.get("substance_use"):
+        medical_history = slots.get("medical_history", [])
+        substance_use = slots.get("substance_use", [])
+        has_medical_check = (
+            (isinstance(medical_history, list) and len(medical_history) > 0) or
+            (isinstance(substance_use, list) and len(substance_use) > 0)
+        )
+        if not has_medical_check:
             differential_missing.append("medical_exclusion")
     
     # Check for recent life events (required to differentiate stress vs disorder)
-    if not slots.get("recent_life_events"):
+    recent_events = slots.get("recent_life_events", [])
+    if not recent_events or (isinstance(recent_events, list) and len(recent_events) == 0):
         differential_missing.append("recent_life_events")
     
     # Logic: Sufficient if:
@@ -451,46 +576,70 @@ def is_diagnosis_ready(slots: Dict[str, Any]) -> bool:
         return False
     
     # 1. Check duration - must be specific and prolonged
-    duration = slots.get("duration")
+    duration = slots.get("duration", [])
     is_specific, certainty = validate_duration(duration)
     if not is_specific or certainty == "vague":
         return False
     
     # Check if duration indicates chronicity (contains month/year or >= 2 weeks)
     if duration:
-        duration_lower = duration.lower()
-        has_chronic_marker = any(term in duration_lower for term in 
-            ["tháng", "month", "năm", "year", "chronic", "mãn tính"])
-        has_two_weeks = "2" in duration and any(term in duration_lower for term in ["week", "tuần"])
+        # Handle both list and string
+        duration_list = duration if isinstance(duration, list) else [duration]
+        has_chronic = False
+        for dur in duration_list:
+            if dur:
+                duration_lower = dur.lower()
+                has_chronic_marker = any(term in duration_lower for term in 
+                    ["tháng", "month", "năm", "year", "chronic", "mãn tính"])
+                has_two_weeks = "2" in duration_lower and any(term in duration_lower for term in ["week", "tuần"])
+                
+                if has_chronic_marker or has_two_weeks:
+                    has_chronic = True
+                    break
         
-        if not (has_chronic_marker or has_two_weeks):
+        if not has_chronic:
             # Duration too short for disorder diagnosis
             return False
     
     # 2. Check impairment - must have clear functional impact
+    daily_func = slots.get("daily_functioning", [])
+    work_impact = slots.get("work_school_impact", [])
+    
+    # Check if any value indicates impairment
+    daily_func_list = daily_func if isinstance(daily_func, list) else [daily_func]
+    work_impact_list = work_impact if isinstance(work_impact, list) else [work_impact]
+    
     has_impairment = (
-        slots.get("daily_functioning") in ["moderate", "severe", "moderate_impairment"] or
-        slots.get("work_school_impact") in ["moderate", "severe", "unable"]
+        any(val in ["moderate", "severe", "moderate_impairment"] for val in daily_func_list if val) or
+        any(val in ["moderate", "severe", "unable"] for val in work_impact_list if val)
     )
     if not has_impairment:
         return False
     
     # 3. Check differential exclusion - must have checked medical/substance
+    medical_history = slots.get("medical_history", [])
+    substance_use = slots.get("substance_use", [])
     has_checked_exclusion = (
-        slots.get("medical_history") is not None or
-        slots.get("substance_use") is not None
+        (isinstance(medical_history, list) and len(medical_history) > 0) or
+        (isinstance(substance_use, list) and len(substance_use) > 0) or
+        (isinstance(medical_history, str) and medical_history) or  # Backward compat
+        (isinstance(substance_use, str) and substance_use)  # Backward compat
     )
     if not has_checked_exclusion:
         return False
     
     # 4. Check for acute stress (if recent life event within days, likely adjustment not disorder)
-    recent_events = slots.get("recent_life_events", "")
+    recent_events = slots.get("recent_life_events", [])
     if recent_events:
-        recent_lower = recent_events.lower()
+        # Handle both list and string
+        events_list = recent_events if isinstance(recent_events, list) else [recent_events]
         acute_markers = ["hôm qua", "yesterday", "tuần này", "this week", "vừa mới", "just"]
-        if any(marker in recent_lower for marker in acute_markers):
-            # Too acute - likely stress/adjustment reaction
-            return False
+        for event in events_list:
+            if event:
+                recent_lower = event.lower()
+                if any(marker in recent_lower for marker in acute_markers):
+                    # Too acute - likely stress/adjustment reaction
+                    return False
     
     # All criteria met - ready for disorder-specific assessment
     return True
@@ -513,37 +662,50 @@ def build_query_context_from_slots(slots: Dict[str, Any]) -> str:
     
     # Emotion and mood
     emotions = slots.get("emotion", [])
-    primary_mood = slots.get("primary_mood")
-    if emotions or primary_mood:
-        if primary_mood:
-            parts.append(f"feeling {primary_mood}")
+    primary_moods = slots.get("primary_mood", [])
+    if emotions or primary_moods:
+        if primary_moods:
+            moods_list = primary_moods if isinstance(primary_moods, list) else [primary_moods]
+            if moods_list:
+                parts.append(f"feeling {', '.join(moods_list)}")
         elif emotions:
             parts.append(f"experiencing {', '.join(emotions)}")
     
     # Intensity
-    intensity = slots.get("intensity")
-    if intensity:
-        parts.append(f"at {intensity} intensity")
+    intensities = slots.get("intensity", [])
+    if intensities:
+        intensity_list = intensities if isinstance(intensities, list) else [intensities]
+        if intensity_list:
+            parts.append(f"at {', '.join(intensity_list)} intensity")
     
     # Duration
-    duration = slots.get("duration")
-    if duration:
-        parts.append(f"for {duration}")
+    durations = slots.get("duration", [])
+    if durations:
+        duration_list = durations if isinstance(durations, list) else [durations]
+        if duration_list:
+            parts.append(f"for {', '.join(duration_list)}")
     
     # Trigger
-    trigger = slots.get("trigger")
-    if trigger:
-        parts.append(f"triggered by {trigger}")
+    triggers = slots.get("trigger")
+    if triggers:
+        if isinstance(triggers, list) and triggers:
+            parts.append(f"triggered by {', '.join(triggers)}")
+        elif isinstance(triggers, str):  # Backward compatibility
+            parts.append(f"triggered by {triggers}")
     
     # Impact
-    impact = slots.get("impact")
-    if impact:
-        parts.append(f"impacting: {impact}")
+    impacts = slots.get("impact", [])
+    if impacts:
+        impact_list = impacts if isinstance(impacts, list) else [impacts]
+        if impact_list:
+            parts.append(f"impacting: {', '.join(impact_list)}")
     
     # Stress level
-    stress_level = slots.get("stress_level")
-    if stress_level:
-        parts.append(f"stress level: {stress_level}")
+    stress_levels = slots.get("stress_level", [])
+    if stress_levels:
+        stress_list = stress_levels if isinstance(stress_levels, list) else [stress_levels]
+        if stress_list:
+            parts.append(f"stress level: {', '.join(stress_list)}")
     
     # Physical symptoms
     physical = slots.get("physical_symptoms", [])
@@ -551,14 +713,19 @@ def build_query_context_from_slots(slots: Dict[str, Any]) -> str:
         parts.append(f"with physical symptoms: {', '.join(physical)}")
     
     # Sleep issues
-    sleep_quality = slots.get("sleep_quality")
-    if sleep_quality and sleep_quality != "good":
-        parts.append(f"sleep quality: {sleep_quality}")
+    sleep_qualities = slots.get("sleep_quality", [])
+    if sleep_qualities:
+        quality_list = sleep_qualities if isinstance(sleep_qualities, list) else [sleep_qualities]
+        quality_list = [q for q in quality_list if q and q != "good"]
+        if quality_list:
+            parts.append(f"sleep quality: {', '.join(quality_list)}")
     
     # What they need
-    need = slots.get("need")
-    if need:
-        parts.append(f"seeking: {need}")
+    needs = slots.get("need", [])
+    if needs:
+        need_list = needs if isinstance(needs, list) else [needs]
+        if need_list:
+            parts.append(f"seeking: {', '.join(need_list)}")
     
     if not parts:
         return ""
