@@ -318,215 +318,143 @@ def merge_slots(existing_slots: Optional[Dict[str, Any]], new_slots: Dict[str, A
 def build_slot_context(slots: Dict[str, Any]) -> str:
     """
     Build formatted context string from slots for answer generation.
-    REDESIGNED: Uses DSM-5 stage structure with 41 slots.
+    Includes differential diagnosis info to guide LLM away from premature diagnosis.
     """
     if not slots:
         return ""
 
     context_parts: List[str] = []
 
-    # GROUP A: Presenting Problem (Stage 1)
-    if slots.get("presenting_problem"):
-        context_parts.append(f"Presenting Problem: {slots['presenting_problem']}")
+    # Core emotional
     if slots.get("emotion"):
-        emotions = slots['emotion']
-        if isinstance(emotions, list):
-            context_parts.append(f"Emotions: {', '.join(emotions)}")
-        else:
-            context_parts.append(f"Emotion: {emotions}")
+        context_parts.append(f"Emotions: {', '.join(slots['emotion'])}")
     if slots.get("primary_mood"):
         moods = slots['primary_mood']
-        if isinstance(moods, list):
-            context_parts.append(f"Primary Moods: {', '.join(moods)}")
-        else:
-            context_parts.append(f"Primary Mood: {moods}")
-
-    # GROUP B: Timeline (Stage 2)
-    if slots.get("onset"):
-        context_parts.append(f"Onset: {slots['onset']}")
-    if slots.get("duration"):
-        durations = slots['duration']
-        if isinstance(durations, list):
-            context_parts.append(f"Duration: {', '.join(durations)}")
-        else:
-            context_parts.append(f"Duration: {durations}")
-    if slots.get("frequency"):
-        context_parts.append(f"Frequency: {slots['frequency']}")
-    if slots.get("symptom_fluctuation"):
-        fluctuation = slots['symptom_fluctuation']
-        if isinstance(fluctuation, list):
-            context_parts.append(f"Symptom Patterns: {', '.join(fluctuation)}")
-        else:
-            context_parts.append(f"Symptom Pattern: {fluctuation}")
-
-    # GROUP C: Severity (Stage 3)
+        if isinstance(moods, list) and moods:
+            context_parts.append(f"Primary moods: {', '.join(moods)}")
+        elif isinstance(moods, str):  # Backward compatibility
+            context_parts.append(f"Primary mood: {moods}")
     if slots.get("intensity"):
         intensities = slots['intensity']
-        if isinstance(intensities, list):
-            context_parts.append(f"Intensity: {', '.join(intensities)}")
-        else:
+        if isinstance(intensities, list) and intensities:
+            context_parts.append(f"Intensity levels: {', '.join(intensities)}")
+        elif isinstance(intensities, str):  # Backward compatibility
             context_parts.append(f"Intensity: {intensities}")
-    if slots.get("distress_level"):
-        context_parts.append(f"Distress Level: {slots['distress_level']}")
-    if slots.get("intensity_current"):
-        context_parts.append(f"Current Intensity (0-10): {slots['intensity_current']}")
-
-    # GROUP D: Functional Impairment (Stage 4)
-    if slots.get("daily_functioning"):
-        functioning = slots['daily_functioning']
-        if isinstance(functioning, list):
-            context_parts.append(f"Daily Functioning: {', '.join(functioning)}")
-        else:
-            context_parts.append(f"Daily Functioning: {functioning}")
-    if slots.get("social_functioning"):
-        context_parts.append(f"Social Functioning: {slots['social_functioning']}")
-    if slots.get("work_school_impact"):
-        impact = slots['work_school_impact']
-        if isinstance(impact, list):
-            context_parts.append(f"Work/School Impact: {', '.join(impact)}")
-        else:
-            context_parts.append(f"Work/School Impact: {impact}")
-    if slots.get("self_care_functioning"):
-        context_parts.append(f"Self-Care Functioning: {slots['self_care_functioning']}")
-
-    # GROUP E: Associated Somatic Symptoms (Stage 4)
-    if slots.get("physical_symptoms"):
-        symptoms = slots['physical_symptoms']
-        if isinstance(symptoms, list):
-            context_parts.append(f"Physical Symptoms: {', '.join(symptoms)}")
-        else:
-            context_parts.append(f"Physical Symptoms: {symptoms}")
-    if slots.get("sleep_quality"):
-        quality = slots['sleep_quality']
-        if isinstance(quality, list):
-            context_parts.append(f"Sleep Quality: {', '.join(quality)}")
-        else:
-            context_parts.append(f"Sleep Quality: {quality}")
-    if slots.get("sleep_duration"):
-        duration = slots['sleep_duration']
-        if isinstance(duration, list):
-            context_parts.append(f"Sleep Duration: {', '.join(duration)}")
-        else:
-            context_parts.append(f"Sleep Duration: {duration}")
-    if slots.get("energy_level"):
-        energy = slots['energy_level']
-        if isinstance(energy, list):
-            context_parts.append(f"Energy Levels: {', '.join(energy)}")
-        else:
-            context_parts.append(f"Energy Level: {energy}")
-
-    # GROUP F: Context (Stage 5)
     if slots.get("trigger"):
         triggers = slots['trigger']
-        if isinstance(triggers, list):
+        if isinstance(triggers, list) and triggers:
             context_parts.append(f"Triggers: {', '.join(triggers)}")
-        else:
+        elif isinstance(triggers, str):  # Backward compatibility
             context_parts.append(f"Trigger: {triggers}")
-    if slots.get("recent_life_events"):
-        events = slots['recent_life_events']
-        if isinstance(events, list):
-            context_parts.append(f"Recent Life Events: {', '.join(events)}")
-        else:
-            context_parts.append(f"Recent Life Events: {events}")
-    if slots.get("current_stressors"):
-        stressors = slots['current_stressors']
-        if isinstance(stressors, list):
-            context_parts.append(f"Current Stressors: {', '.join(stressors)}")
-        else:
-            context_parts.append(f"Current Stressors: {stressors}")
-    if slots.get("stress_level"):
-        stress = slots['stress_level']
-        if isinstance(stress, list):
-            context_parts.append(f"Stress Levels: {', '.join(stress)}")
-        else:
-            context_parts.append(f"Stress Level: {stress}")
-
-    # GROUP G: Support & Coping (Stage 7)
-    if slots.get("support_system"):
-        support = slots['support_system']
-        if isinstance(support, list):
-            context_parts.append(f"Support System: {', '.join(support)}")
-        else:
-            context_parts.append(f"Support System: {support}")
-    if slots.get("social_isolation") is True:
-        context_parts.append("Social Isolation: Yes")
-    if slots.get("social_withdrawal") is True:
-        context_parts.append("Social Withdrawal: Yes")
-    if slots.get("coping_mechanisms"):
-        mechanisms = slots['coping_mechanisms']
-        if isinstance(mechanisms, list):
-            context_parts.append(f"Coping Mechanisms: {', '.join(mechanisms)}")
-        else:
-            context_parts.append(f"Coping Mechanisms: {mechanisms}")
-
-    # GROUP H: Exclusion Criteria (Stage 6) - TRI-STATE FIELDS
-    if slots.get("substance_use_any"):
-        context_parts.append(f"Substance Use (Any): {slots['substance_use_any']}")
-    if slots.get("substance_use"):
-        substances = slots['substance_use']
-        if isinstance(substances, list):
-            context_parts.append(f"Substance Details: {', '.join(substances)}")
-        else:
-            context_parts.append(f"Substance Details: {substances}")
-    if slots.get("caffeine_nicotine_use"):
-        context_parts.append(f"Caffeine/Nicotine Use: {slots['caffeine_nicotine_use']}")
-    if slots.get("medical_history_any"):
-        context_parts.append(f"Medical History (Any): {slots['medical_history_any']}")
-    if slots.get("medical_history"):
-        history = slots['medical_history']
-        if isinstance(history, list):
-            context_parts.append(f"Medical Details: {', '.join(history)}")
-        else:
-            context_parts.append(f"Medical Details: {history}")
-    if slots.get("medication_changes"):
-        context_parts.append(f"Recent Medication Changes: {slots['medication_changes']}")
-
-    # GROUP I: Screening Questions (Stage 8) - TRI-STATE FIELDS
-    if slots.get("mania_like_symptoms"):
-        context_parts.append(f"Mania-like Symptoms: {slots['mania_like_symptoms']}")
-    if slots.get("psychotic_like_symptoms"):
-        context_parts.append(f"Psychotic-like Symptoms: {slots['psychotic_like_symptoms']}")
-
-    # GROUP J: Historical Context (for later use)
-    if slots.get("past_episodes"):
-        episodes = slots['past_episodes']
-        if isinstance(episodes, list):
-            context_parts.append(f"Past Episodes: {', '.join(episodes)}")
-        else:
-            context_parts.append(f"Past Episodes: {episodes}")
-    if slots.get("treatment_history"):
-        history = slots['treatment_history']
-        if isinstance(history, list):
-            context_parts.append(f"Treatment History: {', '.join(history)}")
-        else:
-            context_parts.append(f"Treatment History: {history}")
-    if slots.get("family_history"):
-        fam_history = slots['family_history']
-        if isinstance(fam_history, list):
-            context_parts.append(f"Family History: {', '.join(fam_history)}")
-        else:
-            context_parts.append(f"Family History: {fam_history}")
-
-    # GROUP K: Derived/State Fields
-    if slots.get("need"):
-        needs = slots['need']
-        if isinstance(needs, list):
-            context_parts.append(f"What They Need: {', '.join(needs)}")
-        else:
-            context_parts.append(f"What They Need: {needs}")
+    if slots.get("duration"):
+        durations = slots['duration']
+        duration_certainty = slots.get("duration_certainty", "vague")
+        if isinstance(durations, list) and durations:
+            context_parts.append(f"Durations: {', '.join(durations)} (certainty: {duration_certainty})")
+        elif isinstance(durations, str):  # Backward compatibility
+            context_parts.append(f"Duration: {durations} (certainty: {duration_certainty})")
     if slots.get("impact"):
         impacts = slots['impact']
-        if isinstance(impacts, list):
-            context_parts.append(f"Impact: {', '.join(impacts)}")
-        else:
+        if isinstance(impacts, list) and impacts:
+            context_parts.append(f"Impacts: {', '.join(impacts)}")
+        elif isinstance(impacts, str):  # Backward compatibility
             context_parts.append(f"Impact: {impacts}")
 
-    # Metadata
-    current_stage = get_current_stage(slots)
-    if current_stage != "complete":
-        context_parts.append(f"📍 Current Intake Stage: {current_stage}")
-    else:
-        context_parts.append(f"✅ Intake Complete")
+    # Physical & functional
+    if slots.get("physical_symptoms"):
+        context_parts.append(f"Physical symptoms: {', '.join(slots['physical_symptoms'])}")
+    if slots.get("sleep_quality"):
+        quality = slots['sleep_quality']
+        if isinstance(quality, list) and quality:
+            context_parts.append(f"Sleep quality: {', '.join(quality)}")
+        elif isinstance(quality, str):  # Backward compatibility
+            context_parts.append(f"Sleep quality: {quality}")
+    if slots.get("sleep_duration"):
+        duration = slots['sleep_duration']
+        if isinstance(duration, list) and duration:
+            context_parts.append(f"Sleep duration: {', '.join(duration)}")
+        elif isinstance(duration, str):  # Backward compatibility
+            context_parts.append(f"Sleep duration: {duration}")
+    if slots.get("energy_level"):
+        energy = slots['energy_level']
+        if isinstance(energy, list) and energy:
+            context_parts.append(f"Energy levels: {', '.join(energy)}")
+        elif isinstance(energy, str):  # Backward compatibility
+            context_parts.append(f"Energy level: {energy}")
+    if slots.get("daily_functioning"):
+        functioning = slots['daily_functioning']
+        if isinstance(functioning, list) and functioning:
+            context_parts.append(f"Daily functioning: {', '.join(functioning)}")
+        elif isinstance(functioning, str):  # Backward compatibility
+            context_parts.append(f"Daily functioning: {functioning}")
+    if slots.get("work_school_impact"):
+        impact = slots['work_school_impact']
+        if isinstance(impact, list) and impact:
+            context_parts.append(f"Work/school impact: {', '.join(impact)}")
+        elif isinstance(impact, str):  # Backward compatibility
+            context_parts.append(f"Work/school impact: {impact}")
+
+    # Social & support
+    if slots.get("support_system"):
+        support = slots['support_system']
+        if isinstance(support, list) and support:
+            context_parts.append(f"Support system: {', '.join(support)}")
+        elif isinstance(support, str):  # Backward compatibility
+            context_parts.append(f"Support system: {support}")
+    if slots.get("social_isolation") is True:
+        context_parts.append("Social isolation: Yes")
+    if slots.get("social_withdrawal") is True:
+        context_parts.append("Social withdrawal: Yes")
+
+    # Coping
+    if slots.get("coping_mechanisms"):
+        context_parts.append(f"Coping mechanisms: {', '.join(slots['coping_mechanisms'])}")
+    if slots.get("current_stressors"):
+        context_parts.append(f"Current stressors: {', '.join(slots['current_stressors'])}")
+    if slots.get("stress_level"):
+        stress = slots['stress_level']
+        if isinstance(stress, list) and stress:
+            context_parts.append(f"Stress levels: {', '.join(stress)}")
+        elif isinstance(stress, str):  # Backward compatibility
+            context_parts.append(f"Stress level: {stress}")
+
+    # Differential diagnosis information (CRITICAL FOR PREVENTING PREMATURE DIAGNOSIS)
+    if slots.get("recent_life_events"):
+        events = slots['recent_life_events']
+        if isinstance(events, list) and events:
+            context_parts.append(f"Recent life events: {', '.join(events)}")
+        elif isinstance(events, str):  # Backward compatibility
+            context_parts.append(f"Recent life events: {events}")
+    if slots.get("substance_use"):
+        substances = slots['substance_use']
+        if isinstance(substances, list) and substances:
+            context_parts.append(f"Substance use: {', '.join(substances)}")
+        elif isinstance(substances, str):  # Backward compatibility
+            context_parts.append(f"Substance use: {substances}")
+    if slots.get("medical_history"):
+        history = slots['medical_history']
+        if isinstance(history, list) and history:
+            context_parts.append(f"Medical history: {', '.join(history)}")
+        elif isinstance(history, str):  # Backward compatibility
+            context_parts.append(f"Medical history: {history}")
+    if slots.get("symptom_fluctuation"):
+        fluctuation = slots['symptom_fluctuation']
+        if isinstance(fluctuation, list) and fluctuation:
+            context_parts.append(f"Symptom patterns: {', '.join(fluctuation)}")
+        elif isinstance(fluctuation, str):  # Backward compatibility
+            context_parts.append(f"Symptom pattern: {fluctuation}")
+    
+    # Diagnostic caution flags
+    diagnostic_confidence = slots.get("diagnostic_confidence", "low")
+    context_parts.append(f"⚠️ Diagnostic confidence: {diagnostic_confidence}")
+    
+    # Needs
+    if slots.get("need"):
+        needs = slots['need']
+        if isinstance(needs, list) and needs:
+            context_parts.append(f"What they need: {', '.join(needs)}")
+        elif isinstance(needs, str):  # Backward compatibility
+            context_parts.append(f"What they need: {needs}")
 
     if not context_parts:
         return ""
@@ -701,180 +629,117 @@ def validate_duration(duration_text: Optional[Any]) -> Tuple[bool, str]:
         return True, "approximate"
     
     return False, "vague"
-
-
-def is_empty_slot(value: Any) -> bool:
-    """
-    Check if a slot value is considered empty/missing.
+    if has_number and any(term in duration_lower for term in specific_terms):
+        return True, "specific"
     
-    Rules:
-    - None → empty
-    - Empty string → empty
-    - "unknown" (tri-state) → empty
-    - Empty list [] → empty
-    - List with only empty strings → empty
-    - "no ..." string → NOT empty (valid data)
+    # Default: treat as approximate if it has some substance
+    if len(duration_text) > 5:  # Not just "1-2 words"
+        return True, "approximate"
     
-    Args:
-        value: Slot value to check
-    
-    Returns:
-        True if slot is empty/missing
-    """
-    if value is None:
-        return True
-    
-    if isinstance(value, str):
-        v = value.strip().lower()
-        if v == "":
-            return True
-        # Tri-state: "unknown" is empty, but "yes"/"no" are valid
-        if v in TRI_STATES:
-            return v == "unknown"
-        # Regular string: "none" without context is empty, but "no ..." is valid
-        # Simple heuristic: if string contains space, it's descriptive (valid)
-        if v == "none":
-            return True
-        return False
-    
-    if isinstance(value, list):
-        if len(value) == 0:
-            return True
-        # List with only empty/whitespace strings
-        return all(not str(x).strip() for x in value)
-    
-    if isinstance(value, bool):
-        return False  # Booleans are always valid
-    
-    return False
-
-
-def next_missing_slot(slots: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Find the next missing required slot following stage flow.
-    
-    Args:
-        slots: Current slot dictionary
-    
-    Returns:
-        Tuple of (stage_name, slot_name) or (None, None) if all complete
-    """
-    for stage in STAGE_FLOW:
-        required_in_stage = REQUIRED_SLOTS_BY_STAGE.get(stage, [])
-        
-        for slot_name in required_in_stage:
-            # Special handling for duration: must be specific
-            if slot_name == "duration":
-                is_specific, certainty = validate_duration(slots.get("duration"))
-                slots["duration_certainty"] = certainty
-                if not is_specific:
-                    return stage, "duration"
-                continue
-            
-            # Special handling for detail slots: only required if _any = "yes"
-            if slot_name == "substance_use":
-                if slots.get("substance_use_any", "unknown").lower() == "yes":
-                    if is_empty_slot(slots.get("substance_use")):
-                        return stage, "substance_use"
-                continue
-            
-            if slot_name == "medical_history":
-                if slots.get("medical_history_any", "unknown").lower() == "yes":
-                    if is_empty_slot(slots.get("medical_history")):
-                        return stage, "medical_history"
-                continue
-            
-            # Regular slot check
-            if is_empty_slot(slots.get(slot_name)):
-                return stage, slot_name
-    
-    return None, None
-
-
-def is_intake_complete(slots: Dict[str, Any]) -> bool:
-    """
-    Check if all required slots are filled (intake complete).
-    
-    Args:
-        slots: Slot dictionary
-    
-    Returns:
-        True if all required slots filled
-    """
-    stage, missing = next_missing_slot(slots)
-    complete = (missing is None)
-    slots["intake_complete"] = complete
-    return complete
-
-
-def get_current_stage(slots: Dict[str, Any]) -> str:
-    """
-    Determine current stage in intake flow based on filled slots.
-    
-    Args:
-        slots: Slot dictionary
-    
-    Returns:
-        Current stage name (or "complete" if all done)
-    """
-    stage, _ = next_missing_slot(slots)
-    return stage if stage else "complete"
+    return False, "vague"
 
 
 def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[str]]:
     """
     Check if required slots are filled sufficiently for retrieval.
-    REDESIGNED: Uses stage-based logic for DSM-5 intake flow.
-    
-    Workflow:
-    1. Gather all required slots from all stages (union)
-    2. Check which required slots are missing using is_empty_slot()
-    3. Return first missing slot via next_missing_slot()
+    FIXED: Now properly validates duration and checks differential slots.
     
     Args:
         slots: Slot dictionary
     
     Returns:
         Tuple of (is_sufficient, required_missing_slots, differential_missing_slots)
-        - is_sufficient: True if all required slots filled across all stages
+        - is_sufficient: True if enough info to provide supportive response
         - required_missing_slots: Critical slots still missing
-        - differential_missing_slots: Always [] (kept for backward compatibility)
-    
-    Backward Compatibility:
-        - Still returns 3-tuple format
-        - differential_missing_slots always [] (obsolete with new tri-state design)
+        - differential_missing_slots: Differential diagnosis slots missing
     """
     if not slots:
-        # Return all required slots from all stages
-        all_required = []
-        for stage_slots in REQUIRED_SLOTS_BY_STAGE.values():
-            all_required.extend(stage_slots)
-        return False, all_required, []
+        return False, REQUIRED_SLOTS.copy(), []
     
-    # Gather all required slots across all stages
-    all_required_slots = set()
-    for stage_slots in REQUIRED_SLOTS_BY_STAGE.values():
-        all_required_slots.update(stage_slots)
-    
-    # Check which required slots are missing
     required_missing = []
-    for slot_name in all_required_slots:
+    differential_missing = []
+    
+    # Check core required slots
+    for slot_name in REQUIRED_SLOTS:
         value = slots.get(slot_name)
-        if is_empty_slot(value):
+        
+        # Special handling for duration - validate quality
+        if slot_name == "duration":
+            # Handle both list and string
+            if isinstance(value, list):
+                if not value or len(value) == 0:
+                    required_missing.append("duration")
+                    continue
+                # Check if any duration is specific
+                is_specific, certainty = validate_duration(value)
+            else:
+                is_specific, certainty = validate_duration(value)
+            
+            if not is_specific:
+                required_missing.append("specific_duration")
+                # Update slot certainty for later use
+                if slots.get("duration_certainty") == "vague":
+                    slots["duration_certainty"] = certainty
+            continue
+        
+        # Check if slot is actually filled (handle both list and scalar)
+        is_empty = False
+        if isinstance(value, list):
+            # List slot: must have at least one non-empty item
+            is_empty = len(value) == 0 or all(not item for item in value)
+        else:
+            # Scalar slot: must not be None, empty string, or "none"
+            is_empty = value is None or value == "" or value == "none"
+        
+        if is_empty:
             required_missing.append(slot_name)
             logger.debug(f"[SLOT CHECK] Required slot '{slot_name}' is empty: {value}")
     
-    # Determine sufficiency: all required slots must be filled
-    is_sufficient = len(required_missing) == 0
+    # Check functional impairment (CRITICAL for severity assessment)
+    # UPGRADED: Now treated as REQUIRED (not just differential)
+    # Need at least ONE of: daily_functioning or work_school_impact
+    daily_func = slots.get("daily_functioning", [])
+    work_impact = slots.get("work_school_impact", [])
     
-    # Differential missing is deprecated (tri-state design handles exclusion)
-    differential_missing = []
+    has_functional_info = (
+        (isinstance(daily_func, list) and len(daily_func) > 0 and any(item for item in daily_func)) or
+        (isinstance(daily_func, str) and daily_func and daily_func != "none") or
+        (isinstance(work_impact, list) and len(work_impact) > 0 and any(item for item in work_impact)) or
+        (isinstance(work_impact, str) and work_impact and work_impact != "none")
+    )
+    
+    if not has_functional_info:
+        required_missing.append("functional_impairment")  # CHANGED: Now REQUIRED
+        logger.debug(f"[FUNCTIONAL CHECK] Missing functional impairment: daily_functioning={daily_func}, work_school_impact={work_impact}")
+    else:
+        logger.debug(f"[FUNCTIONAL CHECK] Has functional info: daily_functioning={daily_func}, work_school_impact={work_impact}")
+    
+    # Check differential diagnosis slots (CRITICAL for preventing misdiagnosis)
+    # If physical symptoms present, MUST check medical exclusion
+    physical_symptoms = slots.get("physical_symptoms", [])
+    if physical_symptoms and len(physical_symptoms) > 0:
+        medical_history = slots.get("medical_history", [])
+        substance_use = slots.get("substance_use", [])
+        has_medical_check = (
+            (isinstance(medical_history, list) and len(medical_history) > 0) or
+            (isinstance(substance_use, list) and len(substance_use) > 0)
+        )
+        if not has_medical_check:
+            differential_missing.append("medical_exclusion")
+    
+    # NOTE: recent_life_events is already checked in REQUIRED_SLOTS loop above
+    # No need to check again here to avoid duplicate
+    
+    # Logic: Sufficient ONLY if ALL required slots AND functional impairment are filled
+    # STRICT: Must have ZERO missing required slots (no tolerance)
+    # Also require at most 1 differential missing (lenient for differential)
+    is_sufficient = len(required_missing) == 0 and len(differential_missing) <= 1
     
     logger.info(f"[SLOT SUFFICIENCY CHECK]")
     logger.info(f"  Required missing ({len(required_missing)}): {required_missing}")
+    logger.info(f"  Differential missing ({len(differential_missing)}): {differential_missing}")
     logger.info(f"  Is sufficient: {is_sufficient}")
-    logger.info(f"  Current stage: {get_current_stage(slots)}")
-    logger.info(f"  Next missing slot: {next_missing_slot(slots)}")
+    logger.info(f"  Current slots: emotion={slots.get('emotion')}, duration={slots.get('duration')}, impact={slots.get('impact')}, intensity={slots.get('intensity')}, recent_life_events={slots.get('recent_life_events')}")
     
     return is_sufficient, required_missing, differential_missing
 

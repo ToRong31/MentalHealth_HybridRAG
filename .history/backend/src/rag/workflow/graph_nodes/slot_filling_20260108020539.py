@@ -24,26 +24,15 @@ logger = logging.getLogger(__name__)
 async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Node: Extract structured information (slots) from user question + conversation context.
-    REDESIGNED: Follows DSM-5 stage-based intake flow.
-    
-    Workflow:
-    1. Determine current stage in intake flow
-    2. Extract new slots from user input
-    3. Merge with existing slots (preserving "no" responses)
-    4. Update stage progression
-    5. Filter follow-up questions by stage priority
+    Slots are MERGED across turns (append instead of replace) for persistent state.
+    Filters follow-up questions to prioritize REQUIRED slots when insufficient.
     
     Args:
         state: State dict with question, conversation_buffer, summary_context, slots (from previous turns)
     
     Returns:
-        Updated state with:
-        - merged slots
-        - current_stage
-        - intake_complete
-        - has_sufficient_slots
-        - filtered follow_up_questions
-        - optional_follow_up_questions
+        Updated state with merged slots, has_sufficient_slots, 
+        filtered_follow_up_questions (only REQUIRED if insufficient)
     """
     question = state["question"]
     conversation_buffer = state.get("conversation_buffer", [])
@@ -55,18 +44,9 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # Initialize with defaults if first turn
     if not existing_slots:
         existing_slots = get_default_slots()
-        logger.info("[SLOT FILLING] First turn - initialized default slots")
+        logger.info("[SLOT FILLING] First turn - initialized empty slots")
     else:
-        filled_count = len([k for k, v in existing_slots.items() if not is_empty_slot(v)])
-        logger.info(f"[SLOT FILLING] Existing slots from previous turns: {filled_count} filled")
-    
-    # Determine current stage
-    current_stage = get_current_stage(existing_slots)
-    next_stage, next_slot = next_missing_slot(existing_slots)
-    
-    logger.info(f"[SLOT FILLING] Current stage: {current_stage}")
-    if next_slot:
-        logger.info(f"[SLOT FILLING] Next required: {next_stage}.{next_slot}")
+        logger.info(f"[SLOT FILLING] Existing slots from previous turns: {len([k for k, v in existing_slots.items() if v and v != [] and v != 'none'])} filled")
     
     # Build enhanced context for slot extraction
     # Include conversation history so LLM can extract slots from full context
@@ -93,44 +73,37 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
     result = await process_slot_filling(enhanced_question, existing_slots=existing_slots)
     new_slots = result.get("slots", {})
     
-    # MERGE new slots with existing slots (append instead of replace, preserve "no" responses)
+    # MERGE new slots with existing slots (append instead of replace)
     merged_slots = merge_slots(existing_slots, new_slots)
     
     # Log the merge
-    new_filled_count = len([k for k, v in new_slots.items() if not is_empty_slot(v)])
-    merged_filled_count = len([k for k, v in merged_slots.items() if not is_empty_slot(v)])
+    new_filled_count = len([k for k, v in new_slots.items() if v and v != [] and v != 'none'])
+    merged_filled_count = len([k for k, v in merged_slots.items() if v and v != [] and v != 'none'])
     logger.info(f"[SLOT FILLING] Merge complete: {new_filled_count} new slots + existing → {merged_filled_count} total filled slots")
     
     # Update result with merged slots
     result["slots"] = merged_slots
     
-    # Update stage info
-    current_stage = get_current_stage(merged_slots)
-    result["current_stage"] = current_stage
-    
-    # Check intake completion
-    intake_done = is_intake_complete(merged_slots)
-    result["intake_complete"] = intake_done
-    
-    # Check if REQUIRED slots are sufficient for retrieval (backward compatibility)
+    # Check if REQUIRED slots are sufficient for retrieval
     is_sufficient, required_missing, differential_missing = has_sufficient_slots(merged_slots)
-    result["has_sufficient_slots"] = is_sufficient
-    result["required_missing_slots"] = required_missing
     
-    # Log progress
-    logger.info(f"[SLOT FILLING] Stage: {current_stage} | Intake complete: {intake_done}")
     logger.info(f"[SLOT SUFFICIENCY] is_sufficient = {is_sufficient}")
     logger.info(f"[SLOT SUFFICIENCY] required_missing = {required_missing}")
-    
-    if not intake_done:
-        next_stage, next_slot = next_missing_slot(merged_slots)
-        logger.info(f"[SLOT FILLING] Next required: {next_stage}.{next_slot}")
+    logger.info(f"[SLOT SUFFICIENCY] differential_missing = {differential_missing}")
+    logger.info(f"[SLOT SUFFICIENCY] Filled REQUIRED slots: {[s for s in ['emotion', 'duration', 'impact', 'intensity', 'recent_life_events'] if merged_slots.get(s) not in [None, [], 'none'] and (not isinstance(merged_slots.get(s), list) or len(merged_slots.get(s)) > 0)]}")
     
     # Get follow-up questions and relevant missing slots
     follow_up_questions = result.get("follow_up_questions", [])
     relevant_missing_slots = result.get("relevant_missing_slots", [])
     
-    # If REQUIRED slots insufficient → Only ask about REQUIRED slots (focused on current stage)
+    # Separate relevant_missing_slots into REQUIRED vs OPTIONAL
+    from src.rag.utils.slots import REQUIRED_SLOTS
+    required_set = set(REQUIRED_SLOTS)
+    
+    required_relevant = [s for s in relevant_missing_slots if s in required_set]
+    optional_relevant = [s for s in relevant_missing_slots if s not in required_set]
+    
+    # If REQUIRED slots insufficient → Only ask about REQUIRED slots
     if not is_sufficient:
         # Filter to keep only questions about REQUIRED slots
         filtered_questions = filter_follow_up_for_required_only(
@@ -140,24 +113,32 @@ async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:
         result["follow_up_questions"] = filtered_questions
         result["optional_follow_up_questions"] = []  # Don't ask optional yet
         
-        logger.info(f"❌ Incomplete required slots. Asking {len(filtered_questions)} REQUIRED questions")
-        logger.info(f"   Focusing on stage: {next_stage}")
-        logger.info(f"   Missing REQUIRED: {required_missing[:5]}...")  # First 5
+        logger.info(f"❌ Insufficient REQUIRED slots. Asking {len(filtered_questions)} REQUIRED questions only")
+        logger.info(f"   Missing REQUIRED: {required_missing}")
         logger.info(f"   Optional questions deferred until REQUIRED slots filled")
     else:
         # REQUIRED sufficient → Save optional questions for answer node
-        # All relevant questions become optional at this point
+        # Filter to get only OPTIONAL questions for later
+        optional_questions = []
+        for i, slot_name in enumerate(relevant_missing_slots):
+            if slot_name not in required_set and i < len(follow_up_questions):
+                optional_questions.append(follow_up_questions[i])
+        
         result["follow_up_questions"] = []  # Don't block with questions
-        result["optional_follow_up_questions"] = follow_up_questions  # Save for answer
+        result["optional_follow_up_questions"] = optional_questions  # Save for answer
         
         logger.info(f"✅ Sufficient REQUIRED slots filled for retrieval")
-        logger.info(f"   Optional relevant slots: {relevant_missing_slots[:5]}...")  # First 5
-        if follow_up_questions:
-            logger.info(f"   Will include {len(follow_up_questions)} optional questions in answer")
-            for i, q in enumerate(follow_up_questions[:3]):  # Log first 3
+        logger.info(f"   Optional relevant slots: {optional_relevant}")
+        if optional_questions:
+            logger.info(f"   Will include {len(optional_questions)} optional questions in answer")
+            for i, q in enumerate(optional_questions):
                 logger.info(f"     {i+1}. {q}")
         else:
-            logger.info(f"   No optional questions to ask")
+            logger.info(f"   No optional questions to ask (all relevant slots are REQUIRED)")
+    
+    # Add sufficiency check results to result dict (LangGraph will merge this into state)
+    result["has_sufficient_slots"] = is_sufficient
+    result["required_missing_slots"] = required_missing
     
     logger.info(f"[DEBUG] Returning result with has_sufficient_slots = {result.get('has_sufficient_slots')}")
     logger.info(f"[DEBUG] Result keys: {list(result.keys())}")

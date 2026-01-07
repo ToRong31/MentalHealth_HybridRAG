@@ -9,9 +9,7 @@ slot_filling_prompt: |
 
   ========== CRITICAL RULES ==========
   
-  ⚠️ **WORK IN ENGLISH**: All slot extraction must be in English (user input already translated)
-  
-  ⚠️ **FOLLOW-UP QUESTIONS IN VIETNAMESE**: Generate follow-up questions in Vietnamese (the user's native language)
+  ⚠️ **WORK IN ENGLISH**: All extraction must be in English (user input already translated)
   
   ⚠️ **AVOID RE-ASKING**: If slot shown in "ALREADY FILLED SLOTS" → PRESERVE value, do NOT ask again
   
@@ -43,7 +41,7 @@ slot_filling_prompt: |
   3. Exclusion criteria (substance, medical, medication changes, caffeine)
   4. Cross-cutting screens (mania, psychosis)
   5. Context & support
-  6. Ask 1-3 questions max per turn, following stage flow
+  6. Ask 1-2 questions max per turn, following stage flow
 
   ========== SLOT DEFINITIONS (DSM-5 INTAKE STRUCTURE) ==========
   
@@ -113,119 +111,91 @@ slot_filling_prompt: |
   - duration_certainty: "vague" (scalar: vague/approximate/specific)
   - intake_complete: false (boolean: all required slots filled)
   
-
   ⚠️ CRITICAL EXTRACTION RULES:
-  - **ALL slots are LISTS []** except: TRI-STATE fields (_any, mania_like_symptoms, psychotic_like_symptoms) and DERIVED fields
-  - **Single values go in list**: duration = ["2 weeks"] NOT duration = "2 weeks"
-  - **"no/none" → STRING IN LIST**: medical_history = ["no medical conditions"] NOT []
-  - **Empty [] vs ["no"]**: [] means not asked yet, ["no ..."] means user said "no"
-  - **TRI-STATE**: substance_use_any = "yes"/"no"/"unknown" (if "yes" → ask substance_use details)
-  - **Compound sentences → separate items**: "no X, but Y" → ["no X", "Y"]
+  - **ALL extractions go into LISTS**: Even single values → duration = ["2 weeks"] NOT duration = "2 weeks"
+  - **recent_life_events**: Extract FULL context. Break "no X, but Y" into separate list items:
+    * "No major events, but deadline stress, irregular sleep" → ["no major life events (no loss/job change)", "work deadlines increasing", "irregular sleep pattern"]
+  - **substance_use**: Extract substances with context → ["increased coffee intake beyond normal", "no alcohol use"]
+  - **"no/none" answers**: Extract as STRING in list → medical_history = ["no medical conditions"] NOT []
+  - **Empty vs "no"**: Empty [] means not answered yet, ["no ..."] means user said "no"
 
-  ========== EXAMPLES (ENGLISH INPUT → VIETNAMESE FOLLOW-UP) ==========
+  ========== EXAMPLES ==========
 
-  EX1 - Presenting Problem + Vague Duration:
-  USER: "I've been feeling very anxious at work lately"
+  EX1 - Vague Duration → Ask Specific (Vietnamese user):
+  USER: "Dạo này mình cảm thấy rất lo lắng khi đi làm"
+  EXTRACT: emotion=["lo lắng"], trigger=["đi làm"], duration=["dạo này"], work_school_impact=["ảnh hưởng công việc"]
+  NOTE: duration_certainty="vague" - need to ask for specific timeframe
+  ASK: "Cảm giác lo lắng này đã kéo dài bao lâu rồi? Vài ngày, vài tuần hay vài tháng?", "Có chuyện gì đặc biệt xảy ra gần đây không?"
+  
+  EX2 - Physical Symptoms → Check Medical:
+  USER: "Tuần này mất ngủ, tim đập nhanh lúc nào cũng thấy"
+  EXTRACT: duration=["tuần này"], physical_symptoms=["tim đập nhanh", "mất ngủ"], sleep_quality=["kém"]
+  ASK: "Bạn có đang dùng caffeine nhiều không?", "Có tiền sử về bệnh tuyến giáp, tim mạch không?"
+  WHY: Heart racing → MUST rule out medical causes (thyroid, caffeine) before psychological diagnosis
+  
+  EX3 - Compound Sentence (extract as SEPARATE list items):
+  USER: "Biến cố lớn thì không có gì kiểu mất mát hay đổi việc, nhưng gần đây em deadline dồn, ngủ thất thường, với lại em uống cà phê nhiều hơn bình thường"
   EXTRACT: 
-    presenting_problem = ["feeling anxious at work"]
-    emotion = ["anxious"]
-    trigger = ["work"]
-    duration = ["lately"]
-    duration_certainty = "vague"
-  ASK (in Vietnamese): "Cảm giác lo âu này bắt đầu từ khi nào? Vài ngày, vài tuần, hay vài tháng trước?", "Có chuyện gì cụ thể xảy ra ở công việc gần đây không?"
+    recent_life_events = ["không có biến cố lớn (mất mát/đổi việc)", "deadline công việc dồn dập", "ngủ thất thường"]
+    current_stressors = ["deadline dồn", "công việc nhiều"]
+    substance_use = ["cà phê nhiều hơn bình thường"]
+  NOT: recent_life_events = ["không có biến cố lớn"] ❌ (missing "nhưng..." context!)
+  WHY: User gave FULL context - break into separate list items, don't lose information
   
-  EX2 - "No" should be captured as string:
-  USER: "No major life events, but work deadlines are piling up and I'm sleeping poorly"
-  EXTRACT: 
-    recent_life_events = ["no major life events", "increased work deadlines"]
-    sleep_quality = ["poor"]
-    current_stressors = ["work deadlines"]
-  ASK (in Vietnamese): "Vấn đề ngủ này đã kéo dài bao lâu rồi?", "Hiện tại bạn ngủ được khoảng mấy tiếng mỗi đêm?"
+  EX4 - Duration in Noisy Text:
+  USER: "Dạ, chắc cũng mới tầm một tuần nay thôi bác sĩ, từ khi em chuẩn bị thuyết trình"
+  EXTRACT: duration=["một tuần nay", "từ khi chuẩn bị thuyết trình"], trigger=["chuẩn bị thuyết trình"], recent_life_events=["thuyết trình công việc"]
+  NOTE: Extract time phrases despite noise ("Dạ", "chắc", "bác sĩ", "ạ"). Can extract multiple duration contexts.
   
-  EX3 - Physical Symptoms → Check Exclusion:
-  USER: "This week I can't sleep, heart racing all the time"
-  EXTRACT: 
-    onset = ["this week"]
-    duration = ["this week"]
-    physical_symptoms = ["heart racing", "insomnia"]
-    sleep_quality = ["very poor"]
-  ASK (in Vietnamese): "Gần đây bạn có uống nhiều cà phê hoặc chất kích thích hơn bình thường không?", "Bạn có tiền sử bệnh lý về tuyến giáp hoặc tim mạch không?", "Có thay đổi thuốc gì gần đây không?"
-  WHY: Physical symptoms (heart racing) → MUST check caffeine, medical history, medication changes
+  EX5 - Safety Priority:
+  USER: "Mình mệt mỏi quá, nhiều lúc chỉ muốn biến mất"
+  EXTRACT: emotion=["mệt mỏi", "tuyệt vọng"], suicidal_ideation=true, risk_level=["medium"]
+  ASK: "Cảm giác này kéo dài bao lâu rồi?", "Có chuyện gì đặc biệt xảy ra không?", "Bạn có người hỗ trợ lúc này không?"
+  WHY: Passive suicidal ideation → prioritize duration, crisis assessment, support system
   
-  EX4 - Check for Mania-like Symptoms:
-  USER: "I feel great, only sleeping 3-4 hours but have tons of energy, starting multiple projects"
-  EXTRACT:
-    primary_mood = ["elevated", "great"]
-    sleep_duration = ["3-4 hours"]
-    energy_level = ["very high", "tons of energy"]
-    mania_like_symptoms = "yes"
-  ASK (in Vietnamese): "Tình trạng này đã kéo dài bao lâu rồi?", "Mức năng lượng cao như vậy có khác thường so với bình thường của bạn không?", "Bạn có nhận thấy mình bốc đồng hơn hoặc chi tiêu nhiều hơn bình thường không?"
-  WHY: Decreased sleep + increased energy → possible mania, MUST screen
-  
-  EX5 - Tri-state: Ask detail only if "yes":
-  USER: "I don't use any drugs or alcohol"
-  EXTRACT:
-    substance_use_any = "no"
-    substance_use = ["no substance use"]
-  NOTE: substance_use_any = "no" → don't need to ask substance_use details
-  
-  EX6 - Impairment Assessment (CRITICAL for DSM-5):
-  USER: "I'm struggling to get out of bed, missing work, stopped seeing friends"
-  EXTRACT:
-    daily_functioning = ["difficulty getting out of bed"]
-    work_school_impact = ["missing work"]
-    social_functioning = ["stopped seeing friends", "socially withdrawn"]
-  ASK (in Vietnamese): "Tình trạng này đã kéo dài bao lâu rồi?", "Bạn vẫn còn tự chăm sóc vệ sinh cá nhân và ăn uống được không?", "Còn những hoạt động hoặc sở thích bạn từng yêu thích thì sao?"
-  WHY: Multiple domains of impairment → need timeline + self-care check + anhedonia check
-
-  ========== OUTPUT JSON SCHEMA ==========
-  
-  Return ONLY valid JSON in this exact format (all slots must be present):
+  EX6 - Just Listening Need:
+  USER: "Mình chỉ muốn nói chuyện và chia sẻ cho nhẹ lòng"
+  EXTRACT: need=["someone to listen", "share feelings"]
+  ASK: "Hiện tại bạn đang mang theo cảm xúc n (ALL slots are lists [] except booleans and derived fields):
   
   {
     "slots": {
-      "presenting_problem": [],
       "emotion": [],
       "primary_mood": [],
-      "onset": [],
-      "duration": [],
-      "frequency": [],
-      "symptom_fluctuation": [],
-      "time_of_day_pattern": [],
       "intensity": [],
-      "distress_level": [],
-      "stress_level": [],
-      "daily_functioning": [],
-      "work_school_impact": [],
-      "social_functioning": [],
-      "self_care_functioning": [],
+      "trigger": [],
+      "duration": [],
+      "impact": [],
+      "risk_level": [],
+      "need": [],
       "physical_symptoms": [],
       "sleep_quality": [],
       "sleep_duration": [],
       "energy_level": [],
       "appetite_changes": [],
-      "trigger": [],
-      "current_stressors": [],
-      "recent_life_events": [],
+      "daily_functioning": [],
+      "work_school_impact": [],
       "support_system": [],
+      "family_support": [],
+      "friend_support": [],
+      "social_isolation": null,
+      "social_withdrawal": null,
       "coping_mechanisms": [],
       "coping_effectiveness": [],
-      "need": [],
-      "substance_use_any": "unknown",
-      "substance_use": [],
-      "medical_history_any": "unknown",
-      "medical_history": [],
-      "medication_changes": [],
-      "caffeine_nicotine_use": [],
+      "current_stressors": [],
+      "stress_level": [],
+      "suicidal_ideation": null,
+      "self_harm_thoughts": null,
       "current_treatment": [],
       "medication": [],
-      "mania_like_symptoms": "unknown",
-      "psychotic_like_symptoms": "unknown",
+      "substance_use": [],
+      "medical_history": [],
+      "recent_life_events": [],
+      "symptom_fluctuation": [],
       "history_of_trauma": [],
       "diagnostic_confidence": "low",
       "potential_differentials": [],
-      "duration_certainty": "vague",
-      "intake_complete": false
+      "duration_certainty": "vague"
     },
     "missing_slots": [],
     "relevant_missing_slots": [],
@@ -233,8 +203,20 @@ slot_filling_prompt: |
   }
 
   ⚠️ CRITICAL OUTPUT RULES: 
-  - **ALL fields must be present in output**
-  - **Lists must be arrays []**, tri-states must be "yes"/"no"/"unknown"
-  - **"no/none" → STRING IN LIST**: medical_history=["no medical conditions"] NOT []
-  - **Empty [] vs ["no"]**: [] = not asked, ["no..."] = user said no
-  - **Follow-up questions**: Array of strings in **VIETNAMESE** (user's language)
+  - **ALL fields must be present**
+  - **ALL slots are LISTS []** except: social_isolation, social_withdrawal, suicidal_ideation, self_harm_thoughts (booleans), diagnostic_confidence, duration_certainty (scalars)
+  - **Single values go in list**: duration=["2 weeks"] NOT duration="2 weeks"
+  - **"no/none" → STRING IN LIST**: medical_history=["no medical conditions"] NOT medical_history=[] or null
+  - **Empty [] vs ["no ..."]**: [] means not asked yet, ["no..."] means user said "no"
+  - **Compound sentences → separate items**: Break "no X, but Y, and Z" into ["no X (clarification)", "Y", "Z"]
+  - **Follow-up questions**: Array of strings in VIETNAMESE (user's language)
+    "relevant_missing_slots": [],
+    "follow_up_questions": []
+  }
+
+  ⚠️ CRITICAL: 
+  - ALL fields must be present
+  - List fields MUST be arrays []: emotion, physical_symptoms, coping_mechanisms, current_stressors, potential_differentials
+  - NEVER use string for list fields - e.g., emotion=["lo lắng"] NOT emotion="lo lắng"
+  - "không/none" answers → extract as STRING in scalar fields (medical_history, recent_life_events, etc.), not null
+  - Follow-up questions must be an array of strings in VIETNAMESE

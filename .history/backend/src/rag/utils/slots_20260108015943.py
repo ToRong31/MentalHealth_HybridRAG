@@ -860,7 +860,7 @@ def has_sufficient_slots(slots: Dict[str, Any]) -> Tuple[bool, List[str], List[s
     required_missing = []
     for slot_name in all_required_slots:
         value = slots.get(slot_name)
-        if is_empty_slot(value):
+        if is_empty_slot(slot_name, value):
             required_missing.append(slot_name)
             logger.debug(f"[SLOT CHECK] Required slot '{slot_name}' is empty: {value}")
     
