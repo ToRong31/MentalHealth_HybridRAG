@@ -21,7 +21,7 @@ class DenseRetrieval(BaseRetrieval):
     def __init__(
         self,
         collection_name: str = "mental_health_diagnostic_support",
-        milvus_top_k: int = 10,
+        milvus_top_k: int = 50,
         reranker: CohereReranker | None = None,
     ):
         """
@@ -37,7 +37,7 @@ class DenseRetrieval(BaseRetrieval):
     def retrieve(
         self,
         query: str,
-        top_k: int = 2,
+        top_k: int = 5,
     ) -> RetrievalResult:
         """
         Nhận 1 query string, trả về RetrievalResult:

@@ -140,37 +140,23 @@ async def disease_conclusion_node(state: KGState) -> KGState:
             else:
                 logger.info(f"ℹ️ Disease '{detected_disease}' confidence too low ({confidence:.2f}) to add to disease_detected")
             
-            # Generate conclusion message with disease information
+            # Generate conclusion message with personalized explanation
             if language == "vi" or language == "vn":
-                # Build disease info section
-                disease_info = ""
-                if disease_description:
-                    disease_info += f"\n\n**{detected_disease} là gì?**\n{disease_description}"
-                if disease_symptoms:
-                    disease_info += f"\n\n**Triệu chứng chính:**\n{disease_symptoms}"
-                if disease_causes:
-                    disease_info += f"\n\n**Nguyên nhân:**\n{disease_causes}"
-                
-                conclusion = f"""Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn **có dấu hiệu có thể mắc** {detected_disease}.
+                conclusion = f"""**Giải thích ngắn gọn về tình trạng của bạn:**
 
-**Phân tích triệu chứng của bạn:** {reasoning}{disease_info}
+{disease_description if disease_description else f"Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có dấu hiệu có thể mắc {detected_disease}. Đây là một tình trạng y tế ảnh hưởng đến cảm xúc, suy nghĩ và hành vi của bạn."}
+
+Các triệu chứng của bạn{f" như {reasoning}" if reasoning and not reasoning.startswith("Selected from") else ""} đều là những dấu hiệu điển hình của tình trạng này. Việc hiểu rằng đây là một vấn đề y tế sẽ giúp bạn gỡ bỏ gánh nặng tự trách móc và tập trung vào việc tìm kiếm giải pháp.
 
 **Lưu ý:** Đây chỉ là đánh giá sơ bộ dựa trên thông tin bạn cung cấp, không thay thế cho chẩn đoán y tế chuyên nghiệp.
 
 Bạn có muốn tôi gợi ý cho bạn một số cách chữa trị không?"""
             else:
-                # Build disease info section
-                disease_info = ""
-                if disease_description:
-                    disease_info += f"\n\n**What is {detected_disease}?**\n{disease_description}"
-                if disease_symptoms:
-                    disease_info += f"\n\n**Main Symptoms:**\n{disease_symptoms}"
-                if disease_causes:
-                    disease_info += f"\n\n**Causes:**\n{disease_causes}"
-                
-                conclusion = f"""Based on the symptoms you described, I observe that you **may show signs of possibly having** {detected_disease}.
+                conclusion = f"""**Brief explanation about your condition:**
 
-**Analysis of your symptoms:** {reasoning}{disease_info}
+{disease_description if disease_description else f"Based on the symptoms you described, I observe that you may show signs of possibly having {detected_disease}. This is a medical condition that affects your emotions, thoughts, and behavior."}
+
+Your symptoms{f" such as {reasoning}" if reasoning and not reasoning.startswith("Selected from") else ""} are all typical signs of this condition. Understanding that this is a medical issue will help you relieve the burden of self-blame and focus on finding solutions.
 
 **Note:** This is only a preliminary assessment based on the information you provided, and does not replace professional medical diagnosis.
 
