@@ -13,6 +13,14 @@ MILVUS_COLLECTION_NAME = "mental_health_diagnostic_support"
 COLLECTION_DATA_FILES = {
     "mental_health_diagnostic_support": "data/raw/mental_health_diagnostic_support.jsonl",
     "mental_health_treatment_guidance": "data/raw/mental_health_treatment_guidance.jsonl",
+    "normal_response": "data/raw/normal_responses.jsonl",
+}
+
+# Mapping collection names to their metadata field (disease/type/etc.)
+COLLECTION_METADATA_FIELDS = {
+    "mental_health_diagnostic_support": "disease",
+    "mental_health_treatment_guidance": "disease",
+    "normal_response": "type",
 }
 
 class DenseRetriever:
@@ -22,6 +30,12 @@ class DenseRetriever:
         
         # Determine collection name
         self.collection_name = collection_name or MILVUS_COLLECTION_NAME
+        
+        # Determine metadata field (disease, type, etc.)
+        self.metadata_field = COLLECTION_METADATA_FIELDS.get(
+            self.collection_name,
+            "disease"  # fallback default
+        )
         
         # Determine context file path
         if context_file:
@@ -79,10 +93,11 @@ class DenseRetriever:
         """
         Trả về list kết quả cho mỗi query:
         [
-          [(node_id1, score1, disease1), (node_id2, score2, disease2), ...],  # cho query 1
+          [(node_id1, score1, metadata1), (node_id2, score2, metadata2), ...],  # cho query 1
           [(...), ...],                                   # cho query 2
           ...
         ]
+        metadata có thể là disease, type, hoặc field khác tùy collection
         """
         # Encode queries thành embeddings
         encoded_queries = [f"query: {q}" for q in queries]
@@ -91,28 +106,28 @@ class DenseRetriever:
         # Milvus cần list[list[float]]
         query_vectors = query_embeddings.tolist()
 
-        # Search trong Milvus
+        # Search trong Milvus with dynamic metadata field
         search_results = self.col.search(
             data=query_vectors,
             anns_field="embedding",       # tên field vector
             param=self.search_params,
             limit=top_k,
-            output_fields=["node_id", "disease"],  # Thêm disease field
+            output_fields=["node_id", self.metadata_field],  # Dynamic field (disease/type)
         )
 
-        all_results: List[List[Tuple[int, float, str]]] = []  # Thêm disease vào tuple
+        all_results: List[List[Tuple[int, float, str]]] = []  # (node_id, score, metadata)
         for hits in search_results:  # hits: list[Hit] cho từng query
             one_query_results: List[Tuple[int, float, str]] = []
             for hit in hits:
-                # node_id và disease được lấy từ field trong entity
+                # node_id (primary key) và metadata field được lấy từ entity
                 node_id = hit.entity.get("node_id")
                 # Hit.entity.get() doesn't support default value, use try-except
                 try:
-                    disease = hit.entity.get("disease") or ""
+                    metadata_value = hit.entity.get(self.metadata_field) or ""
                 except:
-                    disease = ""
+                    metadata_value = ""
                 score = float(hit.score)
-                one_query_results.append((node_id, score, disease))
+                one_query_results.append((node_id, score, metadata_value))
             all_results.append(one_query_results)
 
         return all_results

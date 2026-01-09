@@ -70,4 +70,11 @@ class KGState(TypedDict):
     assessment_category: Optional[str]  # "normal_response" | "adjustment_reaction" | "possible_disorder" | "likely_disorder"
     assessment_explanation: Optional[str]  # Vietnamese explanation of assessment
     assessment_confidence: Optional[float]  # Confidence score 0-1 for assessment
+    
+    # Normal response scores (from normal_responses collection)
+    normal_stress_score: Optional[float]  # Total score for normal stress responses
+    adjustment_reaction_score: Optional[float]  # Total score for adjustment reactions
+    normal_stress_score_details: Optional[List[Dict[str, Any]]]  # Details: [{"chunk_id": ..., "title": ..., "score": ...}]
+    adjustment_reaction_score_details: Optional[List[Dict[str, Any]]]  # Details: [{"chunk_id": ..., "title": ..., "score": ...}]
 
+    normal_response_chunks: Optional[List[str]]  # Chunks from normal coping retrieval

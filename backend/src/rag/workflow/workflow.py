@@ -113,10 +113,10 @@ def route_after_router(state: KGState) -> Literal["theoretical_retrieval", "safe
     return "safety_check"
 
 
-def route_after_slot_filling(state: KGState) -> Literal["assessment", "request_more_info"]:
+def route_after_slot_filling(state: KGState) -> Literal["query_rewriter", "request_more_info"]:
     """
     Routing logic sau khi slot filling:
-    - Nếu đủ slots -> assessment (NEW: assess normal vs disorder)
+    - Nếu đủ slots -> query_rewriter (rewrite query trước khi assessment)
     - Nếu thiếu slots -> request_more_info (hỏi thêm)
     """
     has_sufficient = state.get("has_sufficient_slots", False)
@@ -127,12 +127,22 @@ def route_after_slot_filling(state: KGState) -> Literal["assessment", "request_m
     logger.info(f"[ROUTING] has_sufficient_slots in state.keys(): {'has_sufficient_slots' in state}")
     logger.info(f"[ROUTING] All slot-related keys: {[k for k in state.keys() if 'slot' in k.lower()]}")
     logger.info(f"[ROUTING] Direct access state['has_sufficient_slots']: {state.get('has_sufficient_slots', 'KEY NOT FOUND')}")
-    logger.info(f"[ROUTING] Will route to: {'assessment' if has_sufficient else 'request_more_info'}")
+    logger.info(f"[ROUTING] Will route to: {'query_rewriter' if has_sufficient else 'request_more_info'}")
     
     if has_sufficient:
-        return "assessment"
+        return "query_rewriter"
     else:
         return "request_more_info"
+
+
+def route_after_query_rewriter(state: KGState) -> Literal["assessment"]:
+    """
+    After query rewriting, always go to assessment to check normal vs disorder.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("[ROUTING] After query_rewriter -> assessment")
+    return "assessment"
 
 
 def route_after_slot_filling_simplified(state: KGState) -> Literal["query_rewriter", "request_more_info"]:
@@ -164,6 +174,40 @@ def route_after_slot_filling_simplified(state: KGState) -> Literal["query_rewrit
         logger.info(f"[ROUTING] ❌ Insufficient slots → request_more_info")
         logger.info(f"[ROUTING]    Missing: {required_missing}")
         return "request_more_info"
+
+
+def route_after_assessment(state: KGState) -> Literal["normal_coping_retrieval", "adjustment_retrieval", "diagnostic_retrieval"]:
+    """
+    Route after assessment based on normal_stress and adjustment_reaction scores.
+    
+    Routing Logic (Updated):
+    - If any score > 60: -> diagnostic_retrieval (severe symptoms need diagnosis)
+    - If both scores < 60: choose higher score category
+      * normal_stress_score higher: -> normal_coping_retrieval
+      * adjustment_reaction_score higher: -> adjustment_retrieval
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    normal_stress_score = state.get("normal_stress_score", 0.0)
+    adjustment_reaction_score = state.get("adjustment_reaction_score", 0.0)
+    assessment_category = state.get("assessment_category", "possible_disorder")
+    
+    logger.info(f"[ROUTING] route_after_assessment:")
+    logger.info(f"  normal_stress_score: {normal_stress_score:.2f}")
+    logger.info(f"  adjustment_reaction_score: {adjustment_reaction_score:.2f}")
+    logger.info(f"  assessment_category: {assessment_category}")
+    
+    # Route based on category determined in assessment node
+    if assessment_category == "normal_response":
+        logger.info("[ROUTING] ✅ Normal stress response (score < 60) -> normal_coping_retrieval")
+        return "normal_coping_retrieval"
+    elif assessment_category == "adjustment_reaction":
+        logger.info("[ROUTING] ✅ Adjustment reaction (score < 60) -> adjustment_retrieval")
+        return "adjustment_retrieval"
+    else:
+        logger.info("[ROUTING] ⚠️ Possible disorder (score > 60 or low match) -> diagnostic_retrieval")
+        return "diagnostic_retrieval"
 
 
 def route_after_screening(state: KGState) -> Literal["query_rewriter", "normal_coping_retrieval", "adjustment_retrieval"]:
@@ -378,8 +422,27 @@ def build_kg_graph():
     # Request more info exits directly (no retrieval)
     builder.add_edge("request_more_info", END)
 
-    # DIAGNOSTIC FLOW: query_rewriter → diagnostic_retrieval → disease_conclusion (auto)
-    builder.add_edge("query_rewriter", "diagnostic_retrieval")
+    # UPDATED FLOW: query_rewriter → assessment → route based on scores
+    builder.add_edge("query_rewriter", "assessment")
+    
+    # Conditional routing after assessment (check normal vs disorder)
+    builder.add_conditional_edges(
+        "assessment",
+        route_after_assessment,
+        {
+            "normal_coping_retrieval": "normal_coping_retrieval",  # Normal stress
+            "adjustment_retrieval": "adjustment_retrieval",  # Adjustment reaction
+            "diagnostic_retrieval": "diagnostic_retrieval",  # Possible disorder
+        },
+    )
+    
+    # Normal coping flow: normal_coping_retrieval -> answer_with_graph -> conversation_memory
+    builder.add_edge("normal_coping_retrieval", "answer_with_graph")
+    
+    # Adjustment flow: adjustment_retrieval -> answer_with_graph -> conversation_memory
+    builder.add_edge("adjustment_retrieval", "answer_with_graph")
+
+    # DIAGNOSTIC FLOW: diagnostic_retrieval → disease_conclusion (auto)
     builder.add_edge("diagnostic_retrieval", "disease_conclusion")  # Auto transition
     
     # Route after disease conclusion based on whether disease was detected
