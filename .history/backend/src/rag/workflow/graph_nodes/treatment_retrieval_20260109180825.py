@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Dict, Any, List, Set
 from functools import lru_cache
 
-from pymilvus import Collection, connections
+from pymilvus import Collection
+import aiofiles
 
 from ..state import KGState
 from src.rag.config import rag_settings
@@ -22,10 +23,10 @@ logger = logging.getLogger(__name__)
 _TREATMENT_MAPPING_CACHE = None
 
 
-def _load_treatment_mapping_sync() -> Dict[str, List[str]]:
+async def load_treatment_mapping() -> Dict[str, List[str]]:
     """
-    Synchronous function to load disease-to-treatment-title mapping from JSON file.
-    Used with asyncio.to_thread() for async context.
+    Load disease-to-treatment-title mapping from JSON file (async).
+    Cached to avoid repeated file I/O.
     
     Returns:
         Dict mapping disease names to list of treatment titles
@@ -37,23 +38,14 @@ def _load_treatment_mapping_sync() -> Dict[str, List[str]]:
     
     mapping_path = Path("data/raw/treatment_mapping.json")
     try:
-        with mapping_path.open("r", encoding="utf-8") as f:
-            _TREATMENT_MAPPING_CACHE = json.load(f)
+        async with aiofiles.open(mapping_path, "r", encoding="utf-8") as f:
+            content = await f.read()
+            _TREATMENT_MAPPING_CACHE = json.loads(content)
             logger.info(f"✅ Loaded treatment mapping: {len(_TREATMENT_MAPPING_CACHE)} diseases")
             return _TREATMENT_MAPPING_CACHE
     except Exception as e:
         logger.error(f"❌ Failed to load treatment mapping: {e}")
         return {}
-
-
-async def load_treatment_mapping() -> Dict[str, List[str]]:
-    """
-    Load disease-to-treatment-title mapping from JSON file (async wrapper).
-    
-    Returns:
-        Dict mapping disease names to list of treatment titles
-    """
-    return await asyncio.to_thread(_load_treatment_mapping_sync)
 
 
 def normalize_disease_name(name: str) -> str:
@@ -250,32 +242,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         encoded_query = encode_e5([f"query: {query}"])
         query_vector = encoded_query[0].tolist()
         
-        # Connect to Milvus - parse URI to get host and port
-        # MILVUS_URI format: http://milvus-standalone:19530
-        milvus_uri = rag_settings.MILVUS_URI
-        if "://" in milvus_uri:
-            # Parse host:port from URI
-            uri_parts = milvus_uri.split("://")[1]  # Get part after http://
-            if ":" in uri_parts:
-                host, port = uri_parts.split(":")
-            else:
-                host = uri_parts
-                port = "19530"
-        else:
-            # Direct host:port format
-            if ":" in milvus_uri:
-                host, port = milvus_uri.split(":")
-            else:
-                host = milvus_uri
-                port = "19530"
-        
-        connections.connect(
-            alias="default",
-            host=host,
-            port=port
-        )
-        
-        # Get collection and load
+        # Connect to Milvus collection
         col = Collection("mental_health_treatment_guidance")
         col.load()
         
@@ -283,10 +250,10 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         # Escape quotes in titles
         escaped_titles = [title.replace('"', '\\"').replace("'", "\\'") for title in all_treatment_titles]
         
-        # For Milvus IN expression, need to format as: disease in ["title1", "title2", ...]
-        # NOTE: Field name is "disease" in Milvus (stores treatment titles)
+        # For Milvus IN expression, need to format as: title in ["title1", "title2", ...]
+        # NOTE: Field name is "title" in Milvus, not "disease"
         title_list_str = ", ".join([f'"{title}"' for title in escaped_titles])
-        expr = f'disease in [{title_list_str}]'
+        expr = f'title in [{title_list_str}]'
         
         logger.info(f"🔍 Milvus filter: {len(escaped_titles)} exact titles")
         logger.debug(f"   First 3 titles: {list(all_treatment_titles)[:3]}")
@@ -307,8 +274,8 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
             anns_field="embedding",
             param=search_params,
             limit=limit,
-            expr=expr,  # Exact IN filter on "disease" field
-            output_fields=["node_id", "disease"]
+            expr=expr,  # Exact IN filter on "title" field
+            output_fields=["node_id", "title"]
         )
         
         # Extract results
@@ -324,8 +291,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         # Log which titles were retrieved
         retrieved_titles = set()
         for hit in hits:
-            # hit.entity has attributes, use getattr
-            title = getattr(hit.entity, 'disease', '')
+            title = hit.entity.get("title", "")  # Field name is "title" not "disease"
             if title:
                 retrieved_titles.add(title)
         logger.info(f"📊 Retrieved from {len(retrieved_titles)} unique titles:")
@@ -338,8 +304,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         
         file_path = Path("data/raw/mental_health_treatment_guidance.jsonl")
         if file_path.exists():
-            node_id_set = {getattr(hit.entity, 'node_id', None) for hit in hits}
-            node_id_set.discard(None)  # Remove None values if any
+            node_id_set = {hit.entity.get("node_id") for hit in hits}
             
             with file_path.open("r", encoding="utf-8") as f:
                 for line in f:

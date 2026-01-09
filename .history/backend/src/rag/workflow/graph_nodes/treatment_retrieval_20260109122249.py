@@ -5,12 +5,11 @@ Uses cosine similarity search with exact disease-to-title mapping
 """
 import json
 import logging
-import asyncio
 from pathlib import Path
 from typing import Dict, Any, List, Set
 from functools import lru_cache
 
-from pymilvus import Collection, connections
+from pymilvus import Collection
 
 from ..state import KGState
 from src.rag.config import rag_settings
@@ -22,10 +21,11 @@ logger = logging.getLogger(__name__)
 _TREATMENT_MAPPING_CACHE = None
 
 
-def _load_treatment_mapping_sync() -> Dict[str, List[str]]:
+@lru_cache(maxsize=1)
+def load_treatment_mapping() -> Dict[str, List[str]]:
     """
-    Synchronous function to load disease-to-treatment-title mapping from JSON file.
-    Used with asyncio.to_thread() for async context.
+    Load disease-to-treatment-title mapping from JSON file.
+    Cached to avoid repeated file I/O.
     
     Returns:
         Dict mapping disease names to list of treatment titles
@@ -46,106 +46,36 @@ def _load_treatment_mapping_sync() -> Dict[str, List[str]]:
         return {}
 
 
-async def load_treatment_mapping() -> Dict[str, List[str]]:
-    """
-    Load disease-to-treatment-title mapping from JSON file (async wrapper).
-    
-    Returns:
-        Dict mapping disease names to list of treatment titles
-    """
-    return await asyncio.to_thread(_load_treatment_mapping_sync)
-
-
-def normalize_disease_name(name: str) -> str:
-    """
-    Normalize disease name for better matching.
-    - Convert to lowercase
-    - Remove extra spaces
-    - Handle common variations (singular/plural, with/without hyphens)
-    """
-    normalized = name.lower().strip()
-    # Remove common suffixes/prefixes for core matching
-    normalized = normalized.replace('-related', '').replace(' related', '')
-    return normalized
-
-
 def find_treatment_titles(disease_name: str, mapping: Dict[str, List[str]]) -> List[str]:
     """
     Find treatment titles for a given disease using fuzzy matching.
     
     Strategy:
-    1. Abbreviation expansion (PTSD → Posttraumatic Stress Disorder)
-    2. Exact match (case-insensitive)
-    3. Singular/Plural variants (disorder vs disorders)
-    4. Partial match (disease name contains mapping key or vice versa)
-    5. Core keyword match (main disorder terms)
+    1. Exact match (case-insensitive)
+    2. Partial match (disease name contains mapping key or vice versa)
+    3. Keywords match (check if key disorders match)
     
     Args:
-        disease_name: Detected disease name (e.g., "Depressive Disorder")
+        disease_name: Detected disease name
         mapping: Disease-to-titles mapping dict
     
     Returns:
         List of treatment titles for the disease
     """
-    # Abbreviation mapping
-    ABBREVIATIONS = {
-        "ptsd": "Posttraumatic Stress Disorder",
-        "ocd": "Obsessive-Compulsive Disorder",
-        "adhd": "Attention-Deficit/Hyperactivity Disorder",
-        "gad": "Generalized Anxiety Disorder",
-        "sad": "Social Anxiety Disorder",
-        "mdd": "Major Depressive Disorder",
-        "bpd": "Borderline Personality Disorder",
-        "aspd": "Antisocial Personality Disorder",
-    }
-    
-    disease_lower = normalize_disease_name(disease_name)
-    
-    # Handle abbreviations
-    if disease_lower in ABBREVIATIONS:
-        expanded = ABBREVIATIONS[disease_lower]
-        logger.info(f"🔤 Abbreviation expansion: '{disease_name}' → '{expanded}'")
-        disease_name = expanded
-        disease_lower = normalize_disease_name(expanded)
+    disease_lower = disease_name.lower().strip()
     
     # Try exact match first
     for key in mapping.keys():
-        key_normalized = normalize_disease_name(key)
-        if key_normalized == disease_lower:
+        if key.lower() == disease_lower:
             logger.info(f"📋 Exact match: '{disease_name}' → '{key}' → {len(mapping[key])} titles")
             return mapping[key]
     
-    # Try singular/plural variants
-    # "Depressive Disorder" should match "Depressive Disorders"
-    # "Anxiety Disorders" should match "Anxiety Disorder"
-    disease_singular = disease_lower.rstrip('s') if disease_lower.endswith('disorders') else disease_lower
-    disease_plural = disease_lower + 's' if not disease_lower.endswith('s') else disease_lower
-    
+    # Try partial match (contains)
     for key in mapping.keys():
-        key_normalized = normalize_disease_name(key)
-        key_singular = key_normalized.rstrip('s') if key_normalized.endswith('disorders') else key_normalized
-        
-        # Check singular match
-        if disease_singular == key_singular or disease_singular == key_normalized or disease_lower == key_singular:
-            logger.info(f"📋 Singular/Plural match: '{disease_name}' → '{key}' → {len(mapping[key])} titles")
-            return mapping[key]
-    
-    # Try partial match (contains) - more lenient
-    for key in mapping.keys():
-        key_normalized = normalize_disease_name(key)
-        
-        # Check if disease name contains mapping key (or vice versa)
-        # "Major Depressive Disorder" contains "Depressive Disorder"
-        if key_normalized in disease_lower or disease_lower in key_normalized:
+        key_lower = key.lower()
+        # Check if disease name contains mapping key
+        if key_lower in disease_lower or disease_lower in key_lower:
             logger.info(f"📋 Partial match: '{disease_name}' → '{key}' → {len(mapping[key])} titles")
-            return mapping[key]
-        
-        # Also check with singular forms
-        key_singular = key_normalized.rstrip('s') if key_normalized.endswith('disorders') else key_normalized
-        disease_singular = disease_lower.rstrip('s') if disease_lower.endswith('disorders') else disease_lower
-        
-        if key_singular in disease_singular or disease_singular in key_singular:
-            logger.info(f"📋 Partial (singular) match: '{disease_name}' → '{key}' → {len(mapping[key])} titles")
             return mapping[key]
     
     # Try keyword-based matching (check main disorder words)
@@ -153,8 +83,7 @@ def find_treatment_titles(disease_name: str, mapping: Dict[str, List[str]]) -> L
     disorder_keywords = {
         'depression', 'depressive', 'anxiety', 'panic', 'ptsd', 'ocd', 
         'bipolar', 'schizophrenia', 'psychotic', 'eating', 'substance',
-        'autism', 'adhd', 'personality', 'trauma', 'stress', 'phobia',
-        'obsessive', 'compulsive', 'dissociative', 'somatic', 'sleep'
+        'autism', 'adhd', 'personality', 'trauma', 'stress'
     }
     
     disease_words = set(disease_lower.replace('-', ' ').replace('/', ' ').split())
@@ -163,15 +92,11 @@ def find_treatment_titles(disease_name: str, mapping: Dict[str, List[str]]) -> L
     if matching_keywords:
         for key in mapping.keys():
             key_words = set(key.lower().replace('-', ' ').replace('/', ' ').split())
-            key_keywords = key_words & disorder_keywords
-            
-            # Need at least one common disorder keyword
-            if matching_keywords & key_keywords:
-                logger.info(f"📋 Keyword match: '{disease_name}' → '{key}' (keywords: {matching_keywords & key_keywords}) → {len(mapping[key])} titles")
+            if matching_keywords & key_words:
+                logger.info(f"📋 Keyword match: '{disease_name}' → '{key}' (keywords: {matching_keywords}) → {len(mapping[key])} titles")
                 return mapping[key]
     
     logger.warning(f"⚠️ No mapping found for disease: '{disease_name}'")
-    logger.debug(f"   Tried variants: '{disease_lower}', singular: '{disease_singular}', plural: '{disease_plural}'")
     return []
 
 
@@ -214,8 +139,8 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
     logger.info(f"💊 Retrieving treatment guidance for {len(disease_list)} disease(s): {disease_list}")
     
     try:
-        # Load treatment mapping (async)
-        mapping = await load_treatment_mapping()
+        # Load treatment mapping
+        mapping = load_treatment_mapping()
         if not mapping:
             logger.error("❌ Treatment mapping is empty, cannot retrieve")
             state["treatment_chunks"] = []
@@ -250,32 +175,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         encoded_query = encode_e5([f"query: {query}"])
         query_vector = encoded_query[0].tolist()
         
-        # Connect to Milvus - parse URI to get host and port
-        # MILVUS_URI format: http://milvus-standalone:19530
-        milvus_uri = rag_settings.MILVUS_URI
-        if "://" in milvus_uri:
-            # Parse host:port from URI
-            uri_parts = milvus_uri.split("://")[1]  # Get part after http://
-            if ":" in uri_parts:
-                host, port = uri_parts.split(":")
-            else:
-                host = uri_parts
-                port = "19530"
-        else:
-            # Direct host:port format
-            if ":" in milvus_uri:
-                host, port = milvus_uri.split(":")
-            else:
-                host = milvus_uri
-                port = "19530"
-        
-        connections.connect(
-            alias="default",
-            host=host,
-            port=port
-        )
-        
-        # Get collection and load
+        # Connect to Milvus collection
         col = Collection("mental_health_treatment_guidance")
         col.load()
         
@@ -284,7 +184,6 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         escaped_titles = [title.replace('"', '\\"').replace("'", "\\'") for title in all_treatment_titles]
         
         # For Milvus IN expression, need to format as: disease in ["title1", "title2", ...]
-        # NOTE: Field name is "disease" in Milvus (stores treatment titles)
         title_list_str = ", ".join([f'"{title}"' for title in escaped_titles])
         expr = f'disease in [{title_list_str}]'
         
@@ -307,7 +206,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
             anns_field="embedding",
             param=search_params,
             limit=limit,
-            expr=expr,  # Exact IN filter on "disease" field
+            expr=expr,  # Exact IN filter
             output_fields=["node_id", "disease"]
         )
         
@@ -324,8 +223,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         # Log which titles were retrieved
         retrieved_titles = set()
         for hit in hits:
-            # hit.entity has attributes, use getattr
-            title = getattr(hit.entity, 'disease', '')
+            title = hit.entity.get("disease", "")
             if title:
                 retrieved_titles.add(title)
         logger.info(f"📊 Retrieved from {len(retrieved_titles)} unique titles:")
@@ -338,8 +236,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         
         file_path = Path("data/raw/mental_health_treatment_guidance.jsonl")
         if file_path.exists():
-            node_id_set = {getattr(hit.entity, 'node_id', None) for hit in hits}
-            node_id_set.discard(None)  # Remove None values if any
+            node_id_set = {hit.entity.get("node_id") for hit in hits}
             
             with file_path.open("r", encoding="utf-8") as f:
                 for line in f:

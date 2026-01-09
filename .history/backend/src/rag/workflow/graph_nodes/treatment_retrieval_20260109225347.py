@@ -250,29 +250,11 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         encoded_query = encode_e5([f"query: {query}"])
         query_vector = encoded_query[0].tolist()
         
-        # Connect to Milvus - parse URI to get host and port
-        # MILVUS_URI format: http://milvus-standalone:19530
-        milvus_uri = rag_settings.MILVUS_URI
-        if "://" in milvus_uri:
-            # Parse host:port from URI
-            uri_parts = milvus_uri.split("://")[1]  # Get part after http://
-            if ":" in uri_parts:
-                host, port = uri_parts.split(":")
-            else:
-                host = uri_parts
-                port = "19530"
-        else:
-            # Direct host:port format
-            if ":" in milvus_uri:
-                host, port = milvus_uri.split(":")
-            else:
-                host = milvus_uri
-                port = "19530"
-        
+        # Connect to Milvus
         connections.connect(
             alias="default",
-            host=host,
-            port=port
+            host=rag_settings.MILVUS_HOST,
+            port=rag_settings.MILVUS_PORT
         )
         
         # Get collection and load
@@ -324,8 +306,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         # Log which titles were retrieved
         retrieved_titles = set()
         for hit in hits:
-            # hit.entity has attributes, use getattr
-            title = getattr(hit.entity, 'disease', '')
+            title = hit.entity.get("disease", "")  # Field name is "disease" in Milvus
             if title:
                 retrieved_titles.add(title)
         logger.info(f"📊 Retrieved from {len(retrieved_titles)} unique titles:")
@@ -338,8 +319,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         
         file_path = Path("data/raw/mental_health_treatment_guidance.jsonl")
         if file_path.exists():
-            node_id_set = {getattr(hit.entity, 'node_id', None) for hit in hits}
-            node_id_set.discard(None)  # Remove None values if any
+            node_id_set = {hit.entity.get("node_id") for hit in hits}
             
             with file_path.open("r", encoding="utf-8") as f:
                 for line in f:

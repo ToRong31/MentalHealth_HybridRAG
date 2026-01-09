@@ -5,12 +5,11 @@ Uses cosine similarity search with exact disease-to-title mapping
 """
 import json
 import logging
-import asyncio
 from pathlib import Path
 from typing import Dict, Any, List, Set
 from functools import lru_cache
 
-from pymilvus import Collection, connections
+from pymilvus import Collection
 
 from ..state import KGState
 from src.rag.config import rag_settings
@@ -22,10 +21,11 @@ logger = logging.getLogger(__name__)
 _TREATMENT_MAPPING_CACHE = None
 
 
-def _load_treatment_mapping_sync() -> Dict[str, List[str]]:
+@lru_cache(maxsize=1)
+def load_treatment_mapping() -> Dict[str, List[str]]:
     """
-    Synchronous function to load disease-to-treatment-title mapping from JSON file.
-    Used with asyncio.to_thread() for async context.
+    Load disease-to-treatment-title mapping from JSON file.
+    Cached to avoid repeated file I/O.
     
     Returns:
         Dict mapping disease names to list of treatment titles
@@ -46,16 +46,6 @@ def _load_treatment_mapping_sync() -> Dict[str, List[str]]:
         return {}
 
 
-async def load_treatment_mapping() -> Dict[str, List[str]]:
-    """
-    Load disease-to-treatment-title mapping from JSON file (async wrapper).
-    
-    Returns:
-        Dict mapping disease names to list of treatment titles
-    """
-    return await asyncio.to_thread(_load_treatment_mapping_sync)
-
-
 def normalize_disease_name(name: str) -> str:
     """
     Normalize disease name for better matching.
@@ -74,11 +64,10 @@ def find_treatment_titles(disease_name: str, mapping: Dict[str, List[str]]) -> L
     Find treatment titles for a given disease using fuzzy matching.
     
     Strategy:
-    1. Abbreviation expansion (PTSD → Posttraumatic Stress Disorder)
-    2. Exact match (case-insensitive)
-    3. Singular/Plural variants (disorder vs disorders)
-    4. Partial match (disease name contains mapping key or vice versa)
-    5. Core keyword match (main disorder terms)
+    1. Exact match (case-insensitive)
+    2. Singular/Plural variants (disorder vs disorders)
+    3. Partial match (disease name contains mapping key or vice versa)
+    4. Core keyword match (main disorder terms)
     
     Args:
         disease_name: Detected disease name (e.g., "Depressive Disorder")
@@ -87,26 +76,7 @@ def find_treatment_titles(disease_name: str, mapping: Dict[str, List[str]]) -> L
     Returns:
         List of treatment titles for the disease
     """
-    # Abbreviation mapping
-    ABBREVIATIONS = {
-        "ptsd": "Posttraumatic Stress Disorder",
-        "ocd": "Obsessive-Compulsive Disorder",
-        "adhd": "Attention-Deficit/Hyperactivity Disorder",
-        "gad": "Generalized Anxiety Disorder",
-        "sad": "Social Anxiety Disorder",
-        "mdd": "Major Depressive Disorder",
-        "bpd": "Borderline Personality Disorder",
-        "aspd": "Antisocial Personality Disorder",
-    }
-    
     disease_lower = normalize_disease_name(disease_name)
-    
-    # Handle abbreviations
-    if disease_lower in ABBREVIATIONS:
-        expanded = ABBREVIATIONS[disease_lower]
-        logger.info(f"🔤 Abbreviation expansion: '{disease_name}' → '{expanded}'")
-        disease_name = expanded
-        disease_lower = normalize_disease_name(expanded)
     
     # Try exact match first
     for key in mapping.keys():
@@ -214,8 +184,8 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
     logger.info(f"💊 Retrieving treatment guidance for {len(disease_list)} disease(s): {disease_list}")
     
     try:
-        # Load treatment mapping (async)
-        mapping = await load_treatment_mapping()
+        # Load treatment mapping
+        mapping = load_treatment_mapping()
         if not mapping:
             logger.error("❌ Treatment mapping is empty, cannot retrieve")
             state["treatment_chunks"] = []
@@ -250,32 +220,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         encoded_query = encode_e5([f"query: {query}"])
         query_vector = encoded_query[0].tolist()
         
-        # Connect to Milvus - parse URI to get host and port
-        # MILVUS_URI format: http://milvus-standalone:19530
-        milvus_uri = rag_settings.MILVUS_URI
-        if "://" in milvus_uri:
-            # Parse host:port from URI
-            uri_parts = milvus_uri.split("://")[1]  # Get part after http://
-            if ":" in uri_parts:
-                host, port = uri_parts.split(":")
-            else:
-                host = uri_parts
-                port = "19530"
-        else:
-            # Direct host:port format
-            if ":" in milvus_uri:
-                host, port = milvus_uri.split(":")
-            else:
-                host = milvus_uri
-                port = "19530"
-        
-        connections.connect(
-            alias="default",
-            host=host,
-            port=port
-        )
-        
-        # Get collection and load
+        # Connect to Milvus collection
         col = Collection("mental_health_treatment_guidance")
         col.load()
         
@@ -284,7 +229,6 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         escaped_titles = [title.replace('"', '\\"').replace("'", "\\'") for title in all_treatment_titles]
         
         # For Milvus IN expression, need to format as: disease in ["title1", "title2", ...]
-        # NOTE: Field name is "disease" in Milvus (stores treatment titles)
         title_list_str = ", ".join([f'"{title}"' for title in escaped_titles])
         expr = f'disease in [{title_list_str}]'
         
@@ -307,7 +251,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
             anns_field="embedding",
             param=search_params,
             limit=limit,
-            expr=expr,  # Exact IN filter on "disease" field
+            expr=expr,  # Exact IN filter
             output_fields=["node_id", "disease"]
         )
         
@@ -324,8 +268,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         # Log which titles were retrieved
         retrieved_titles = set()
         for hit in hits:
-            # hit.entity has attributes, use getattr
-            title = getattr(hit.entity, 'disease', '')
+            title = hit.entity.get("disease", "")
             if title:
                 retrieved_titles.add(title)
         logger.info(f"📊 Retrieved from {len(retrieved_titles)} unique titles:")
@@ -338,8 +281,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         
         file_path = Path("data/raw/mental_health_treatment_guidance.jsonl")
         if file_path.exists():
-            node_id_set = {getattr(hit.entity, 'node_id', None) for hit in hits}
-            node_id_set.discard(None)  # Remove None values if any
+            node_id_set = {hit.entity.get("node_id") for hit in hits}
             
             with file_path.open("r", encoding="utf-8") as f:
                 for line in f:

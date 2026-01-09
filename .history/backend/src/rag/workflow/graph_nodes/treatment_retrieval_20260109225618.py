@@ -324,8 +324,8 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         # Log which titles were retrieved
         retrieved_titles = set()
         for hit in hits:
-            # hit.entity has attributes, use getattr
-            title = getattr(hit.entity, 'disease', '')
+            # hit.entity is a dict-like object, access with ['disease']
+            title = hit.entity['disease'] if 'disease' in hit.entity else ""
             if title:
                 retrieved_titles.add(title)
         logger.info(f"📊 Retrieved from {len(retrieved_titles)} unique titles:")
@@ -338,8 +338,7 @@ async def treatment_retrieval_node(state: KGState) -> KGState:
         
         file_path = Path("data/raw/mental_health_treatment_guidance.jsonl")
         if file_path.exists():
-            node_id_set = {getattr(hit.entity, 'node_id', None) for hit in hits}
-            node_id_set.discard(None)  # Remove None values if any
+            node_id_set = {hit.entity['node_id'] for hit in hits if 'node_id' in hit.entity}
             
             with file_path.open("r", encoding="utf-8") as f:
                 for line in f:
