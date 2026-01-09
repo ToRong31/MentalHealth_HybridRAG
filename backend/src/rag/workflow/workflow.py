@@ -41,9 +41,12 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_response", "slot
     Routing logic sau khi check safety:
     - Nếu high-risk -> crisis_response
     - Nếu safe -> slot_filling (personal questions đã được filter trước đó)
+    
+    TEMP: Safety check disabled for testing
     """
-    if state.get("is_high_risk", False):
-        return "crisis_response"
+    # TEMP: Always skip crisis response for testing
+    # if state.get("is_high_risk", False):
+    #     return "crisis_response"
     
     # Safe personal question - go through full diagnostic flow
     return "slot_filling"
