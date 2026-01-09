@@ -91,7 +91,6 @@ async def rewrite_query_with_slots(
             logger.info(f"💬 Buffer: Using last 3 of {len(conversation_buffer)} messages")
         if summary_context:
             logger.info(f"📋 Summary: {summary_context[:100]}...")
-        logger.info(f"🔧 Prompt template first 300 chars: {QUERY_REWRITE_TEMPLATE[:300]}...")
         # ========== END: QUERY REWRITE DEBUG LOG ==========
         
         # Call LLM to rewrite

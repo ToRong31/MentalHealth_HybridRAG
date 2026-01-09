@@ -15,24 +15,32 @@ def filter_follow_up_for_required_only(
     Filter follow-up questions to keep only those about REQUIRED_SLOTS.
     Used when REQUIRED slots are not yet sufficient.
     
-    Assumes follow_up_questions are in same order as relevant_missing_slots (1:1 mapping).
+    UPDATED LOGIC: 
+    - If we have REQUIRED missing slots, keep ALL follow-up questions
+    - The LLM already generated contextually appropriate questions
+    - We trust the LLM's judgment on what to ask
     
     Args:
-        follow_up_questions: All generated follow-up questions (ordered by slot)
-        relevant_missing_slots: All relevant missing slots (ordered)
+        follow_up_questions: All generated follow-up questions
+        relevant_missing_slots: All relevant missing slots
     
     Returns:
-        Filtered list of questions that correspond to REQUIRED slots only
+        All follow-up questions if ANY required slot is missing, otherwise empty list
     """
-    if not follow_up_questions or not relevant_missing_slots:
-        return follow_up_questions
+    if not follow_up_questions:
+        return []
+    
+    if not relevant_missing_slots:
+        return []
     
     required_set = set(REQUIRED_SLOTS)
     
-    # Filter questions based on whether corresponding slot is REQUIRED
-    filtered = []
-    for i, slot_name in enumerate(relevant_missing_slots):
-        if slot_name in required_set and i < len(follow_up_questions):
-            filtered.append(follow_up_questions[i])
+    # Check if ANY of the missing slots is REQUIRED
+    has_required_missing = any(slot in required_set for slot in relevant_missing_slots)
     
-    return filtered
+    if has_required_missing:
+        # Keep ALL questions - LLM already filtered them contextually
+        return follow_up_questions
+    else:
+        # All missing slots are optional - don't ask now
+        return []
