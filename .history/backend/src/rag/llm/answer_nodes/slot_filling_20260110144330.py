@@ -80,6 +80,14 @@ async def process_slot_filling(question: str, existing_slots: Dict[str, Any] = N
             missing_slots = result.get("missing_slots", [])
             relevant_missing_slots = result.get("relevant_missing_slots", [])
             follow_up_questions = result.get("follow_up_questions", [])
+            empathy_preamble_vi = result.get("empathy_preamble_vi", "")
+            
+            # ========== VALIDATION: Empathy preamble ==========
+            if not empathy_preamble_vi or empathy_preamble_vi.strip() == "":
+                logger.warning("⚠️ LLM didn't generate empathy_preamble_vi, using fallback")
+                # Will be handled by request_more_info_node fallback
+            elif "?" in empathy_preamble_vi:
+                logger.warning(f"⚠️ VALIDATION: empathy_preamble contains question mark: '{empathy_preamble_vi}'")
             
             # ========== VALIDATION: Enforce 1-3 questions limit ==========
             original_question_count = len(follow_up_questions)
@@ -184,7 +192,8 @@ async def process_slot_filling(question: str, existing_slots: Dict[str, Any] = N
                 "slots": slots,
                 "missing_slots": missing_slots,
                 "relevant_missing_slots": relevant_missing_slots,
-                "follow_up_questions": follow_up_questions
+                "follow_up_questions": follow_up_questions,
+                "empathy_preamble_vi": empathy_preamble_vi
             }
         else:
             logger.warning(f"Could not parse JSON from slot filling response: {response[:200]}")
@@ -192,7 +201,8 @@ async def process_slot_filling(question: str, existing_slots: Dict[str, Any] = N
                 "slots": get_default_slots(),
                 "missing_slots": [],
                 "relevant_missing_slots": [],
-                "follow_up_questions": []
+                "follow_up_questions": [],
+                "empathy_preamble_vi": ""
             }
             
     except json.JSONDecodeError as e:
@@ -201,7 +211,8 @@ async def process_slot_filling(question: str, existing_slots: Dict[str, Any] = N
             "slots": get_default_slots(),
             "missing_slots": [],
             "relevant_missing_slots": [],
-            "follow_up_questions": []
+            "follow_up_questions": [],
+            "empathy_preamble_vi": ""
         }
     except Exception as e:
         logger.error(f"Error in process_slot_filling: {e}", exc_info=True)
@@ -209,5 +220,6 @@ async def process_slot_filling(question: str, existing_slots: Dict[str, Any] = N
             "slots": get_default_slots(),
             "missing_slots": [],
             "relevant_missing_slots": [],
-            "follow_up_questions": []
+            "follow_up_questions": [],
+            "empathy_preamble_vi": ""
         }

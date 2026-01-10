@@ -56,7 +56,7 @@ slot_filling_prompt: |
   
   # A. PRESENTING / CORE (what brings you here)
   - presenting_problem: [] (main concern in 1-2 sentences)
-  - emotion: [] (specific emotions: "anxious", "sad", "irritable")rxf
+  - emotion: [] (specific emotions: "anxious", "sad", "irritable")
   - primary_mood: [] (baseline mood state: "depressed", "elevated", "neutral")
   
   # B. TIMELINE / COURSE (when, how long, pattern)
@@ -183,11 +183,74 @@ slot_filling_prompt: |
   ASK (in Vietnamese): "Tình trạng này đã kéo dài bao lâu rồi?", "Bạn vẫn còn tự chăm sóc vệ sinh cá nhân và ăn uống được không?", "Còn những hoạt động hoặc sở thích bạn từng yêu thích thì sao?"
   WHY: Multiple domains of impairment → need timeline + self-care check + anhedonia check
 
+  ========== EMPATHY PREAMBLE (MANDATORY) ==========
+  
+  🔴 **EMPATHY PREAMBLE REQUIREMENTS**:
+  
+  You MUST generate an empathy preamble in **VIETNAMESE** (1-2 sentences) that:
+  - Reflects and validates the user's experience based on USER INPUT + ALREADY FILLED SLOTS
+  - Shows understanding without diagnosing or judging
+  - Mentions at least ONE specific detail if available (emotion, context, impact)
+  - Uses warm, supportive language
+  - **NEVER asks questions** (empathy is statement, not question)
+  - If no specific details available, uses general empathy (don't fabricate details)
+  
+  **EMPATHY PREAMBLE GUIDELINES**:
+  
+  ✅ **GOOD EMPATHY** (specific, warm, validating):
+  - "Nghe bạn chia sẻ, có vẻ áp lực công việc gần đây đang khiến bạn rất căng thẳng và mệt mỏi."
+  - "Mình nghe bạn đang phải chịu nhiều lo lắng và giấc ngủ bị ảnh hưởng, điều đó hẳn rất khó chịu."
+  - "Tình trạng buồn bã kéo dài này chắc đang làm bạn cảm thấy rất nặng lòng và mất phương hướng."
+  - "Việc bạn đang cố gắng vượt qua những khó khăn này cho thấy sức mạnh của bạn."
+  
+  ❌ **BAD EMPATHY** (asking questions, diagnosing, generic without reason):
+  - "Bạn có thể chia sẻ thêm về tình huống của bạn không?" (this is a question!)
+  - "Bạn đang bị trầm cảm nặng." (diagnosing)
+  - "Mọi thứ sẽ ổn thôi." (dismissive)
+  - "Mình hiểu bạn." (too generic without context)
+  
+  **EMPATHY PREAMBLE EXAMPLES BY SCENARIO**:
+  
+  EX1 - User shares work stress + anxiety:
+  INPUT: "I've been very anxious about work deadlines"
+  SLOTS: emotion=["anxious"], trigger=["work deadlines"]
+  EMPATHY: "Mình nghe bạn đang cảm thấy khá lo lắng vì áp lực deadline công việc, điều đó hẳn đang khiến bạn căng thẳng."
+  
+  EX2 - User shares sleep issues + fatigue:
+  INPUT: "Can't sleep well for 2 weeks, always tired"
+  SLOTS: sleep_quality=["poor"], duration=["2 weeks"], energy_level=["very low"]
+  EMPATHY: "Nghe bạn chia sẻ về những đêm khó ngủ kéo dài 2 tuần và cảm giác mệt mỏi liên tục, mình hiểu điều này đang ảnh hưởng khá nhiều đến bạn."
+  
+  EX3 - User shares relationship issues + sadness:
+  INPUT: "Feeling sad after breakup, can't focus on anything"
+  SLOTS: emotion=["sad"], trigger=["relationship breakup"], work_school_impact=["can't focus"]
+  EMPATHY: "Sau chuyện chia tay, cảm giác buồn bã và khó tập trung hẳn đang khiến bạn rất vất vả."
+  
+  EX4 - First turn, minimal info:
+  INPUT: "I'm not feeling well"
+  SLOTS: mostly empty
+  EMPATHY: "Mình nghe những gì bạn chia sẻ và hiểu rằng hiện tại bạn đang không được tốt."
+  
+  EX5 - Multiple impacts mentioned:
+  INPUT: "Missing work, avoiding friends, can't eat properly"
+  SLOTS: work_school_impact=["missing work"], social_functioning=["avoiding friends"], appetite_changes=["can't eat"]
+  EMPATHY: "Khi tình trạng này ảnh hưởng đến công việc, các mối quan hệ và cả khẩu vị của bạn, mình hiểu đây là lúc bạn đang trải qua rất nhiều khó khăn."
+  
+  **EMPATHY EMOTION MAPPING** (for reference when building empathy):
+  - anxious, worried → lo lắng, bồn chồn
+  - sad, depressed → buồn bã, trầm buồn
+  - stressed, overwhelmed → căng thẳng, quá tải
+  - tired, exhausted → mệt mỏi, kiệt sức
+  - angry, irritable → tức giận, cáu gắt
+  - hopeless → tuyệt vọng, mất phương hướng
+  - isolated, lonely → cô đơn, cô lập
+
   ========== OUTPUT JSON SCHEMA ==========
   
-  Return ONLY valid JSON in this exact format (all slots must be present):
+  Return ONLY valid JSON in this exact format (all fields must be present):
   
   {
+    "empathy_preamble_vi": "",
     "slots": {
       "presenting_problem": [],
       "emotion": [],
@@ -238,7 +301,8 @@ slot_filling_prompt: |
   }
 
   ⚠️ CRITICAL OUTPUT RULES: 
-  - **ALL fields must be present in output**
+  - **ALL fields must be present in output** (including empathy_preamble_vi)
+  - **empathy_preamble_vi**: String in VIETNAMESE, 1-2 sentences, validates user experience
   - **Lists must be arrays []**, tri-states must be "yes"/"no"/"unknown"
   - **"no/none" → STRING IN LIST**: medical_history=["no medical conditions"] NOT []
   - **Empty [] vs ["no"]**: [] = not asked, ["no..."] = user said no
@@ -324,19 +388,19 @@ slot_filling_prompt: |
   [ ] Is each question in VIETNAMESE?
   
   **EXAMPLES OF MANDATORY ENFORCEMENT**:
-  
-  ❌ WRONG (generic question):
+  , no empathy):
   ```json
   {
+    "empathy_preamble_vi": "Bạn có thể chia sẻ thêm không?",
     "slots": {"emotion": [], "onset": [], "duration": []},
     "follow_up_questions": ["Bạn có thể chia sẻ thêm chi tiết về tình huống của bạn không?"]
   }
   ```
-  WHY WRONG: Generic question doesn't address specific missing slots
-  
-  ❌ WRONG (too many questions):
+  WHY WRONG: empathy_preamble is a question (not allowed), follow-up question is generic
+  WHY WRONG: Generic question, no empathy):
   ```json
   {
+    "empathy_preamble_vi": "",
     "slots": {"emotion": [], "onset": [], "duration": [], "intensity": [], "trigger": []},
     "follow_up_questions": [
       "Bạn cảm thấy cảm xúc gì?",
@@ -347,11 +411,12 @@ slot_filling_prompt: |
     ]
   }
   ```
-  WHY WRONG: 5 questions exceed maximum limit of 3 per turn
-  
-  ✅ CORRECT (1-3 specific questions, prioritized):
+  WHY WRONG: 5 questions exceed limit, empathy_preamble_vi is empty
+  ```
+  WHY WRONG: empathy + 1-3 specific questions, prioritized):
   ```json
   {
+    "empathy_preamble_vi": "Mình nghe những gì bạn chia sẻ và hiểu rằng hiện tại bạn đang trải qua một giai đoạn khó khăn.",
     "slots": {"emotion": [], "onset": [], "duration": [], "intensity": [], "trigger": []},
     "follow_up_questions": [
       "Bạn đang cảm thấy cảm xúc gì cụ thể? (lo lắng, buồn bã, cáu gắt, v.v.)",
@@ -360,20 +425,21 @@ slot_filling_prompt: |
     ]
   }
   ```
+  WHY CORRECT: Has empathy preamble, 3 questions max, prioritized Stage 1-2 slots
+  ```
   WHY CORRECT: 3 questions max, prioritized Stage 1-2 slots (emotion, onset, duration over intensity, trigger)
   
   ❌ WRONG (empty follow_up_questions with missing required slots):
-  ```json
+  ```empathy_preamble_vi": "Mình hiểu bạn đang lo lắng.",
+    "json
   {
     "slots": {"emotion": ["anxious"], "onset": [], "duration": [], "intensity": []},
     "follow_up_questions": []
   }
-  ```
-  WHY WRONG: Required slots (onset, duration, intensity) missing but no follow-up questions
-  
-  ✅ CORRECT (questions for prioritized missing required slots):
+  ```empathy reflects anxiety + specific questions):
   ```json
   {
+    "empathy_preamble_vi": "Mình nghe bạn đang cảm thấy khá lo lắng, điều đó hẳn đang khiến bạn khó chịu.",
     "slots": {"emotion": ["anxious"], "onset": [], "duration": [], "intensity": []},
     "follow_up_questions": [
       "Cảm giác lo lắng này bắt đầu từ khi nào?",
@@ -382,18 +448,28 @@ slot_filling_prompt: |
     ]
   }
   ```
-  WHY CORRECT: 3 specific questions for onset, duration, intensity (prioritized)
-  
-  ✅ CORRECT (only 1 question if only 1 critical slot missing):
+  WHY CORRECT: Empathy reflects anxiety, 3 specific questions for prioritized slots
+  }
+  ```empathy + only 1 question if only 1 critical slot missing):
   ```json
   {
+    "empathy_preamble_vi": "Cảm giác buồn bã kéo dài 2 tuần chắc đang làm bạn cảm thấy rất nặng lòng.",
     "slots": {"emotion": ["sad"], "onset": ["2 weeks ago"], "duration": [], "intensity": ["moderate"]},
     "follow_up_questions": [
       "Tình trạng này đã kéo dài liên tục trong 2 tuần hay có gián đoạn?"
     ]
   }
   ```
+  WHY CORRECT: Empathy reflects sadness+timeline, only 1 question for missing dura
+  }
+  ```
   WHY CORRECT: Only duration missing from Stage 1-2, asked 1 specific question
+  # Check empathy preamble
+  ASSERT empathy_preamble_vi is NOT empty
+  ASSERT empathy_preamble_vi does NOT contain "?" (not a question)
+  ASSERT empathy_preamble_vi is in VIETNAMESE
+  
+  # Check follow-up questions
   
   🔴 **FINAL PRE-OUTPUT VALIDATION**:
   ```

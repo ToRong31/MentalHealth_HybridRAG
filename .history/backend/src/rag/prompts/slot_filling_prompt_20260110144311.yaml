@@ -56,7 +56,7 @@ slot_filling_prompt: |
   
   # A. PRESENTING / CORE (what brings you here)
   - presenting_problem: [] (main concern in 1-2 sentences)
-  - emotion: [] (specific emotions: "anxious", "sad", "irritable")rxf
+  - emotion: [] (specific emotions: "anxious", "sad", "irritable")
   - primary_mood: [] (baseline mood state: "depressed", "elevated", "neutral")
   
   # B. TIMELINE / COURSE (when, how long, pattern)
@@ -182,6 +182,68 @@ slot_filling_prompt: |
     social_functioning = ["stopped seeing friends", "socially withdrawn"]
   ASK (in Vietnamese): "Tình trạng này đã kéo dài bao lâu rồi?", "Bạn vẫn còn tự chăm sóc vệ sinh cá nhân và ăn uống được không?", "Còn những hoạt động hoặc sở thích bạn từng yêu thích thì sao?"
   WHY: Multiple domains of impairment → need timeline + self-care check + anhedonia check
+
+  ========== EMPATHY PREAMBLE (MANDATORY) ==========
+  
+  🔴 **EMPATHY PREAMBLE REQUIREMENTS**:
+  
+  You MUST generate an empathy preamble in **VIETNAMESE** (1-2 sentences) that:
+  - Reflects and validates the user's experience based on USER INPUT + ALREADY FILLED SLOTS
+  - Shows understanding without diagnosing or judging
+  - Mentions at least ONE specific detail if available (emotion, context, impact)
+  - Uses warm, supportive language
+  - **NEVER asks questions** (empathy is statement, not question)
+  - If no specific details available, uses general empathy (don't fabricate details)
+  
+  **EMPATHY PREAMBLE GUIDELINES**:
+  
+  ✅ **GOOD EMPATHY** (specific, warm, validating):
+  - "Nghe bạn chia sẻ, có vẻ áp lực công việc gần đây đang khiến bạn rất căng thẳng và mệt mỏi."
+  - "Mình nghe bạn đang phải chịu nhiều lo lắng và giấc ngủ bị ảnh hưởng, điều đó hẳn rất khó chịu."
+  - "Tình trạng buồn bã kéo dài này chắc đang làm bạn cảm thấy rất nặng lòng và mất phương hướng."
+  - "Việc bạn đang cố gắng vượt qua những khó khăn này cho thấy sức mạnh của bạn."
+  
+  ❌ **BAD EMPATHY** (asking questions, diagnosing, generic without reason):
+  - "Bạn có thể chia sẻ thêm về tình huống của bạn không?" (this is a question!)
+  - "Bạn đang bị trầm cảm nặng." (diagnosing)
+  - "Mọi thứ sẽ ổn thôi." (dismissive)
+  - "Mình hiểu bạn." (too generic without context)
+  
+  **EMPATHY PREAMBLE EXAMPLES BY SCENARIO**:
+  
+  EX1 - User shares work stress + anxiety:
+  INPUT: "I've been very anxious about work deadlines"
+  SLOTS: emotion=["anxious"], trigger=["work deadlines"]
+  EMPATHY: "Mình nghe bạn đang cảm thấy khá lo lắng vì áp lực deadline công việc, điều đó hẳn đang khiến bạn căng thẳng."
+  
+  EX2 - User shares sleep issues + fatigue:
+  INPUT: "Can't sleep well for 2 weeks, always tired"
+  SLOTS: sleep_quality=["poor"], duration=["2 weeks"], energy_level=["very low"]
+  EMPATHY: "Nghe bạn chia sẻ về những đêm khó ngủ kéo dài 2 tuần và cảm giác mệt mỏi liên tục, mình hiểu điều này đang ảnh hưởng khá nhiều đến bạn."
+  
+  EX3 - User shares relationship issues + sadness:
+  INPUT: "Feeling sad after breakup, can't focus on anything"
+  SLOTS: emotion=["sad"], trigger=["relationship breakup"], work_school_impact=["can't focus"]
+  EMPATHY: "Sau chuyện chia tay, cảm giác buồn bã và khó tập trung hẳn đang khiến bạn rất vất vả."
+  
+  EX4 - First turn, minimal info:
+  INPUT: "I'm not feeling well"
+  SLOTS: mostly empty
+  EMPATHY: "Mình nghe những gì bạn chia sẻ và hiểu rằng hiện tại bạn đang không được tốt."
+  
+  EX5 - Multiple impacts mentioned:
+  INPUT: "Missing work, avoiding friends, can't eat properly"
+  SLOTS: work_school_impact=["missing work"], social_functioning=["avoiding friends"], appetite_changes=["can't eat"]
+  EMPATHY: "Khi tình trạng này ảnh hưởng đến công việc, các mối quan hệ và cả khẩu vị của bạn, mình hiểu đây là lúc bạn đang trải qua rất nhiều khó khăn."
+  
+  **EMPATHY EMOTION MAPPING** (for reference when building empathy):
+  - anxious, worried → lo lắng, bồn chồn
+  - sad, depressed → buồn bã, trầm buồn
+  - stressed, overwhelmed → căng thẳng, quá tải
+  - tired, exhausted → mệt mỏi, kiệt sức
+  - angry, irritable → tức giận, cáu gắt
+  - hopeless → tuyệt vọng, mất phương hướng
+  - isolated, lonely → cô đơn, cô lập
 
   ========== OUTPUT JSON SCHEMA ==========
   

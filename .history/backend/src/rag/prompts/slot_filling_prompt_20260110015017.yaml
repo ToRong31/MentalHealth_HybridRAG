@@ -43,12 +43,7 @@ slot_filling_prompt: |
   3. Exclusion criteria (substance, medical, medication changes, caffeine)
   4. Cross-cutting screens (mania, psychosis)
   5. Context & support
-  
-  🔴 **STRICT QUESTIONING LIMIT**: 
-  - **MAXIMUM 3 questions per turn** (absolutely no more than 3)
-  - **MINIMUM 1 question per turn** if any required slot is missing
-  - Prioritize the MOST CRITICAL missing slots first
-  - Never ask generic/vague questions
+  6. Ask 1-3 questions max per turn, following stage flow
 
   ========== SLOT DEFINITIONS (DSM-5 INTAKE STRUCTURE) ==========
   
@@ -56,7 +51,7 @@ slot_filling_prompt: |
   
   # A. PRESENTING / CORE (what brings you here)
   - presenting_problem: [] (main concern in 1-2 sentences)
-  - emotion: [] (specific emotions: "anxious", "sad", "irritable")rxf
+  - emotion: [] (specific emotions: "anxious", "sad", "irritable")
   - primary_mood: [] (baseline mood state: "depressed", "elevated", "neutral")
   
   # B. TIMELINE / COURSE (when, how long, pattern)
@@ -293,35 +288,17 @@ slot_filling_prompt: |
   
   **TOTAL: 25 REQUIRED SLOTS**
   
-  **MANDATORY QUESTIONING RULES**: 
-  
-  🔴 **RULE 1 - NEVER EMPTY FOLLOW_UP_QUESTIONS IF REQUIRED SLOTS MISSING**:
-  - If ANY required slot is empty ([]) or unknown → follow_up_questions MUST have at least 1 question
-  - If follow_up_questions is empty BUT required slots are missing → YOU FAILED THE TASK
-  
-  🔴 **RULE 2 - STRICT LIMIT: 1-3 QUESTIONS PER TURN**:
-  - **Minimum: 1 question** (if any required slot missing)
-  - **Maximum: 3 questions** (absolutely no more, even if many slots missing)
-  - Prioritize MOST CRITICAL missing slots (Stage 1-3 > Stage 4-5 > Stage 6-8)
-  
-  🔴 **RULE 3 - ALWAYS SPECIFIC, NEVER GENERIC**:
-  - ✅ CORRECT: "Tình trạng này bắt đầu từ khi nào? (số ngày/tuần/tháng)"
-  - ❌ WRONG: "Bạn có thể chia sẻ thêm chi tiết không?"
-  - ❌ WRONG: "Kể thêm về tình huống của bạn"
-  - Each question must target ONE specific slot
-  
-  🔴 **RULE 4 - PRIORITIZATION ORDER**:
-  1. STAGE 1-2 (Presenting + Timeline): onset, duration, emotion, presenting_problem
-  2. STAGE 3-4 (Severity + Functioning): intensity, distress_level, daily_functioning, work_school_impact
-  3. STAGE 5-6 (Context + Exclusion): trigger, substance_use_any, medical_history_any
-  4. STAGE 7-8 (Support + Screens): support_system, mania_like_symptoms
+  **MANDATORY RULE**: 
+  - ✅ **IF ANY REQUIRED SLOT IS MISSING** → You MUST generate specific follow-up questions for EACH missing required slot
+  - ✅ **NEVER GENERATE GENERIC QUESTIONS** like "Bạn có thể chia sẻ thêm chi tiết...", "Kể thêm về..."
+  - ✅ **ALWAYS ASK SPECIFIC TARGETED QUESTIONS** that directly address the missing slot
+  - ✅ **follow_up_questions array CANNOT be empty if ANY required slot is missing**
   
   **ENFORCEMENT CHECKLIST** (check before returning JSON):
-  [ ] Count missing required slots → Is count > 0?
-  [ ] If YES → Is follow_up_questions.length >= 1 AND <= 3?
-  [ ] Are ALL questions SPECIFIC to a missing slot (not generic)?
-  [ ] Did I prioritize Stage 1-3 slots over others?
-  [ ] Is each question in VIETNAMESE?
+  [ ] Are ALL required slots present in user input?
+  [ ] If NO → Did I generate specific questions for EACH missing required slot?
+  [ ] Are my questions SPECIFIC to the slot (not generic)?
+  [ ] Is follow_up_questions array non-empty?
   
   **EXAMPLES OF MANDATORY ENFORCEMENT**:
   
@@ -334,25 +311,10 @@ slot_filling_prompt: |
   ```
   WHY WRONG: Generic question doesn't address specific missing slots
   
-  ❌ WRONG (too many questions):
+  ✅ CORRECT (specific questions for each missing slot):
   ```json
   {
-    "slots": {"emotion": [], "onset": [], "duration": [], "intensity": [], "trigger": []},
-    "follow_up_questions": [
-      "Bạn cảm thấy cảm xúc gì?",
-      "Bắt đầu từ khi nào?",
-      "Kéo dài bao lâu?",
-      "Mức độ nghiêm trọng?",
-      "Nguyên nhân gì?"
-    ]
-  }
-  ```
-  WHY WRONG: 5 questions exceed maximum limit of 3 per turn
-  
-  ✅ CORRECT (1-3 specific questions, prioritized):
-  ```json
-  {
-    "slots": {"emotion": [], "onset": [], "duration": [], "intensity": [], "trigger": []},
+    "slots": {"emotion": [], "onset": [], "duration": []},
     "follow_up_questions": [
       "Bạn đang cảm thấy cảm xúc gì cụ thể? (lo lắng, buồn bã, cáu gắt, v.v.)",
       "Tình trạng này bắt đầu từ khi nào? (số ngày, tuần, tháng cụ thể)",
@@ -360,7 +322,7 @@ slot_filling_prompt: |
     ]
   }
   ```
-  WHY CORRECT: 3 questions max, prioritized Stage 1-2 slots (emotion, onset, duration over intensity, trigger)
+  WHY CORRECT: Each question targets a specific missing required slot
   
   ❌ WRONG (empty follow_up_questions with missing required slots):
   ```json
@@ -371,7 +333,7 @@ slot_filling_prompt: |
   ```
   WHY WRONG: Required slots (onset, duration, intensity) missing but no follow-up questions
   
-  ✅ CORRECT (questions for prioritized missing required slots):
+  ✅ CORRECT (questions for all missing required slots):
   ```json
   {
     "slots": {"emotion": ["anxious"], "onset": [], "duration": [], "intensity": []},
@@ -382,28 +344,9 @@ slot_filling_prompt: |
     ]
   }
   ```
-  WHY CORRECT: 3 specific questions for onset, duration, intensity (prioritized)
+  WHY CORRECT: Specific questions for onset, duration, intensity
   
-  ✅ CORRECT (only 1 question if only 1 critical slot missing):
-  ```json
-  {
-    "slots": {"emotion": ["sad"], "onset": ["2 weeks ago"], "duration": [], "intensity": ["moderate"]},
-    "follow_up_questions": [
-      "Tình trạng này đã kéo dài liên tục trong 2 tuần hay có gián đoạn?"
-    ]
-  }
-  ```
-  WHY CORRECT: Only duration missing from Stage 1-2, asked 1 specific question
-  
-  🔴 **FINAL PRE-OUTPUT VALIDATION**:
-  ```
-  missing_required_count = count(required_slots where value is [] or "unknown")
-  
-  IF missing_required_count > 0:
-      ASSERT len(follow_up_questions) >= 1
-      ASSERT len(follow_up_questions) <= 3
-      ASSERT all questions are SPECIFIC (not generic)
-      ASSERT questions target highest priority missing slots
-  ELSE:
-      follow_up_questions can be []
-  ```
+  🔴 **FINAL CHECK BEFORE OUTPUT**:
+  - Count missing required slots → If > 0 → follow_up_questions MUST have length ≥ missing count
+  - Each question must be SPECIFIC to a slot, NOT generic
+  - Questions in VIETNAMESE only

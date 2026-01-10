@@ -8,6 +8,60 @@ from typing import Dict, Any, List
 logger = logging.getLogger(__name__)
 
 
+# Emotion mapping: English -> Vietnamese
+EMOTION_MAPPING = {
+    "anxious": "lo lắng",
+    "sad": "buồn bã",
+    "stressed": "căng thẳng",
+    "depressed": "trầm cảm",
+    "angry": "tức giận",
+    "frustrated": "thất vọng",
+    "hopeless": "vô vọng",
+    "overwhelmed": "choáng ngợp",
+    "tired": "mệt mỏi",
+    "exhausted": "kiệt sức",
+    "worried": "lo lắng",
+    "nervous": "bồn chồn",
+    "fearful": "sợ hãi",
+    "panicked": "hoảng loạn",
+    "guilty": "tội lỗi",
+    "irritable": "cáu kỉnh",
+    "restless": "bồn chồn",
+    "lonely": "cô đơn",
+}
+
+
+def build_empathy_from_slots(slots: Dict[str, Any]) -> str:
+    """
+    Intelligent fallback: Build empathy preamble from existing slots
+    Follows user's specification from scenario
+    """
+    emotion = slots.get("emotion", "")
+    presenting_problem = slots.get("presenting_problem", "")
+    trigger = slots.get("trigger", "")
+    current_stressors = slots.get("current_stressors", "")
+    
+    # Map English emotion to Vietnamese
+    emotion_vi = ""
+    if emotion and emotion.lower() in EMOTION_MAPPING:
+        emotion_vi = EMOTION_MAPPING[emotion.lower()]
+    
+    # Case 1: Has emotion + (presenting_problem OR trigger OR current_stressors)
+    if emotion_vi and (presenting_problem or trigger or current_stressors):
+        return f"Mình nghe bạn đang cảm thấy {emotion_vi}, và những điều gần đây đang xảy ra có vẻ đã ảnh hưởng đến bạn khá nhiều."
+    
+    # Case 2: Has only emotion
+    if emotion_vi:
+        return f"Mình nghe bạn đang cảm thấy {emotion_vi}."
+    
+    # Case 3: Has presenting_problem or stressors but no emotion
+    if presenting_problem or trigger or current_stressors:
+        return "Mình nghe những gì bạn chia sẻ và hiểu rằng những điều gần đây đã ảnh hưởng đến bạn khá nhiều."
+    
+    # Case 4: Insufficient data - generic empathy (safe default)
+    return "Mình nghe những gì bạn chia sẻ và hiểu rằng điều này có thể đang khiến bạn khá nặng lòng."
+
+
 # Mapping: slot -> Vietnamese question (SPECIFIC, not generic)
 SLOT_QUESTIONS = {
     # Stage 1: Presenting (Initial Assessment)
@@ -124,6 +178,7 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
     - Minimum 1 question if required slots missing
     - Maximum 3 questions per turn
     - Questions must be SPECIFIC (not generic)
+    - Empathy-based preamble instead of generic opening
     
     Args:
         state: State dict with follow_up_questions (already filtered for REQUIRED), required_missing_slots
@@ -133,6 +188,8 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     follow_up_questions = state.get("follow_up_questions", [])
     required_missing = state.get("required_missing_slots", [])
+    slots = state.get("slots", {})
+    empathy_preamble_vi = state.get("empathy_preamble_vi", "")
     
     logger.info(f"Insufficient REQUIRED slots filled. Requesting more information.")
     logger.info(f"Missing REQUIRED slots: {required_missing[:10]}...")  # Show first 10
@@ -150,20 +207,28 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning(f"⚠️ Too many questions ({len(follow_up_questions)}), trimming to 3")
         follow_up_questions = follow_up_questions[:3]
     
+    # ========== EMPATHY PREAMBLE SELECTION ==========
+    # Priority: 1. LLM-generated → 2. Slot-based fallback → 3. Generic default
+    empathy = ""
+    if empathy_preamble_vi and empathy_preamble_vi.strip() and "?" not in empathy_preamble_vi:
+        # Use LLM-generated empathy (validated: not empty, no question marks)
+        empathy = empathy_preamble_vi.strip()
+        logger.info(f"✅ Using LLM-generated empathy: '{empathy[:50]}...'")
+    else:
+        # Fallback: Build from slots
+        empathy = build_empathy_from_slots(slots)
+        logger.info(f"🔄 Using slot-based fallback empathy: '{empathy[:50]}...'")
+    
     # Build response with follow-up questions
     if follow_up_questions:
-        # Natural Vietnamese response
+        # Natural Vietnamese response with empathy preamble
         if len(follow_up_questions) == 1:
             # Single question - more natural
-            answer = f"Để tôi có thể hỗ trợ bạn tốt hơn, bạn có thể chia sẻ:\n\n{follow_up_questions[0]}"
+            answer = f"{empathy}\n\nĐể mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:\n\n{follow_up_questions[0]}"
         else:
             # Multiple questions - numbered list
-            response_parts = [
-                "Để tôi có thể hỗ trợ bạn tốt hơn, bạn có thể chia sẻ thêm về:"
-            ]
-            for i, question in enumerate(follow_up_questions, 1):
-                response_parts.append(f"\n{i}. {question}")
-            answer = "".join(response_parts)
+            question_list = "\n".join([f"{i}. {q}" for i, q in enumerate(follow_up_questions, 1)])
+            answer = f"{empathy}\n\nĐể mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:\n\n{question_list}"
     else:
         # Final fallback (should rarely reach here)
         logger.error("❌ CRITICAL: No questions generated even after fallback!")

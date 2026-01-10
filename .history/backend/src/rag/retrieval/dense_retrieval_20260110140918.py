@@ -97,9 +97,9 @@ class DenseRetrieval(BaseRetrieval):
                 }
             )
 
-        # 3. Rerank bằng CohereReranker (ASYNC to avoid blocking)
+        # 3. Rerank bằng CohereReranker
         logger.info(f"[STEP 3] Reranking {len(candidates_dicts)} candidates with Cohere...")
-        reranked = await self.reranker.rerank_chunks(
+        reranked = self.reranker.rerank_chunks(
             query=query,
             candidates=candidates_dicts,
             top_k=top_k,

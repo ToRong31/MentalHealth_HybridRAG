@@ -56,7 +56,7 @@ slot_filling_prompt: |
   
   # A. PRESENTING / CORE (what brings you here)
   - presenting_problem: [] (main concern in 1-2 sentences)
-  - emotion: [] (specific emotions: "anxious", "sad", "irritable")rxf
+  - emotion: [] (specific emotions: "anxious", "sad", "irritable")
   - primary_mood: [] (baseline mood state: "depressed", "elevated", "neutral")
   
   # B. TIMELINE / COURSE (when, how long, pattern)
@@ -334,25 +334,10 @@ slot_filling_prompt: |
   ```
   WHY WRONG: Generic question doesn't address specific missing slots
   
-  ❌ WRONG (too many questions):
+  ✅ CORRECT (specific questions for each missing slot):
   ```json
   {
-    "slots": {"emotion": [], "onset": [], "duration": [], "intensity": [], "trigger": []},
-    "follow_up_questions": [
-      "Bạn cảm thấy cảm xúc gì?",
-      "Bắt đầu từ khi nào?",
-      "Kéo dài bao lâu?",
-      "Mức độ nghiêm trọng?",
-      "Nguyên nhân gì?"
-    ]
-  }
-  ```
-  WHY WRONG: 5 questions exceed maximum limit of 3 per turn
-  
-  ✅ CORRECT (1-3 specific questions, prioritized):
-  ```json
-  {
-    "slots": {"emotion": [], "onset": [], "duration": [], "intensity": [], "trigger": []},
+    "slots": {"emotion": [], "onset": [], "duration": []},
     "follow_up_questions": [
       "Bạn đang cảm thấy cảm xúc gì cụ thể? (lo lắng, buồn bã, cáu gắt, v.v.)",
       "Tình trạng này bắt đầu từ khi nào? (số ngày, tuần, tháng cụ thể)",
@@ -360,7 +345,7 @@ slot_filling_prompt: |
     ]
   }
   ```
-  WHY CORRECT: 3 questions max, prioritized Stage 1-2 slots (emotion, onset, duration over intensity, trigger)
+  WHY CORRECT: Each question targets a specific missing required slot
   
   ❌ WRONG (empty follow_up_questions with missing required slots):
   ```json
@@ -371,7 +356,7 @@ slot_filling_prompt: |
   ```
   WHY WRONG: Required slots (onset, duration, intensity) missing but no follow-up questions
   
-  ✅ CORRECT (questions for prioritized missing required slots):
+  ✅ CORRECT (questions for all missing required slots):
   ```json
   {
     "slots": {"emotion": ["anxious"], "onset": [], "duration": [], "intensity": []},
@@ -382,28 +367,9 @@ slot_filling_prompt: |
     ]
   }
   ```
-  WHY CORRECT: 3 specific questions for onset, duration, intensity (prioritized)
+  WHY CORRECT: Specific questions for onset, duration, intensity
   
-  ✅ CORRECT (only 1 question if only 1 critical slot missing):
-  ```json
-  {
-    "slots": {"emotion": ["sad"], "onset": ["2 weeks ago"], "duration": [], "intensity": ["moderate"]},
-    "follow_up_questions": [
-      "Tình trạng này đã kéo dài liên tục trong 2 tuần hay có gián đoạn?"
-    ]
-  }
-  ```
-  WHY CORRECT: Only duration missing from Stage 1-2, asked 1 specific question
-  
-  🔴 **FINAL PRE-OUTPUT VALIDATION**:
-  ```
-  missing_required_count = count(required_slots where value is [] or "unknown")
-  
-  IF missing_required_count > 0:
-      ASSERT len(follow_up_questions) >= 1
-      ASSERT len(follow_up_questions) <= 3
-      ASSERT all questions are SPECIFIC (not generic)
-      ASSERT questions target highest priority missing slots
-  ELSE:
-      follow_up_questions can be []
-  ```
+  🔴 **FINAL CHECK BEFORE OUTPUT**:
+  - Count missing required slots → If > 0 → follow_up_questions MUST have length ≥ missing count
+  - Each question must be SPECIFIC to a slot, NOT generic
+  - Questions in VIETNAMESE only

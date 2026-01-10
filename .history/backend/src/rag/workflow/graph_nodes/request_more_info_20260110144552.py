@@ -8,6 +8,60 @@ from typing import Dict, Any, List
 logger = logging.getLogger(__name__)
 
 
+# Emotion mapping: English -> Vietnamese
+EMOTION_MAPPING = {
+    "anxious": "lo lắng",
+    "sad": "buồn bã",
+    "stressed": "căng thẳng",
+    "depressed": "trầm cảm",
+    "angry": "tức giận",
+    "frustrated": "thất vọng",
+    "hopeless": "vô vọng",
+    "overwhelmed": "choáng ngợp",
+    "tired": "mệt mỏi",
+    "exhausted": "kiệt sức",
+    "worried": "lo lắng",
+    "nervous": "bồn chồn",
+    "fearful": "sợ hãi",
+    "panicked": "hoảng loạn",
+    "guilty": "tội lỗi",
+    "irritable": "cáu kỉnh",
+    "restless": "bồn chồn",
+    "lonely": "cô đơn",
+}
+
+
+def build_empathy_from_slots(slots: Dict[str, Any]) -> str:
+    """
+    Intelligent fallback: Build empathy preamble from existing slots
+    Follows user's specification from scenario
+    """
+    emotion = slots.get("emotion", "")
+    presenting_problem = slots.get("presenting_problem", "")
+    trigger = slots.get("trigger", "")
+    current_stressors = slots.get("current_stressors", "")
+    
+    # Map English emotion to Vietnamese
+    emotion_vi = ""
+    if emotion and emotion.lower() in EMOTION_MAPPING:
+        emotion_vi = EMOTION_MAPPING[emotion.lower()]
+    
+    # Case 1: Has emotion + (presenting_problem OR trigger OR current_stressors)
+    if emotion_vi and (presenting_problem or trigger or current_stressors):
+        return f"Mình nghe bạn đang cảm thấy {emotion_vi}, và những điều gần đây đang xảy ra có vẻ đã ảnh hưởng đến bạn khá nhiều."
+    
+    # Case 2: Has only emotion
+    if emotion_vi:
+        return f"Mình nghe bạn đang cảm thấy {emotion_vi}."
+    
+    # Case 3: Has presenting_problem or stressors but no emotion
+    if presenting_problem or trigger or current_stressors:
+        return "Mình nghe những gì bạn chia sẻ và hiểu rằng những điều gần đây đã ảnh hưởng đến bạn khá nhiều."
+    
+    # Case 4: Insufficient data - generic empathy (safe default)
+    return "Mình nghe những gì bạn chia sẻ và hiểu rằng điều này có thể đang khiến bạn khá nặng lòng."
+
+
 # Mapping: slot -> Vietnamese question (SPECIFIC, not generic)
 SLOT_QUESTIONS = {
     # Stage 1: Presenting (Initial Assessment)

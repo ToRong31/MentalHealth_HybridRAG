@@ -80,6 +80,14 @@ async def process_slot_filling(question: str, existing_slots: Dict[str, Any] = N
             missing_slots = result.get("missing_slots", [])
             relevant_missing_slots = result.get("relevant_missing_slots", [])
             follow_up_questions = result.get("follow_up_questions", [])
+            empathy_preamble_vi = result.get("empathy_preamble_vi", "")
+            
+            # ========== VALIDATION: Empathy preamble ==========
+            if not empathy_preamble_vi or empathy_preamble_vi.strip() == "":
+                logger.warning("⚠️ LLM didn't generate empathy_preamble_vi, using fallback")
+                # Will be handled by request_more_info_node fallback
+            elif "?" in empathy_preamble_vi:
+                logger.warning(f"⚠️ VALIDATION: empathy_preamble contains question mark: '{empathy_preamble_vi}'")
             
             # ========== VALIDATION: Enforce 1-3 questions limit ==========
             original_question_count = len(follow_up_questions)

@@ -56,7 +56,7 @@ slot_filling_prompt: |
   
   # A. PRESENTING / CORE (what brings you here)
   - presenting_problem: [] (main concern in 1-2 sentences)
-  - emotion: [] (specific emotions: "anxious", "sad", "irritable")rxf
+  - emotion: [] (specific emotions: "anxious", "sad", "irritable")
   - primary_mood: [] (baseline mood state: "depressed", "elevated", "neutral")
   
   # B. TIMELINE / COURSE (when, how long, pattern)
