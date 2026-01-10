@@ -119,12 +119,6 @@ async def disease_conclusion_node(state: KGState) -> KGState:
         if detected_disease:
             logger.info(f"✅ Disease conclusion: disease='{detected_disease}', confidence={confidence:.2f}")
             
-            # Translate disease name to Vietnamese if needed
-            disease_name_display = detected_disease
-            if language == "vi" or language == "vn":
-                disease_name_display = translate_disease_name(detected_disease)
-                logger.info(f"📝 Translated disease name: '{detected_disease}' -> '{disease_name_display}'")
-            
             # Save analysis results
             state["detected_disease"] = detected_disease
             state["diagnostic_confidence"] = confidence
@@ -151,7 +145,7 @@ async def disease_conclusion_node(state: KGState) -> KGState:
             if language == "vi" or language == "vn":
                 conclusion = f"""**Giải thích ngắn gọn về tình trạng của bạn:**
 
-{disease_description if disease_description else f"Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có dấu hiệu có thể mắc **{disease_name_display}**. Đây là một tình trạng y tế ảnh hưởng đến cảm xúc, suy nghĩ và hành vi của bạn."}
+{disease_description if disease_description else f"Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có dấu hiệu có thể mắc {detected_disease}. Đây là một tình trạng y tế ảnh hưởng đến cảm xúc, suy nghĩ và hành vi của bạn."}
 
 Các triệu chứng của bạn{f" như {reasoning}" if reasoning and not reasoning.startswith("Selected from") else ""} đều là những dấu hiệu điển hình của tình trạng này. Việc hiểu rằng đây là một vấn đề y tế sẽ giúp bạn gỡ bỏ gánh nặng tự trách móc và tập trung vào việc tìm kiếm giải pháp.
 
@@ -161,7 +155,7 @@ Bạn có muốn tôi gợi ý cho bạn một số cách chữa trị không?""
             else:
                 conclusion = f"""**Brief explanation about your condition:**
 
-{disease_description if disease_description else f"Based on the symptoms you described, I observe that you may show signs of possibly having **{detected_disease}**. This is a medical condition that affects your emotions, thoughts, and behavior."}
+{disease_description if disease_description else f"Based on the symptoms you described, I observe that you may show signs of possibly having {detected_disease}. This is a medical condition that affects your emotions, thoughts, and behavior."}
 
 Your symptoms{f" such as {reasoning}" if reasoning and not reasoning.startswith("Selected from") else ""} are all typical signs of this condition. Understanding that this is a medical issue will help you relieve the burden of self-blame and focus on finding solutions.
 

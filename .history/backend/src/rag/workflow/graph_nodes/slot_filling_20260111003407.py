@@ -4,8 +4,7 @@ Node wrapper for slot filling logic
 REDESIGNED: Uses DSM-5 stage-based intake flow
 """
 import logging
-import re
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from src.rag.llm.answer_nodes.slot_filling import process_slot_filling
 from src.rag.utils.slots import (
@@ -20,116 +19,6 @@ from src.rag.utils.slots import (
 from src.rag.utils.slot_utils import filter_follow_up_for_required_only
 
 logger = logging.getLogger(__name__)
-
-
-def _post_process_slot_extraction(slots: Dict[str, Any], conversation_buffer: List[Dict], current_question: str) -> Dict[str, Any]:
-    """
-    Post-processing to catch information LLM might have missed.
-    Uses regex and keyword matching to extract obvious patterns from conversation history.
-    
-    Args:
-        slots: Currently extracted slots
-        conversation_buffer: Full conversation history
-        current_question: Current user question
-        
-    Returns:
-        Updated slots with additional extracted information
-    """
-    # Build full conversation text
-    conversation_text = ""
-    for pair in conversation_buffer:
-        user_msg = pair.get('user', '')
-        bot_msg = pair.get('bot', '')
-        conversation_text += f"User: {user_msg}\n"
-        conversation_text += f"Bot: {bot_msg}\n"
-    conversation_text += f"User: {current_question}\n"
-    
-    conversation_lower = conversation_text.lower()
-    
-    # PATTERN 1: Medical history - "no medical conditions", "no underlying disease"
-    if is_empty_slot(slots.get("medical_history_any")) or slots.get("medical_history_any") == "unknown":
-        no_medical_patterns = [
-            r"no\s+(underlying\s+)?(medical\s+)?(conditions?|diseases?|illness)",
-            r"(don't|do not|doesn't)\s+have\s+any\s+(medical\s+)?(conditions?|diseases?)",
-            r"không\s+có\s+bệnh\s+nền",
-            r"không\s+mắc\s+bệnh"
-        ]
-        for pattern in no_medical_patterns:
-            if re.search(pattern, conversation_lower):
-                slots["medical_history_any"] = "no"
-                if is_empty_slot(slots.get("medical_history")):
-                    slots["medical_history"] = ["no medical conditions"]
-                logger.info(f"[POST-PROCESS] Detected medical_history_any='no' from pattern: {pattern}")
-                break
-    
-    # PATTERN 2: Substance use - "no stimulants", "don't use substances"
-    if is_empty_slot(slots.get("substance_use_any")) or slots.get("substance_use_any") == "unknown":
-        no_substance_patterns = [
-            r"(don't|do not|doesn't)\s+use\s+(any\s+)?(substances?|drugs?|stimulants?)",
-            r"no\s+(substance|drug|stimulant)\s+use",
-            r"không\s+dùng\s+(chất\s+)?(kích\s+thích|ma\s+túy)",
-            r"không\s+sử\s+dụng\s+chất"
-        ]
-        for pattern in no_substance_patterns:
-            if re.search(pattern, conversation_lower):
-                slots["substance_use_any"] = "no"
-                if is_empty_slot(slots.get("substance_use")):
-                    slots["substance_use"] = ["no substance use"]
-                logger.info(f"[POST-PROCESS] Detected substance_use_any='no' from pattern: {pattern}")
-                break
-    
-    # PATTERN 3: Caffeine/nicotine - "no stimulants", "don't drink coffee"
-    if is_empty_slot(slots.get("caffeine_nicotine_use")):
-        no_caffeine_patterns = [
-            r"(don't|do not)\s+(drink|use)\s+(coffee|caffeine)",
-            r"no\s+(caffeine|coffee|nicotine)",
-            r"không\s+(uống\s+)?(cà\s+phê|cafe)",
-            r"không\s+dùng\s+chất\s+kích\s+thích"
-        ]
-        for pattern in no_caffeine_patterns:
-            if re.search(pattern, conversation_lower):
-                if is_empty_slot(slots.get("caffeine_nicotine_use")):
-                    slots["caffeine_nicotine_use"] = ["no caffeine/nicotine use"]
-                logger.info(f"[POST-PROCESS] Detected caffeine_nicotine_use='no' from pattern: {pattern}")
-                break
-    
-    # PATTERN 4: Frequency - "every day", "daily", "all day"
-    if is_empty_slot(slots.get("frequency")):
-        frequency_patterns = [
-            (r"(every\s+day|daily|each\s+day)", "daily"),
-            (r"(all\s+day|entire\s+day|whole\s+day)", "all day"),
-            (r"hàng\s+ngày", "daily"),
-            (r"(gần\s+như|suốt)\s+(cả\s+ngày|ngày)", "almost all day"),
-            (r"liên\s+tục", "continuous")
-        ]
-        for pattern, value in frequency_patterns:
-            if re.search(pattern, conversation_lower):
-                if is_empty_slot(slots.get("frequency")):
-                    slots["frequency"] = [value]
-                logger.info(f"[POST-PROCESS] Detected frequency='{value}' from pattern: {pattern}")
-                break
-    
-    # PATTERN 5: Self-care functioning - "struggle to shower", "lazy to eat", "weight loss"
-    if is_empty_slot(slots.get("self_care_functioning")):
-        self_care_issues = []
-        
-        hygiene_patterns = [
-            (r"(struggle|hard|difficult)\s+to\s+(shower|bathe|wash)", "difficulty with hygiene - struggle to shower"),
-            (r"(đấu\s+tranh|khó\s+khăn)\s+(mới\s+)?(tắm|vệ\s+sinh)", "difficulty with hygiene - struggle to shower"),
-            (r"(lazy|hard)\s+to\s+(chew|eat)", "difficulty with eating - lazy to chew"),
-            (r"lười\s+(nhai|ăn)", "difficulty with eating - lazy to chew"),
-            (r"(weight\s+loss|losing\s+weight|sụt\s+cân)", "weight loss")
-        ]
-        
-        for pattern, description in hygiene_patterns:
-            if re.search(pattern, conversation_lower):
-                self_care_issues.append(description)
-                logger.info(f"[POST-PROCESS] Detected self_care issue: {description}")
-        
-        if self_care_issues:
-            slots["self_care_functioning"] = self_care_issues
-    
-    return slots
 
 
 async def slot_filling_node(state: Dict[str, Any]) -> Dict[str, Any]:

@@ -97,56 +97,21 @@ SLOT_QUESTIONS = {
 def generate_questions_from_slots(missing_slots: List[str], max_questions: int = 3) -> List[str]:
     """
     Generate natural follow-up questions from missing REQUIRED slots.
-    Used as fallback when LLM fails to generate questions.
-    
-    STRICT RULES:
-    - Maximum 3 questions per turn
-    - Questions must be SPECIFIC to the missing slot
-    - Prioritize Stage 1-3 slots over others
+    Fallback when LLM doesn't generate questions.
     
     Args:
-        missing_slots: List of missing required slot names
-        max_questions: Maximum number of questions to generate (default 3)
-    
+        missing_slots: List of missing slot names
+        max_questions: Maximum questions to return
+        
     Returns:
-        List of Vietnamese questions to ask (max 3)
+        List of Vietnamese follow-up questions
     """
-    # Prioritization: Stage 1-2 (presenting, timeline) > Stage 3-4 (severity, functioning) > Stage 5-8
-    PRIORITY_ORDER = [
-        # Stage 1-2: Most critical
-        "emotion", "presenting_problem", "primary_mood",
-        "onset", "duration", "frequency",
-        # Stage 3: Severity
-        "intensity", "distress_level", "stress_level",
-        # Stage 4: Functioning
-        "daily_functioning", "work_school_impact", "social_functioning",
-        # Stage 5: Context
-        "trigger", "current_stressors", "recent_life_events",
-        # Stage 6-8: Exclusion & screens
-        "substance_use_any", "medical_history_any", "medication_changes",
-        "support_system", "coping_mechanisms",
-        "mania_like_symptoms", "psychotic_like_symptoms",
-    ]
-    
-    # Sort missing slots by priority
-    prioritized_slots = []
-    for slot in PRIORITY_ORDER:
-        if slot in missing_slots:
-            prioritized_slots.append(slot)
-    
-    # Add remaining slots not in priority list
-    for slot in missing_slots:
-        if slot not in prioritized_slots:
-            prioritized_slots.append(slot)
-    
-    # Generate questions for top N slots
     questions = []
-    for slot in prioritized_slots[:max_questions]:
+    for slot in missing_slots:
         if slot in SLOT_QUESTIONS:
             questions.append(SLOT_QUESTIONS[slot])
-        else:
-            # Fallback if slot not in mapping
-            logger.warning(f"⚠️ No question template for slot: {slot}")
+        if len(questions) >= max_questions:
+            break
     
     # If still no questions, use generic Stage 1-2 questions
     if not questions:
@@ -216,6 +181,57 @@ def filter_redundant_questions(questions: List[str], slots: Dict[str, Any]) -> L
             logger.info(f"   → Removed redundant question")
     
     return filtered
+    
+    STRICT RULES:
+    - Maximum 3 questions per turn
+    - Questions must be SPECIFIC to the missing slot
+    - Prioritize Stage 1-3 slots over others
+    
+    Args:
+        missing_slots: List of missing required slot names
+        max_questions: Maximum number of questions to generate (default 3)
+    
+    Returns:
+        List of Vietnamese questions to ask (max 3)
+    """
+    # Prioritization: Stage 1-2 (presenting, timeline) > Stage 3-4 (severity, functioning) > Stage 5-8
+    PRIORITY_ORDER = [
+        # Stage 1-2: Most critical
+        "emotion", "presenting_problem", "primary_mood",
+        "onset", "duration", "frequency",
+        # Stage 3: Severity
+        "intensity", "distress_level", "stress_level",
+        # Stage 4: Functioning
+        "daily_functioning", "work_school_impact", "social_functioning",
+        # Stage 5: Context
+        "trigger", "current_stressors", "recent_life_events",
+        # Stage 6-8: Exclusion & screens
+        "substance_use_any", "medical_history_any", "medication_changes",
+        "support_system", "coping_mechanisms",
+        "mania_like_symptoms", "psychotic_like_symptoms",
+    ]
+    
+    # Sort missing slots by priority
+    prioritized_slots = []
+    for slot in PRIORITY_ORDER:
+        if slot in missing_slots:
+            prioritized_slots.append(slot)
+    
+    # Add remaining slots not in priority list
+    for slot in missing_slots:
+        if slot not in prioritized_slots:
+            prioritized_slots.append(slot)
+    
+    # Generate questions for top N slots
+    questions = []
+    for slot in prioritized_slots[:max_questions]:
+        if slot in SLOT_QUESTIONS:
+            questions.append(SLOT_QUESTIONS[slot])
+        else:
+            # Fallback if slot not in mapping
+            logger.warning(f"⚠️ No question template for slot: {slot}")
+    
+    return questions
 
 
 def build_empathy_from_slots(slots: Dict[str, Any]) -> str:
