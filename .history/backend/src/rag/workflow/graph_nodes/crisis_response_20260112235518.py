@@ -389,13 +389,9 @@ async def crisis_to_normal_transition_node(state: Dict[str, Any]) -> Dict[str, A
 • Số này luôn sẵn sàng 24/7, không cần ngại ngùng
 
 Bây giờ, bạn có muốn nói về điều gì không? Tôi có thể giúp bạn với:
-
 • Cách đối phó với căng thẳng
-
 • Kỹ thuật thư giãn  
-
 • Thông tin về các vấn đề tâm lý
-
 • Hoặc bất cứ điều gì bạn cần"""
     
     state["answer"] = message
