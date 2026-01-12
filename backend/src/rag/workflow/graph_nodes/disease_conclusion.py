@@ -7,7 +7,7 @@ import asyncio
 from typing import Dict, Any, List
 
 from ..state import KGState
-from src.rag.llm.answer_nodes.disease_conclusion import analyze_disease
+from src.rag.llm.answer_nodes.disease_conclusion import analyze_disease, evaluate_all_diseases
 from src.rag.utils.disease_translation import translate_disease_name
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def verify_diseases_with_context(
     summary_context: str
 ) -> tuple[str, float, str, str, str, str]:
     """
-    Verify which disease from retrieved list matches the conversation context
+    Evaluate ALL diseases from retrieval and return the best match with highest confidence
     
     Args:
         diagnostic_diseases: List of diseases from retrieval
@@ -35,8 +35,9 @@ def verify_diseases_with_context(
     Returns:
         Tuple of (selected_disease, confidence, reasoning, description, symptoms, causes)
     """
-    # Use LLM to analyze conversation and select most appropriate disease
-    detected_disease, confidence, reasoning, disease_description, disease_symptoms, disease_causes = analyze_disease(
+    # Use LLM to evaluate ALL diseases and pick the best match
+    detected_disease, confidence, reasoning, disease_description, disease_symptoms, disease_causes = evaluate_all_diseases(
+        diagnostic_diseases,
         diagnostic_chunks,
         rewritten_query,
         slots,
@@ -44,27 +45,9 @@ def verify_diseases_with_context(
         summary_context
     )
     
-    # Verify that LLM's disease is in the retrieved list
-    if detected_disease:
-        # Try exact match first
-        if detected_disease in diagnostic_diseases:
-            logger.info(f"✅ LLM selected disease '{detected_disease}' matches retrieved diseases")
-            return detected_disease, confidence, reasoning, disease_description, disease_symptoms, disease_causes
-        
-        # Try partial match (in case of formatting differences)
-        for disease in diagnostic_diseases:
-            if detected_disease.lower() in disease.lower() or disease.lower() in detected_disease.lower():
-                logger.info(f"✅ LLM disease '{detected_disease}' matched to '{disease}'")
-                return disease, confidence, reasoning, disease_description, disease_symptoms, disease_causes
-        
-        # LLM picked a disease not in retrieval - use top retrieved disease instead
-        logger.warning(f"⚠️ LLM selected '{detected_disease}' not in retrieval list. Using top retrieved disease.")
+    logger.info(f"🎯 LLM evaluated all diseases and selected: '{detected_disease}' with confidence={confidence:.2f}")
     
-    # Fallback to top retrieved disease if LLM didn't find valid disease
-    if diagnostic_diseases:
-        return diagnostic_diseases[0], 0.7, f"Selected from retrieved diseases: {', '.join(diagnostic_diseases)}", "", "", ""
-    
-    return "", 0.0, "No disease detected", "", "", ""
+    return detected_disease, confidence, reasoning, disease_description, disease_symptoms, disease_causes
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +102,18 @@ async def disease_conclusion_node(state: KGState) -> KGState:
         if detected_disease:
             logger.info(f"✅ Disease conclusion: disease='{detected_disease}', confidence={confidence:.2f}")
             
+            # Extract chunks related to detected disease for LLM to generate conclusion
+            detected_disease_chunk = ""
+            if diagnostic_chunks and detected_disease:
+                # Try to find chunks mentioning the detected disease
+                chunks_list = diagnostic_chunks.split("\n---\n")
+                relevant_chunks = [chunk for chunk in chunks_list if detected_disease.lower() in chunk.lower()]
+                if relevant_chunks:
+                    detected_disease_chunk = "\n---\n".join(relevant_chunks[:3])  # Top 3 relevant chunks
+                else:
+                    # Fallback to first few chunks if no exact match
+                    detected_disease_chunk = "\n---\n".join(chunks_list[:3])
+            
             # Save analysis results
             state["detected_disease"] = detected_disease
             state["diagnostic_confidence"] = confidence
@@ -126,9 +121,10 @@ async def disease_conclusion_node(state: KGState) -> KGState:
             state["disease_description"] = disease_description
             state["disease_symptoms"] = disease_symptoms
             state["disease_causes"] = disease_causes
+            state["detected_disease_chunk"] = detected_disease_chunk  # Save relevant chunks
             
-            # Only conclude disease if confidence > 0.8
-            if confidence > 0.8:
+            # Only conclude disease if confidence > 0.75
+            if confidence > 0.75:
                 # Translate disease name to Vietnamese if needed
                 disease_name_display = detected_disease
                 if language == "vi" or language == "vn":
@@ -146,35 +142,80 @@ async def disease_conclusion_node(state: KGState) -> KGState:
                 else:
                     logger.info(f"ℹ️ Disease '{detected_disease}' already in disease_detected list")
                 
-                # Generate conclusion message with personalized explanation
+                # Generate conclusion message using LLM
                 if language == "vi" or language == "vn":
-                    conclusion = f"""**Giải thích ngắn gọn về tình trạng của bạn:**
-
-{disease_description if disease_description else f"Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có dấu hiệu có thể mắc **{disease_name_display}**. Đây là một tình trạng y tế ảnh hưởng đến cảm xúc, suy nghĩ và hành vi của bạn."}
-
-Các triệu chứng của bạn{f" như {reasoning}" if reasoning and not reasoning.startswith("Selected from") else ""} đều là những dấu hiệu điển hình của tình trạng này. Việc hiểu rằng đây là một vấn đề y tế sẽ giúp bạn gỡ bỏ gánh nặng tự trách móc và tập trung vào việc tìm kiếm giải pháp.
-
----
-
-**Lưu ý:** Đây chỉ là đánh giá sơ bộ dựa trên thông tin bạn cung cấp, không thay thế cho chẩn đoán y tế chuyên nghiệp.
-
-Bạn có muốn tôi gợi ý cho bạn một số cách chữa trị không?"""
+                    disease_name_display = translate_disease_name(detected_disease)
+                    logger.info(f"📝 Translated disease name: '{detected_disease}' -> '{disease_name_display}'")
                 else:
-                    conclusion = f"""**Brief explanation about your condition:**
+                    disease_name_display = detected_disease
+                
+                # Extract brief user symptoms from reasoning
+                brief_symptoms = ""
+                if reasoning and len(reasoning) > 50:
+                    import re
+                    symptom_match = re.search(r'reports?:?\s*(.+?)(?:\.|This matches|Duration|Among)', reasoning, re.IGNORECASE | re.DOTALL)
+                    if symptom_match:
+                        brief_symptoms = symptom_match.group(1).strip()[:300]
+                
+                # Call LLM to generate personalized conclusion
+                try:
+                    from src.rag.prompts.loader import load_prompts
+                    from src.rag.llm.llm_gemini import llm
+                    
+                    prompt_templates = load_prompts("conclusion_diagnostic.yaml")
+                    system_prompt = prompt_templates.get("system", "")
+                    user_prompt_template = prompt_templates.get("user", "")
+                    
+                    user_prompt = user_prompt_template.format(
+                        disease_name=disease_name_display,
+                        disease_chunks=detected_disease_chunk[:1500],  # Limit chunk size
+                        disease_description=disease_description or "No description available",
+                        user_symptoms=brief_symptoms or disease_symptoms[:300] if disease_symptoms else "Various symptoms",
+                        reasoning=reasoning[:500] if reasoning else "",  # Brief reasoning
+                        language="tiếng Việt" if language in ["vi", "vn"] else "English"
+                    )
+                    
+                    full_prompt = f"{system_prompt}\n\n{user_prompt}"
+                    
+                    logger.info("🤖 Calling LLM to generate conclusion message...")
+                    conclusion = llm.invoke(full_prompt, max_retries=2)
+                    
+                    # Clean up response
+                    conclusion = conclusion.strip()
+                    if conclusion.startswith("```"):
+                        conclusion = conclusion.split("```", 2)[1] if "```" in conclusion else conclusion
+                    
+                    logger.info(f"✅ LLM generated conclusion (length: {len(conclusion)} chars)")
+                    
+                except Exception as e:
+                    logger.error(f"⚠️ Error generating LLM conclusion: {e}, using fallback template")
+                    # Fallback to simple template if LLM fails
+                    if language == "vi" or language == "vn":
+                        conclusion = f"""**Tình trạng của bạn: {disease_name_display}**
 
-{disease_description if disease_description else f"Based on the symptoms you described, I observe that you may show signs of possibly having **{detected_disease}**. This is a medical condition that affects your emotions, thoughts, and behavior."}
+{disease_description if disease_description else f"Bạn có dấu hiệu của {disease_name_display}."}
 
-Your symptoms{f" such as {reasoning}" if reasoning and not reasoning.startswith("Selected from") else ""} are all typical signs of this condition. Understanding that this is a medical issue will help you relieve the burden of self-blame and focus on finding solutions.
+Đây là một vấn đề y tế có thể điều trị. Việc hiểu rằng đây là vấn đề y tế sẽ giúp bạn tập trung vào giải pháp.
 
-**Note:** This is only a preliminary assessment based on the information you provided, and does not replace professional medical diagnosis.
+**Lưu ý:** Đây là đánh giá sơ bộ, không thay thế chẩn đoán y tế chuyên nghiệp.
+
+Bạn có muốn tôi gợi ý một số cách chữa trị không?"""
+                    else:
+                        conclusion = f"""**Your Condition: {detected_disease}**
+
+{disease_description if disease_description else f"You show signs of {detected_disease}."}
+
+This is a treatable medical condition. Understanding this is a medical issue will help you focus on solutions.
+
+**Note:** This is a preliminary assessment, not a replacement for professional diagnosis.
 
 Would you like me to suggest some treatment options?"""
                 
                 state["answer"] = conclusion
                 state["awaiting_treatment_confirmation"] = True
             else:
-                # Confidence <= 0.8: fallback to graph retrieve
-                logger.info(f"⚠️ Confidence too low ({confidence:.2f}), will fallback to graph retrieve")
+                # Confidence <= 0.75: fallback to graph retrieve
+                logger.info(f"⚠️ Confidence too low ({confidence:.2f} <= 0.75), will fallback to graph retrieve")
                 state["answer"] = ""  # Clear answer to trigger graph retrieve
         else:
             logger.warning("⚠️ No disease confirmed from verification")

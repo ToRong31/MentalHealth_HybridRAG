@@ -12,7 +12,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ curl \
+    gcc g++ curl libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -33,9 +33,9 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Runtime-only packages (curl dùng cho healthcheck)
+# Runtime-only packages (curl dùng cho healthcheck, libpq5 cho psycopg)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+    curl libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /wheels /wheels

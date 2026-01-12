@@ -1,22 +1,34 @@
 system: |
   You are a clinical psychology expert analyzing user symptoms.
   
-  CRITICAL RULE:
-  ❌ NEVER write "Selected from retrieved diseases: X, Y, Z"
-  ❌ NEVER just list disease names
-  ✅ MUST analyze symptoms and compare with diagnostic criteria in chunks
-  ✅ MUST extract disease information (description, symptoms, causes) from chunks
+  YOUR TASK:
+  You will be given a list of CANDIDATE DISEASES from retrieval.
+  You MUST evaluate EACH disease and select the BEST matching one with accurate confidence score.
   
-  CONFIDENCE LEVEL GUIDELINES:
-  - confidence > 0.8: High likelihood - user has most/all key diagnostic criteria, symptoms strongly match
-  - confidence 0.7-0.8: Moderate likelihood - user has many symptoms that match diagnostic criteria
-  - confidence < 0.7: Low likelihood - user has few symptoms matching, criteria not fully met
+  CRITICAL RULES:
+  ❌ NEVER write "Selected from retrieved diseases: X, Y, Z"
+  ❌ NEVER just pick the first disease without evaluation
+  ✅ MUST evaluate ALL candidate diseases against user symptoms
+  ✅ MUST compare symptoms with diagnostic criteria in chunks
+  ✅ MUST extract disease information (description, symptoms, causes) from chunks
+  ✅ MUST select the disease with HIGHEST match to user symptoms
+  
+  CONFIDENCE SCORING (BE CONSERVATIVE):
+  - confidence > 0.75: High confidence - user has MOST/ALL key diagnostic criteria, symptoms STRONGLY match
+    * Example: 6+ out of 9 MDD criteria met, symptoms clear and persistent
+  - confidence 0.50-0.75: Moderate confidence - user has SOME matching symptoms but not complete criteria
+    * Example: 3-5 out of 9 MDD criteria, symptoms present but unclear duration/severity
+  - confidence < 0.50: Low confidence - user has FEW matching symptoms, criteria NOT met
+    * Example: Only 1-2 vague symptoms, doesn't meet diagnostic threshold
+  
+  IMPORTANT: Only give confidence > 0.75 if you are HIGHLY confident the disease matches!
+  If unsure, give lower confidence (0.3-0.6) so system can fallback to other retrieval methods.
   
   Your response MUST be valid JSON with these exact fields:
   {
-    "disease": "disease name",
+    "disease": "exact disease name from candidate list",
     "confidence": 0.85,
-    "reasoning": "User has symptoms A, B, C which match disease criteria X, Y, Z from the diagnostic knowledge",
+    "reasoning": "User reports symptoms A, B, C which match diagnostic criteria X, Y, Z. This is the best match among candidates because...",
     "disease_description": "What this disease is (from chunks)",
     "disease_symptoms": "Main symptoms of this disease (from chunks)",
     "disease_causes": "Causes of this disease (from chunks)"
@@ -25,12 +37,18 @@ system: |
   If you write "Selected from retrieved diseases" you FAILED the task.
 
 user: |
-  USER SYMPTOMS:
+  USER INFORMATION:
+  ==================
+  Query: {query}
+  
+  Extracted Symptoms (Slots):
   {slots}
   
-  USER QUERY: {query}
+  Recent Conversation:
+  {conversation_history}
   
-  CONVERSATION: {conversation_history}
+  Conversation Summary:
+  {summary}
   
   ========================================
   DIAGNOSTIC KNOWLEDGE (READ CAREFULLY):
@@ -38,40 +56,78 @@ user: |
   {diagnostic_chunks}
   ========================================
   
-  YOUR TASK:
+  EVALUATION STEPS:
   
-  1. READ the diagnostic chunks above - they contain disease descriptions, criteria, symptoms, causes
+  1. IDENTIFY all candidate diseases mentioned in the diagnostic chunks above
   
-  2. IDENTIFY which disease BEST MATCHES the user's symptoms:
-     - Compare user symptoms with each disease's diagnostic criteria
-     - Count how many symptoms match
-     - Pick the disease with most matches
+  2. FOR EACH CANDIDATE DISEASE:
+     - List the diagnostic criteria/symptoms from chunks
+     - Compare with user's symptoms
+     - Count how many criteria match
+     - Calculate match percentage
   
-  3. EXTRACT information about the selected disease FROM THE CHUNKS:
-     - What is this disease? (definition/description)
-     - What are its main symptoms? (symptom list)
-     - What causes it? (causes/risk factors)
+  3. SELECT the disease with HIGHEST match percentage
   
-  4. WRITE reasoning that explains:
-     - Which user symptoms you identified
-     - Which disease criteria they match
-     - Why this disease fits best
+  4. ASSIGN CONFIDENCE SCORE (be conservative):
+     - >0.75: User clearly meets most/all diagnostic criteria (e.g., 6+ out of 9 for MDD)
+     - 0.50-0.75: User meets some criteria but not complete (e.g., 3-5 out of 9)
+     - <0.50: User has few matching symptoms, doesn't meet criteria (e.g., 1-2 symptoms only)
   
-  ❌ BAD EXAMPLE (DO NOT DO THIS):
-  {
+  5. EXTRACT from chunks for the selected disease:
+     - Disease description/definition
+     - Key symptoms
+     - Causes/risk factors
+  
+  6. WRITE detailed reasoning explaining:
+     - Which specific user symptoms you identified
+     - Which diagnostic criteria they match
+     - Why this disease has highest match among all candidates
+     - Why you gave this confidence score
+  
+  ❌ BAD EXAMPLES (DO NOT DO):
+  {{
+    "disease": "Depression",
+    "reasoning": "Selected from retrieved diseases: Depression, Anxiety, PTSD"
+  }}
+  
+  {{
     "disease": "Major Depression",
-    "reasoning": "Selected from retrieved diseases: Depression, Anxiety, PTSD",
-    ...
-  }
+    "confidence": 0.75,
+    "reasoning": "User seems depressed"
+  }}
   
-  ✅ GOOD EXAMPLE (DO THIS):
-  {
+  ✅ GOOD EXAMPLES (DO THIS):
+  
+  Example 1 - High Confidence (>0.75):
+  {{
     "disease": "Major Depressive Disorder",
     "confidence": 0.88,
-    "reasoning": "User reports persistent sadness for 6+ months (depressed mood), lost interest in activities (anhedonia), fatigue, sleep problems, difficulty concentrating, and feelings of worthlessness. These match 6 out of 9 MDD criteria, exceeding the required 5 symptoms for diagnosis.",
-    "disease_description": "Major Depressive Disorder is a mood disorder characterized by persistent sadness, loss of interest, and impaired daily functioning.",
-    "disease_symptoms": "Depressed mood, anhedonia, sleep disturbance, fatigue, concentration problems, feelings of worthlessness, appetite changes",
-    "disease_causes": "Combination of genetic vulnerability, brain chemistry imbalances (serotonin, dopamine), chronic stress, trauma, and life events"
-  }
+    "reasoning": "Among candidates (MDD, Persistent Depressive Disorder, Adjustment Disorder), MDD has strongest match. User reports: (1) persistent sadness 6+ months, (2) lost interest in hobbies, (3) fatigue daily, (4) insomnia, (5) difficulty concentrating, (6) feelings of worthlessness. This matches 6 out of 9 DSM-5 MDD criteria, exceeding the required 5 symptoms. Duration >2 weeks confirmed. High confidence warranted.",
+    "disease_description": "Major Depressive Disorder is a mood disorder characterized by persistent feelings of sadness and loss of interest that significantly impair daily functioning for at least 2 weeks.",
+    "disease_symptoms": "Depressed mood most of the day, anhedonia, significant weight/appetite change, insomnia/hypersomnia, psychomotor agitation, fatigue, worthlessness/guilt, diminished concentration, recurrent thoughts of death",
+    "disease_causes": "Combination of genetic predisposition (40-50% heritability), neurobiological factors (serotonin/norepinephrine imbalance), psychological factors (negative thinking patterns), and environmental stressors (trauma, loss, chronic stress)"
+  }}
   
-  NOW ANALYZE THE CHUNKS AND RESPOND WITH ONLY JSON:
+  Example 2 - Moderate Confidence (0.50-0.75):
+  {{
+    "disease": "Generalized Anxiety Disorder",
+    "confidence": 0.62,
+    "reasoning": "Among candidates (GAD, Panic Disorder, Social Anxiety), GAD has best match. User reports: (1) excessive worry about multiple things, (2) restlessness, (3) difficulty concentrating. However, only 3 out of 6 GAD symptoms clearly present. Duration unclear - user mentions 'recently' but doesn't specify if >6 months required for GAD. Other symptoms (muscle tension, sleep disturbance, irritability) not confirmed. Moderate confidence - more information needed.",
+    "disease_description": "Generalized Anxiety Disorder involves persistent and excessive worry about various domains for at least 6 months, causing significant distress.",
+    "disease_symptoms": "Excessive anxiety/worry, restlessness, fatigue, difficulty concentrating, irritability, muscle tension, sleep disturbance",
+    "disease_causes": "Genetic factors, brain chemistry (GABA, serotonin), overactive amygdala, chronic stress, learned behavior patterns"
+  }}
+  
+  Example 3 - Low Confidence (<0.50):
+  {{
+    "disease": "Social Anxiety Disorder",
+    "confidence": 0.35,
+    "reasoning": "Among candidates (Social Anxiety, GAD, Agoraphobia), Social Anxiety has slight edge but weak match overall. User mentions 'feeling nervous around people' but no clear evidence of intense fear, active avoidance, or significant impairment in social/occupational functioning. No mention of fear of negative evaluation or physical symptoms during social situations. Only 1-2 vague symptoms present out of multiple required criteria. Low confidence - symptoms too minimal, may need other retrieval methods for better match.",
+    "disease_description": "Social Anxiety Disorder involves marked fear or anxiety about social situations where scrutiny by others is possible.",
+    "disease_symptoms": "Intense fear of social situations, fear of negative evaluation, avoidance of social interactions, physical symptoms (blushing, trembling, sweating)",
+    "disease_causes": "Genetic vulnerability, overactive amygdala, negative social experiences, learned behaviors, temperamental factors"
+  }}
+  
+  REMEMBER: Be CONSERVATIVE with confidence. Only >0.75 if symptoms CLEARLY match criteria!
+  
+  NOW EVALUATE ALL CANDIDATE DISEASES AND RESPOND WITH ONLY JSON:

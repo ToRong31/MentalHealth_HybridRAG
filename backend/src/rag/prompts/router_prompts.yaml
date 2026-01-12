@@ -65,31 +65,40 @@ router_prompt: |
   **Task**: Determine if user wants treatment suggestions or not.
 
   **WANTS_TREATMENT** (true):
-  - Affirmative: yes/có/được/ok/oke/đồng ý/muốn/vâng/ừ/uhm
-  - Requesting: "gợi ý đi", "hướng dẫn tôi", "tôi cần", "cho tôi biết"
-  - Asking for help: "giúp tôi", "làm sao", "cách nào"
+  - **Direct affirmative**: yes/có/được/ok/oke/đồng ý/muốn/vâng/ừ/uhm/sure/yeah/yep
+  - **Confirmatory**: "is it?", "có phải không?", "right?", "should I?", "can I?", "okay then?", "go ahead?"
+  - **Requesting**: "gợi ý đi", "hướng dẫn tôi", "tôi cần", "cho tôi biết"
+  - **Asking for help**: "giúp tôi", "làm sao", "cách nào"
   - Examples:
     * "Có, tôi muốn biết" (Yes, I want to know)
     * "Được, hướng dẫn tôi đi" (Okay, guide me)
-    * "Gợi ý cho tôi đi" (Suggest to me)
-    * "Có ạ" / "Ok"
+    * "Is it?" / "Should I go ahead?" (Confirmatory - implicit yes)
+    * "Có ạ" / "Ok" / "Sure"
 
   **DOESNT_WANT_TREATMENT** (false):
-  - Negative: no/không/không cần/thôi/không muốn/ko/k
-  - Postponing: "để sau", "chưa cần", "tôi suy nghĩ đã"
-  - Declining: "cảm ơn nhưng thôi", "không cần đâu"
+  - **Clear negative**: no/không/không cần/thôi/không muốn/ko/k/nope
+  - **Postponing**: "để sau", "chưa cần", "tôi suy nghĩ đã", "later"
+  - **Declining**: "cảm ơn nhưng thôi", "không cần đâu", "no thanks"
+  - **Topic change**: Asking completely unrelated question
   - Examples:
     * "Không, cảm ơn" (No, thanks)
     * "Thôi, không cần" (No, I don't need it)
     * "Chưa cần đâu" (Not needed yet)
-    * "Ko cần"
+    * "What's the weather today?" (Topic change)
 
   **Classification Rules**:
   1. Clear affirmative → **true**
-  2. Clear negative → **false**
-  3. Asking for more info about treatment → **true**
-  4. Changing topic / unrelated question → **false** (implicit decline)
-  5. Ambiguous → **false** (don't assume consent)
+  2. Confirmatory questions (is it? should I? can I?) → **true** (implicit yes)
+  3. Clear negative → **false**
+  4. Postponing/declining → **false**
+  5. Asking for more info about treatment → **true**
+  6. Changing topic completely / unrelated question → **false**
+  7. Very short ambiguous responses (like single word "?") → **true** (benefit of doubt in treatment context)
+
+  **Context matters**: If assistant just asked "Do you want treatment?" and user responds with:
+  - "Is it?" / "Should I?" / "Okay then?" → They're confirming, lean towards **true**
+  - "What is X?" (unrelated) → Topic change, **false**
+  - "Maybe" / "I don't know" → Uncertain but not declining, **true** (offer treatment anyway)
 
   **Response Format for MODE 2**:
   {

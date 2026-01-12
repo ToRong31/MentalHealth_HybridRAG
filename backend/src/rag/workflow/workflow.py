@@ -327,14 +327,14 @@ def route_after_disease_conclusion(state: KGState) -> Literal["treatment_retriev
     detected_disease = state.get("detected_disease", "")
     diagnostic_confidence = state.get("diagnostic_confidence", 0.0)
     
-    if detected_disease and diagnostic_confidence > 0.8:
+    if detected_disease and diagnostic_confidence > 0.75:
         # Disease detected with high confidence - ask for treatment confirmation
         logger.info(f"[ROUTING] Disease detected: '{detected_disease}' (confidence={diagnostic_confidence:.2f}) -> Ask treatment confirmation -> conversation_memory -> END")
         return "conversation_memory"
     else:
         # No disease or low confidence - fallback to graph
         if detected_disease:
-            logger.info(f"[ROUTING] Disease detected but low confidence ({diagnostic_confidence:.2f}) -> graph_retrieval")
+            logger.info(f"[ROUTING] Disease detected but low confidence ({diagnostic_confidence:.2f} <= 0.75) -> graph_retrieval")
         else:
             logger.info("[ROUTING] No disease detected -> graph_retrieval")
         return "graph_retrieval"

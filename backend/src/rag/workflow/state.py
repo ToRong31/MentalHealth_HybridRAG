@@ -53,6 +53,7 @@ class KGState(TypedDict):
     disease_symptoms: Optional[str]  # Main symptoms of the disease (from chunks)
     disease_causes: Optional[str]  # Causes/triggers of the disease (from chunks)
     disease_detected: Optional[List[str]]  # List of confirmed diseases (when confidence high enough)
+    detected_disease_chunk: Optional[str]  # Relevant chunks for the detected disease (for LLM conclusion generation)
 
     theoretical_chunks: Optional[str]  # Chunks from theoretical retrieval
     theoretical_metadata: Optional[Dict[str, Any]]  # Metadata from theoretical retrieval

@@ -60,10 +60,10 @@ def apply_severity_boost(item: Dict[str, Any], query_severity: str) -> float:
     """
     Apply severity-based boost/penalty to item's cohere_score.
     
-    Logic:
-    - Mild query: Boost items with score 1-3, penalize items with score 4-5
+    Logic (Option 2 - Increased multipliers):
+    - Mild query: Boost items with score 1-3 (×1.5), penalize items with score 4-5 (×0.6)
     - Moderate query: Neutral (no boost/penalty)
-    - Severe query: Boost items with score 4-5, don't penalize items with score 1-3 (neutral)
+    - Severe query: Boost items with score 4-5 (×1.5), don't penalize items with score 1-3 (neutral)
     
     Args:
         item: Item dict with original_score and cohere_score
@@ -84,21 +84,24 @@ def apply_severity_boost(item: Dict[str, Any], query_severity: str) -> float:
         return cohere_score
     
     # Apply boost/penalty based on severity match
+    # Option 2: Increased multipliers to widen gap between adjustment and diagnose
+    # Boost: 1.2x → 1.5x (50% increase instead of 20%)
+    # Penalty: 0.7x → 0.6x (40% decrease instead of 30%)
     if query_severity == "mild":
         # Mild query: prefer lower scores (1-3), penalize higher scores (4-5)
         if original_score <= 3:
-            # Boost: multiply by 1.2 (up to 20% increase)
-            return min(cohere_score * 1.2, 1.0)  # Cap at 1.0
+            # Boost: multiply by 1.5 (50% increase)
+            return min(cohere_score * 1.5, 1.0)  # Cap at 1.0
         elif original_score >= 4:
-            # Penalize: multiply by 0.7 (30% decrease)
-            return cohere_score * 0.7
+            # Penalize: multiply by 0.6 (40% decrease)
+            return cohere_score * 0.6
     
     elif query_severity == "severe":
         # Severe query: prefer higher scores (4-5), don't penalize lower scores (1-3)
         # Reason: If only score 3.0 items are matched, penalizing them would make score too low
         if original_score >= 4:
-            # Boost: multiply by 1.2 (up to 20% increase)
-            return min(cohere_score * 1.2, 1.0)  # Cap at 1.0
+            # Boost: multiply by 1.5 (50% increase)
+            return min(cohere_score * 1.5, 1.0)  # Cap at 1.0
         elif original_score <= 3:
             # Don't penalize: keep original weight (neutral)
             # This allows score 3.0 items to contribute normally if score 5.0 items are not matched
