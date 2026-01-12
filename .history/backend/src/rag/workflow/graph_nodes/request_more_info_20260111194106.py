@@ -359,13 +359,13 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
             answer = (
                 f"{final_empathy}\n\n"
                 f"**Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:**\n\n"
-                f"▸ {follow_up_questions[0]}\n"
+                f"▸ {follow_up_questions[0]}"
             )
         else:
             # Multiple questions format with numbered list markdown
             answer = f"{final_empathy}\n\n**Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm:**\n\n"
             for i, question in enumerate(follow_up_questions, 1):
-                answer += f"{i}. {question}\n\n"
+                answer += f"{i}. {question}\n"
     else:
         # Final fallback (should rarely reach here)
         logger.error("❌ CRITICAL: No questions generated even after fallback!")

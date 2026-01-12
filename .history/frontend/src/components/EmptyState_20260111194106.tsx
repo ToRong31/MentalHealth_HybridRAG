@@ -22,9 +22,9 @@ export function EmptyState({ onNewChat }: EmptyStateProps) {
     },
     {
       icon: Coffee,
-      title: 'Đồng hành chia sẻ',
-      description: 'Ngày hôm nay của bạn thế nào',
-      prompt: 'Tâm trang của tôi hôm nay hơi tệ',
+      title: 'Chăm sóc bản thân',
+      description: 'Lời khuyên về lối sống lành mạnh',
+      prompt: 'Gợi ý thói quen tốt cho tinh thần',
       gradient: 'from-amber-500/10 to-orange-500/10'
     }
   ];

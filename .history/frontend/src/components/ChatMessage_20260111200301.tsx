@@ -22,15 +22,6 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.sender === 'user';
-  
-  // Debug: log message to check if markdown is being received
-  if (!isUser) {
-    console.log('[ChatMessage] Bot message:', {
-      sender: message.sender,
-      hasMarkdown: message.content.includes('**'),
-      contentPreview: message.content.substring(0, 100)
-    });
-  }
 
   const formatTime = (dateString: string) => {
     if (!dateString) return '';

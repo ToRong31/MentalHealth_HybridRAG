@@ -355,24 +355,27 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # ========== BUILD FINAL ANSWER WITH EMPATHY ==========
     if follow_up_questions:
         if len(follow_up_questions) == 1:
-            # Single question format with markdown
+            # Single question format
             answer = (
                 f"{final_empathy}\n\n"
-                f"**Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:**\n\n"
-                f"▸ {follow_up_questions[0]}\n"
+                f"Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:\n\n"
+                f"{follow_up_questions[0]}"
             )
         else:
-            # Multiple questions format with numbered list markdown
-            answer = f"{final_empathy}\n\n**Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm:**\n\n"
+            # Multiple questions format (2-3)
+            answer = (
+                f"{final_empathy}\n\n"
+                f"Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:"
+            )
             for i, question in enumerate(follow_up_questions, 1):
-                answer += f"{i}. {question}\n\n"
+                answer += f"\n{i}. {question}"
     else:
         # Final fallback (should rarely reach here)
         logger.error("❌ CRITICAL: No questions generated even after fallback!")
         answer = (
             f"{final_empathy}\n\n"
-            f"**Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm về:**\n\n"
-            f"1. Tình trạng này bắt đầu từ khi nào? (số ngày/tuần/tháng)\n"
+            f"Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm về:\n"
+            f"1. Tình trạng này bắt đầu từ khi nào?\n"
             f"2. Đã kéo dài bao lâu rồi?\n"
             f"3. Mức độ nghiêm trọng ra sao?"
         )

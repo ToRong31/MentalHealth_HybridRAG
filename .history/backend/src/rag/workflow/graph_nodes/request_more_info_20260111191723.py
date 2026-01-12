@@ -175,21 +175,22 @@ def filter_redundant_questions(questions: List[str], slots: Dict[str, Any]) -> L
     
     filtered = []
     
-    # Build mapping of keywords to slots
+    # Build mapping of SPECIFIC keywords to slots (avoid overlap)
+    # Use multi-word phrases for better precision
     slot_keywords = {
-        "self_care_functioning": ["ăn uống", "vệ sinh", "tắm", "chăm sóc", "ăn", "tắm rửa"],
-        "medical_history_any": ["bệnh nền", "tiền sử", "bệnh lý", "bệnh"],
-        "medical_history": ["bệnh nền", "tiền sử", "bệnh lý"],
-        "substance_use_any": ["chất kích thích", "ma túy", "rượu", "thuốc"],
-        "substance_use": ["chất kích thích", "ma túy", "rượu"],
-        "caffeine_nicotine_use": ["cà phê", "cafe", "thuốc lá", "hút thuốc"],
-        "frequency": ["tần suất", "bao lâu", "mỗi ngày", "hàng ngày"],
-        "onset": ["bắt đầu", "từ khi nào"],
-        "duration": ["kéo dài", "đã bao lâu"],
-        "intensity": ["mức độ", "nghiêm trọng"],
-        "work_school_impact": ["công việc", "học tập", "làm việc"],
-        "daily_functioning": ["hoạt động hàng ngày", "sinh hoạt"],
-        "social_functioning": ["quan hệ", "bạn bè", "xã hội"],
+        "self_care_functioning": ["tự chăm sóc", "vệ sinh cá nhân", "tắm rửa", "ăn uống đầy đủ"],
+        "medical_history_any": ["tiền sử bệnh lý", "bệnh nền", "bệnh tim", "tuyến giáp", "tiểu đường"],
+        "substance_use_any": ["chất kích thích", "ma túy", "rượu bia", "thuốc lá"],
+        "caffeine_nicotine_use": ["cà phê", "cafe", "nicotine", "hút thuốc lá"],
+        "frequency": ["tần suất", "bao lâu một lần", "mỗi ngày", "hàng ngày", "mỗi tuần"],
+        "onset": ["bắt đầu từ khi nào", "khởi phát"],
+        "duration": ["kéo dài bao lâu", "đã bao lâu rồi"],
+        "intensity": ["mức độ nghiêm trọng", "mức độ nặng"],
+        "work_school_impact": ["ảnh hưởng công việc", "ảnh hưởng học tập", "năng suất làm việc"],
+        "daily_functioning": ["hoạt động hàng ngày", "sinh hoạt thường ngày"],
+        "social_functioning": ["quan hệ xã hội", "gặp gỡ bạn bè", "hoạt động xã hội"],
+        "mania_like_symptoms": ["ngủ ít nhưng", "tràn đầy năng lượng", "suy nghĩ chạy nhanh", "bốc đồng"],
+        "psychotic_like_symptoms": ["nghe thấy giọng nói", "nhìn thấy điều", "cảm giác bị theo dõi", "cảm giác bị đe dọa"],
     }
     
     for question in questions:
@@ -355,24 +356,27 @@ async def request_more_info_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # ========== BUILD FINAL ANSWER WITH EMPATHY ==========
     if follow_up_questions:
         if len(follow_up_questions) == 1:
-            # Single question format with markdown
+            # Single question format
             answer = (
                 f"{final_empathy}\n\n"
-                f"**Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:**\n\n"
-                f"▸ {follow_up_questions[0]}\n"
+                f"Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:\n\n"
+                f"{follow_up_questions[0]}"
             )
         else:
-            # Multiple questions format with numbered list markdown
-            answer = f"{final_empathy}\n\n**Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm:**\n\n"
+            # Multiple questions format (2-3)
+            answer = (
+                f"{final_empathy}\n\n"
+                f"Để mình hiểu rõ hơn và cùng bạn tìm hướng phù hợp, bạn cho mình biết thêm:"
+            )
             for i, question in enumerate(follow_up_questions, 1):
-                answer += f"{i}. {question}\n\n"
+                answer += f"\n{i}. {question}"
     else:
         # Final fallback (should rarely reach here)
         logger.error("❌ CRITICAL: No questions generated even after fallback!")
         answer = (
             f"{final_empathy}\n\n"
-            f"**Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm về:**\n\n"
-            f"1. Tình trạng này bắt đầu từ khi nào? (số ngày/tuần/tháng)\n"
+            f"Để mình hiểu rõ hơn, bạn có thể chia sẻ thêm về:\n"
+            f"1. Tình trạng này bắt đầu từ khi nào?\n"
             f"2. Đã kéo dài bao lâu rồi?\n"
             f"3. Mức độ nghiêm trọng ra sao?"
         )

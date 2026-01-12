@@ -22,15 +22,6 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.sender === 'user';
-  
-  // Debug: log message to check if markdown is being received
-  if (!isUser) {
-    console.log('[ChatMessage] Bot message:', {
-      sender: message.sender,
-      hasMarkdown: message.content.includes('**'),
-      contentPreview: message.content.substring(0, 100)
-    });
-  }
 
   const formatTime = (dateString: string) => {
     if (!dateString) return '';
@@ -74,26 +65,23 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                  p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-                  ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1.5" {...props} />,
-                  ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1.5" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
                   li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
                   strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
                   em: ({node, ...props}) => <em className="italic" {...props} />,
-                  code: ({node, className, children, ...props}) => {
-                    const inline = !className?.includes('language-');
-                    return inline ? (
-                      <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>
+                  code: ({node, inline, ...props}) => 
+                    inline ? (
+                      <code className="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
                     ) : (
-                      <code className="block bg-slate-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props}>{children}</code>
-                    );
-                  },
-                  pre: ({node, ...props}) => <pre className="mb-3 last:mb-0" {...props} />,
-                  h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-3 mt-2" {...props} />,
-                  h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-3 mt-2" {...props} />,
-                  h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-1" {...props} />,
-                  hr: ({node, ...props}) => <hr className="my-4 border-t border-border" {...props} />,
-                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/30 pl-4 italic my-3" {...props} />,
+                      <code className="block bg-slate-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+                    ),
+                  pre: ({node, ...props}) => <pre className="mb-2 last:mb-0" {...props} />,
+                  h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2" {...props} />,
+                  h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2" {...props} />,
+                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2" {...props} />,
                   a: ({node, ...props}) => <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
                 }}
               >
