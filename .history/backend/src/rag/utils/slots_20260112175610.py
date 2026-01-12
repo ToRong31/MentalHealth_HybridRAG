@@ -766,118 +766,6 @@ def is_empty_slot(value: Any) -> bool:
     return False
 
 
-def detect_high_risk_indicators(slots: Dict[str, Any]) -> Tuple[bool, str, List[str]]:
-    """
-    Detect if user shows high-risk indicators requiring suicide/self-harm assessment.
-    
-    THRESHOLDS (cẩn thận để tránh false positive):
-    - Phải có ≥2 severe indicators HOẶC 1 critical indicator
-    - Không trigger với biểu hiện bình thường (stress, lo lắng nhẹ)
-    
-    Args:
-        slots: Current slot dictionary
-    
-    Returns:
-        Tuple of (is_high_risk, risk_level, indicators_found)
-        - is_high_risk: True if should ask about self-harm/suicide
-        - risk_level: "medium" | "high" | "critical"
-        - indicators_found: List of indicators detected
-    """
-    indicators = []
-    critical_count = 0
-    severe_count = 0
-    
-    # === CRITICAL INDICATORS (any 1 → immediate assessment) ===
-    
-    # 1. Explicit suicidal/self-harm language
-    emotion_text = " ".join(slots.get("emotion", [])).lower()
-    mood_text = str(slots.get("primary_mood", [])).lower() if isinstance(slots.get("primary_mood"), list) else str(slots.get("primary_mood", "")).lower()
-    problem_text = " ".join(slots.get("presenting_problem", [])).lower()
-    
-    critical_keywords = [
-        "tự tử", "suicide", "kill myself", "end my life", "kết thúc cuộc đời",
-        "tự hại", "self-harm", "cut myself", "tự làm đau",
-        "không muốn sống", "don't want to live", "chết đi", "die",
-        "biến mất", "disappear", "không còn ý nghĩa", "meaningless"
-    ]
-    
-    combined_text = f"{emotion_text} {mood_text} {problem_text}"
-    for keyword in critical_keywords:
-        if keyword in combined_text:
-            indicators.append(f"Critical: explicit language '{keyword}'")
-            critical_count += 1
-            break  # Only count once
-    
-    # === SEVERE INDICATORS (need ≥2 for assessment) ===
-    
-    # 2. Hopelessness + severe distress
-    hopeless_keywords = ["vô vọng", "hopeless", "không còn hy vọng", "no hope", "tuyệt vọng", "desperate"]
-    if any(kw in combined_text for kw in hopeless_keywords):
-        distress_list = slots.get("distress_level", [])
-        distress = " ".join(distress_list).lower() if isinstance(distress_list, list) else str(distress_list).lower()
-        if "cao" in distress or "high" in distress or "severe" in distress:
-            indicators.append("Severe: hopelessness + high distress")
-            severe_count += 1
-    
-    # 3. Complete loss of functioning
-    functioning = " ".join(slots.get("daily_functioning", [])).lower()
-    work_impact = " ".join(slots.get("work_school_impact", [])).lower()
-    social_func = " ".join(slots.get("social_functioning", [])).lower()
-    
-    severe_impairment_keywords = [
-        "hoàn toàn", "completely", "không thể", "unable", "can't do anything",
-        "bỏ hết", "quit everything", "ngừng", "stop all"
-    ]
-    impairment_text = f"{functioning} {work_impact} {social_func}"
-    if any(kw in impairment_text for kw in severe_impairment_keywords):
-        indicators.append("Severe: complete functional impairment")
-        severe_count += 1
-    
-    # 4. Severe + chronic (duration > 1 month) + no support
-    duration_text = " ".join(slots.get("duration", [])).lower()
-    support_text = " ".join(slots.get("support_system", [])).lower()
-    
-    chronic = any(kw in duration_text for kw in ["tháng", "month", "năm", "year"])
-    no_support = any(kw in support_text for kw in ["không có", "no one", "alone", "isolated", "cô đơn"])
-    intensity_list = slots.get("intensity", [])
-    intensity = " ".join(intensity_list).lower() if isinstance(intensity_list, list) else str(intensity_list).lower()
-    severe_intensity = "cao" in intensity or "high" in intensity or "severe" in intensity
-    
-    if chronic and no_support and severe_intensity:
-        indicators.append("Severe: chronic + isolated + severe intensity")
-        severe_count += 1
-    
-    # 5. Recent trauma + acute crisis
-    trauma = " ".join(slots.get("history_of_trauma", [])).lower()
-    recent_events = " ".join(slots.get("recent_life_events", [])).lower()
-    
-    acute_trauma_keywords = ["vừa", "just", "recently", "mới", "abuse", "assault", "loss", "death", "chết"]
-    if any(kw in f"{trauma} {recent_events}" for kw in acute_trauma_keywords):
-        if severe_intensity:
-            indicators.append("Severe: acute trauma + severe intensity")
-            severe_count += 1
-    
-    # === DECISION LOGIC ===
-    
-    # Critical: Any 1 critical indicator → immediate assessment
-    if critical_count >= 1:
-        logger.warning(f"[CRITICAL RISK] Indicators: {indicators}")
-        return True, "critical", indicators
-    
-    # High risk: ≥2 severe indicators → assessment needed
-    if severe_count >= 2:
-        logger.warning(f"[HIGH RISK] Indicators: {indicators}")
-        return True, "high", indicators
-    
-    # Medium risk: 1 severe indicator → monitor, ask carefully
-    if severe_count == 1:
-        logger.info(f"[MEDIUM RISK] Indicators: {indicators}")
-        return True, "medium", indicators
-    
-    # Low/normal: No assessment needed
-    return False, "low", []
-
-
 def next_missing_slot(slots: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
     """
     Find the next missing required slot following stage flow.
@@ -897,23 +785,13 @@ def next_missing_slot(slots: Dict[str, Any]) -> Tuple[Optional[str], Optional[st
         logger.warning(f"[RISK DETECTED] Level: {risk_level}, Indicators: {risk_indicators}")
         
         # Check if risk assessment slots are missing
-        risk_slots_to_ask = []
         for risk_slot in RISK_ASSESSMENT_REQUIRED:
-            slot_value = slots.get(risk_slot)
-            if is_empty_slot(slot_value):
-                risk_slots_to_ask.append(risk_slot)
+            if is_empty_slot(slots.get(risk_slot)):
+                logger.info(f"[PRIORITY] Asking risk assessment: {risk_slot}")
+                return "risk_assessment", risk_slot
         
-        # If we have unanswered risk slots, ask the first one
-        if risk_slots_to_ask:
-            first_missing_risk_slot = risk_slots_to_ask[0]
-            logger.info(f"[PRIORITY] Asking risk assessment: {first_missing_risk_slot}")
-            return "risk_assessment", first_missing_risk_slot
-        
-        # If all risk slots answered, log and continue
-        logger.info(f"[RISK ASSESSMENT] Already completed - all risk slots answered:")
-        for risk_slot in RISK_ASSESSMENT_REQUIRED:
-            logger.info(f"  - {risk_slot}: {slots.get(risk_slot)}")
-        logger.info("[RISK ASSESSMENT] Continuing with normal intake flow")
+        # If all risk slots filled, continue with normal flow
+        logger.info("[RISK ASSESSMENT] Completed, continuing normal flow")
     
     # === PRIORITY 2: Normal stage flow ===
     for stage in STAGE_FLOW:

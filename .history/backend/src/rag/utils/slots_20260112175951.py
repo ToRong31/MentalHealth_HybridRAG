@@ -897,23 +897,13 @@ def next_missing_slot(slots: Dict[str, Any]) -> Tuple[Optional[str], Optional[st
         logger.warning(f"[RISK DETECTED] Level: {risk_level}, Indicators: {risk_indicators}")
         
         # Check if risk assessment slots are missing
-        risk_slots_to_ask = []
         for risk_slot in RISK_ASSESSMENT_REQUIRED:
-            slot_value = slots.get(risk_slot)
-            if is_empty_slot(slot_value):
-                risk_slots_to_ask.append(risk_slot)
+            if is_empty_slot(slots.get(risk_slot)):
+                logger.info(f"[PRIORITY] Asking risk assessment: {risk_slot}")
+                return "risk_assessment", risk_slot
         
-        # If we have unanswered risk slots, ask the first one
-        if risk_slots_to_ask:
-            first_missing_risk_slot = risk_slots_to_ask[0]
-            logger.info(f"[PRIORITY] Asking risk assessment: {first_missing_risk_slot}")
-            return "risk_assessment", first_missing_risk_slot
-        
-        # If all risk slots answered, log and continue
-        logger.info(f"[RISK ASSESSMENT] Already completed - all risk slots answered:")
-        for risk_slot in RISK_ASSESSMENT_REQUIRED:
-            logger.info(f"  - {risk_slot}: {slots.get(risk_slot)}")
-        logger.info("[RISK ASSESSMENT] Continuing with normal intake flow")
+        # If all risk slots filled, continue with normal flow
+        logger.info("[RISK ASSESSMENT] Completed, continuing normal flow")
     
     # === PRIORITY 2: Normal stage flow ===
     for stage in STAGE_FLOW:
