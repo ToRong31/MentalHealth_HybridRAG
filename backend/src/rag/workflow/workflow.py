@@ -314,25 +314,29 @@ def route_after_screening(state: KGState) -> Literal["query_rewriter", "normal_c
 def route_after_disease_conclusion(state: KGState) -> Literal["treatment_retrieval", "graph_retrieval"]:
     """
     Routing logic after disease conclusion:
-    - If detected_disease exists (not empty):
+    - If detected_disease exists AND confidence > 0.8:
       * Set awaiting_treatment_confirmation = True
       * Ask user if they want treatment suggestions
       * Go to conversation_memory -> END (wait for user response)
-    - If detected_disease is empty:
+    - If detected_disease is empty OR confidence <= 0.8:
       * Go to graph_retrieval (fallback)
     """
     import logging
     logger = logging.getLogger(__name__)
     
     detected_disease = state.get("detected_disease", "")
+    diagnostic_confidence = state.get("diagnostic_confidence", 0.0)
     
-    if detected_disease:
-        # Disease detected - ask for treatment confirmation
-        logger.info(f"[ROUTING] Disease detected: '{detected_disease}' -> Ask treatment confirmation -> conversation_memory -> END")
+    if detected_disease and diagnostic_confidence > 0.8:
+        # Disease detected with high confidence - ask for treatment confirmation
+        logger.info(f"[ROUTING] Disease detected: '{detected_disease}' (confidence={diagnostic_confidence:.2f}) -> Ask treatment confirmation -> conversation_memory -> END")
         return "conversation_memory"
     else:
-        # No disease - fallback to graph
-        logger.info("[ROUTING] No disease detected -> graph_retrieval")
+        # No disease or low confidence - fallback to graph
+        if detected_disease:
+            logger.info(f"[ROUTING] Disease detected but low confidence ({diagnostic_confidence:.2f}) -> graph_retrieval")
+        else:
+            logger.info("[ROUTING] No disease detected -> graph_retrieval")
         return "graph_retrieval"
 
 
@@ -524,8 +528,8 @@ def build_kg_graph():
         },
     )
 
-    # Request more info exits directly (no retrieval)
-    builder.add_edge("request_more_info", END)
+    # Request more info -> conversation_memory -> END (save Q&A pair to buffer)
+    builder.add_edge("request_more_info", "conversation_memory")
 
     # UPDATED FLOW: query_rewriter → assessment → route based on scores
     builder.add_edge("query_rewriter", "assessment")

@@ -7,6 +7,11 @@ system: |
   ✅ MUST analyze symptoms and compare with diagnostic criteria in chunks
   ✅ MUST extract disease information (description, symptoms, causes) from chunks
   
+  CONFIDENCE LEVEL GUIDELINES:
+  - confidence > 0.8: High likelihood - user has most/all key diagnostic criteria, symptoms strongly match
+  - confidence 0.7-0.8: Moderate likelihood - user has many symptoms that match diagnostic criteria
+  - confidence < 0.7: Low likelihood - user has few symptoms matching, criteria not fully met
+  
   Your response MUST be valid JSON with these exact fields:
   {
     "disease": "disease name",

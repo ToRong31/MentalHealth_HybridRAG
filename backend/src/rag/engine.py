@@ -100,18 +100,6 @@ async def run_rag_workflow(
     """
     logger.info(f"[ENGINE] Running RAG workflow for conversation_id={conversation_id}")
     
-    # Classify query first to determine if we need to clear checkpoint
-    from src.rag.llm.answer_nodes.query_type_classifier import classify_query_type
-    
-    # Call async classifier with minimal context (no buffer/summary yet)
-    classifier_result = await classify_query_type(
-        question=user_message,
-        conversation_buffer=[],
-        summary_context=""
-    )
-    query_type = classifier_result.get("query_type", "follow_up")
-    logger.info(f"[ENGINE] Query type detected: {query_type}")
-    
     # Build graph with checkpointer
     graph = build_kg_graph()
     
@@ -125,30 +113,48 @@ async def run_rag_workflow(
         }
     }
     
-    # Clear checkpoint if topic_change or off_topic
-    if query_type in ["topic_change", "off_topic"]:
-        logger.info(f"[ENGINE] {query_type.upper()}: Creating empty checkpoint for fresh start")
-        checkpointer = get_checkpointer()
-        
-        # Create empty checkpoint - workflow will start with clean state
-        try:
-            from langgraph.checkpoint.base import empty_checkpoint
-            
-            # Create empty checkpoint for this thread
-            await checkpointer.aput(
-                config,
-                empty_checkpoint(),
-                {},  # Empty metadata
-                {}   # Empty new_versions
-            )
-            logger.info(f"[ENGINE] Empty checkpoint created for thread_id={thread_id}")
-        except Exception as e:
-            logger.warning(f"[ENGINE] Failed to create empty checkpoint: {e}")
+    # Load checkpoint FIRST to get buffer/summary for classification
+    checkpointer = get_checkpointer()
+    conversation_buffer = []
+    summary_context = ""
     
-    # Initial state - will be merged with checkpoint (if any)
+    try:
+        checkpoint = await checkpointer.aget(config)
+        if checkpoint and checkpoint.get("channel_values"):
+            # Extract buffer and summary from checkpoint state
+            state = checkpoint["channel_values"]
+            conversation_buffer = state.get("conversation_buffer")
+            summary_context = state.get("summary_context")
+            
+            # Normalize None to empty values
+            if conversation_buffer is None:
+                conversation_buffer = []
+            if summary_context is None:
+                summary_context = ""
+            
+            logger.info(f"[ENGINE] Loaded checkpoint: buffer={len(conversation_buffer)} pairs (type: {type(conversation_buffer).__name__}), summary={'yes' if summary_context else 'no'} (type: {type(summary_context).__name__})")
+            if conversation_buffer:
+                logger.debug(f"[ENGINE] Buffer content: {conversation_buffer}")
+        else:
+            logger.info(f"[ENGINE] Checkpoint exists but no channel_values")
+    except Exception as e:
+        # No checkpoint exists (first message) - this is OK
+        logger.info(f"[ENGINE] No existing checkpoint (first message or error): {e}")
+    
+    # Note: Classification is handled by query_type_classifier_node in workflow
+    # Checkpoint management is handled by workflow nodes (conversation_memory node)
+    # - topic_change: conversation_memory node will summarize old buffer and clear it
+    # - follow_up: conversation_memory node will add to buffer
+    # - off_topic: conversation_memory node will not add to buffer
+    
+    # Initial state - IMPORTANT: Include buffer/summary so LangGraph merge works correctly
+    # LangGraph merges checkpoint with initial_state, but if initial_state doesn't have
+    # these fields, they might be None in the merged state
     initial_state = {
         "question": user_message,
         "conversation_id": conversation_id,
+        "conversation_buffer": conversation_buffer,  # Ensure this is in initial_state
+        "summary_context": summary_context,  # Ensure this is in initial_state
     }
     
     if user_id:

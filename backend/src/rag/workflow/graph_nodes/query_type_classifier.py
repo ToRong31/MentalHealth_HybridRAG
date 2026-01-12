@@ -27,15 +27,70 @@ async def query_type_classifier_node(state: Dict[str, Any]) -> Dict[str, Any]:
         skip_checkpoint_load, should_end_workflow
     """
     question = state.get("question", "")
-    buffer = state.get("conversation_buffer", [])
-    summary = state.get("summary_context", "")
+    buffer = state.get("conversation_buffer")
+    summary = state.get("summary_context")
     
-    # Call logic function
-    result = await classify_query_type(
-        question=question,
-        conversation_buffer=buffer,
-        summary_context=summary
-    )
+    # Normalize None to empty values
+    if buffer is None:
+        buffer = []
+    if summary is None:
+        summary = ""
+    
+    # CRITICAL FIX: If buffer/summary are empty, try to reload from checkpoint
+    # This handles the case where LangGraph merge didn't work correctly
+    if not buffer and not summary:
+        logger.warning(f"[CLASSIFY_NODE] ⚠️ Buffer and summary are both empty! Trying to reload from checkpoint...")
+        try:
+            from src.rag.workflow.checkpointer import get_checkpointer
+            checkpointer = get_checkpointer()
+            conversation_id = state.get("conversation_id")
+            if conversation_id:
+                thread_id = f"conversation_{conversation_id}"
+                config = {"configurable": {"thread_id": thread_id}}
+                checkpoint = await checkpointer.aget(config)
+                if checkpoint and checkpoint.get("channel_values"):
+                    checkpoint_state = checkpoint["channel_values"]
+                    buffer = checkpoint_state.get("conversation_buffer")
+                    summary = checkpoint_state.get("summary_context")
+                    # Normalize again
+                    if buffer is None:
+                        buffer = []
+                    if summary is None:
+                        summary = ""
+                    logger.info(f"[CLASSIFY_NODE] ✓ Reloaded from checkpoint: buffer={len(buffer)} pairs, summary={'yes' if summary else 'no'}")
+        except Exception as e:
+            logger.error(f"[CLASSIFY_NODE] Error reloading checkpoint: {e}")
+    
+    # If absolutely no context is present after reload, force first turn to topic_change
+    if not buffer and not summary:
+        logger.info("[CLASSIFY_NODE] No previous context after reload -> force query_type=topic_change")
+        result = {
+            "query_type": "topic_change",
+            "is_topic_change": True,
+            "is_off_topic": False,
+            "should_enhance_query": True,
+        }
+    else:
+        # Debug logging to check if buffer/summary are loaded from checkpoint
+        logger.info(f"[CLASSIFY_NODE] ===== CLASSIFICATION DEBUG =====")
+        logger.info(f"[CLASSIFY_NODE] Question: {question[:100]}...")
+        logger.info(f"[CLASSIFY_NODE] Buffer: {len(buffer)} pairs (type: {type(buffer).__name__})")
+        logger.info(f"[CLASSIFY_NODE] Summary: {'yes' if summary else 'no'} (type: {type(summary).__name__}, length: {len(summary) if summary else 0})")
+        if buffer:
+            logger.info(f"[CLASSIFY_NODE] Buffer content: {buffer}")
+        if summary:
+            logger.info(f"[CLASSIFY_NODE] Summary preview: {summary[:200]}...")
+        logger.info(f"[CLASSIFY_NODE] Will call classify_query_type with buffer={len(buffer)}, summary={'yes' if summary else 'no'}")
+        
+        # Call logic function
+        result = await classify_query_type(
+            question=question,
+            conversation_buffer=buffer,
+            summary_context=summary
+        )
+        
+        logger.info(f"[CLASSIFY_NODE] Classification result: {result.get('query_type')} (is_topic_change={result.get('is_topic_change')})")
+        logger.info(f"[CLASSIFY_NODE] ===== END CLASSIFICATION DEBUG =====")
     
     # Update state with result
     state.update(result)

@@ -38,6 +38,14 @@ query_rewrite_prompt: |
      - Use DSM-5 time phrases: "persisting for", "lasting at least", "duration of"
      - Course terms: "persistent", "recurrent", "episodic", "continuous"
   
+  5a. **SEVERITY CONTEXT WORDS (CRITICAL FOR ASSESSMENT)**
+     - For MILD cases: ALWAYS include context words like "mild, slight, minor, temporary, transient, brief, minimal, low intensity"
+     - For MODERATE cases: Include "moderate, moderate intensity, intermediate, some, partial"
+     - For SEVERE cases: ALWAYS include context words like "severe, profound, marked, significant, substantial, high intensity, intense"
+     - For VERY SEVERE cases: Include "very severe, extreme, overwhelming, profound, critical, maximum intensity"
+     - These context words help differentiate severity levels in semantic search
+     - Example: "mild depressed mood" vs "severe depressed mood" should match different items
+  
   6. **VIETNAMESE → ENGLISH TRANSLATION MAP** (Cover all symptom categories)
      
      **Mood Symptoms:**
@@ -116,6 +124,7 @@ query_rewrite_prompt: |
   
   Keywords should include:
   - Main symptoms (with synonyms)
+  - **Severity context words** (mild/moderate/severe/profound based on intensity slot)
   - Disorder names likely related
   - DSM-5 section terms
   - Time/course descriptors

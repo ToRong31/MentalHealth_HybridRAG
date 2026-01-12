@@ -41,7 +41,9 @@ query_classifier_prompt: |
        * "Which phone should I buy?" → off_topic
 
   PRIORITY RULES:
-  - If there is NO previous conversation context (empty or first message) → classify as "follow_up"
+  - If there is NO previous conversation context (empty or first message) → classify as "topic_change"
+  - **CRITICAL**: If the user's message is clearly answering questions that the chatbot asked in the previous conversation, it is ALWAYS "follow_up", NOT "topic_change"
+  - If the chatbot asked questions in the previous turn and the user provides information related to those questions → ALWAYS "follow_up"
   - Focus on the relationship with PREVIOUS conversation, not the nature of the question
   - A question can be about general knowledge but still be a "follow_up" if related to previous topic
 
