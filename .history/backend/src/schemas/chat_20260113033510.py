@@ -44,7 +44,7 @@ class ConversationResponse(ConversationBase):
     class Config:
         from_attributes = True
         json_encoders = {
-            datetime: ensure_utc
+            datetime: lambda v: v.isoformat() if v else None
         }
 
 
@@ -71,7 +71,7 @@ class MessageResponse(MessageBase):
     class Config:
         from_attributes = True
         json_encoders = {
-            datetime: ensure_utc
+            datetime: lambda v: v.isoformat() if v else None
         }
 
 

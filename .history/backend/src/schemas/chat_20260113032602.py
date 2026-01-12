@@ -3,20 +3,7 @@ Chat-related Pydantic schemas.
 """
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timezone
-
-
-def ensure_utc(dt: datetime) -> str:
-    """Ensure datetime has UTC timezone info before serializing"""
-    if dt is None:
-        return None
-    # If naive datetime, assume it's UTC
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    # Convert to UTC if not already
-    elif dt.tzinfo != timezone.utc:
-        dt = dt.astimezone(timezone.utc)
-    return dt.isoformat()
+from datetime import datetime
 
 
 # ================================
@@ -44,7 +31,7 @@ class ConversationResponse(ConversationBase):
     class Config:
         from_attributes = True
         json_encoders = {
-            datetime: ensure_utc
+            datetime: lambda v: v.isoformat() if v else None
         }
 
 
@@ -71,7 +58,7 @@ class MessageResponse(MessageBase):
     class Config:
         from_attributes = True
         json_encoders = {
-            datetime: ensure_utc
+            datetime: lambda v: v.isoformat() if v else None
         }
 
 
