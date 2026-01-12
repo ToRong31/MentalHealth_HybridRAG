@@ -36,35 +36,29 @@ except Exception as e:
 
 def fix_bullet_formatting(text: str) -> str:
     """
-    Convert ▸ bullets to markdown list format for proper frontend rendering.
+    Ensure bullet points ▸ are always on new lines.
     
-    ReactMarkdown collapses single newlines, so we need to convert:
-    - "▸ Item" → "- Item" (markdown bullet)
-    OR add double newlines for paragraph breaks
+    Fixes patterns like:
+    - "▸ Item1 ▸ Item2" → "▸ Item1\n▸ Item2"
+    - "text▸ Item" → "text\n▸ Item"
+    - "Item ▸ text" → "Item\n▸ text" (if ▸ starts a new point)
     
     Args:
-        text: Input text that may have ▸ bullets
+        text: Input text that may have ▸ not on new lines
     
     Returns:
-        Text with ▸ converted to markdown bullets
+        Formatted text with ▸ on new lines
     """
     import re
-    import logging
-    logger = logging.getLogger(__name__)
     
-    bullet_count = text.count('▸')
-    logger.info(f"[BULLET FIX] Converting {bullet_count} bullets to markdown format")
+    # Replace " ▸ " (space before and after) with newline + ▸
+    text = re.sub(r' ▸ ', r'\n▸ ', text)
     
-    # SOLUTION: Convert ▸ to markdown bullets (-)
-    # This ensures ReactMarkdown renders them as proper list items
-    # Pattern: ▸ (at start of line or after newline) → - 
-    text = re.sub(r'^▸\s*', '- ', text, flags=re.MULTILINE)
+    # Replace "▸ " at non-start of line (preceded by non-newline) with newline + ▸
+    text = re.sub(r'([^\n])▸ ', r'\1\n▸ ', text)
     
-    # Also handle inline bullets (shouldn't happen but just in case)
-    # If ▸ appears after text without newline, add newline first
-    text = re.sub(r'([^\n])\s*▸\s*', r'\1\n- ', text)
-    
-    logger.info(f"[BULLET FIX] ✓ Converted to markdown bullets")
+    # Ensure no multiple consecutive newlines (max 2)
+    text = re.sub(r'\n{3,}', '\n\n', text)
     
     return text
 

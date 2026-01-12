@@ -36,35 +36,45 @@ except Exception as e:
 
 def fix_bullet_formatting(text: str) -> str:
     """
-    Convert ▸ bullets to markdown list format for proper frontend rendering.
+    Ensure bullet points ▸ are always on new lines.
     
-    ReactMarkdown collapses single newlines, so we need to convert:
-    - "▸ Item" → "- Item" (markdown bullet)
-    OR add double newlines for paragraph breaks
+    Fixes patterns like:
+    - "▸ Item1 ▸ Item2" → "▸ Item1\n▸ Item2"
+    - "text▸ Item" → "text\n▸ Item"
+    - "chính: ▸ Item" → "chính:\n▸ Item"
+    - "Item. ▸ Next" → "Item.\n▸ Next"
     
     Args:
-        text: Input text that may have ▸ bullets
+        text: Input text that may have ▸ not on new lines
     
     Returns:
-        Text with ▸ converted to markdown bullets
+        Formatted text with ▸ on new lines
     """
     import re
     import logging
     logger = logging.getLogger(__name__)
     
-    bullet_count = text.count('▸')
-    logger.info(f"[BULLET FIX] Converting {bullet_count} bullets to markdown format")
+    # Count bullet points before fix
+    bullet_count_before = text.count('▸')
     
-    # SOLUTION: Convert ▸ to markdown bullets (-)
-    # This ensures ReactMarkdown renders them as proper list items
-    # Pattern: ▸ (at start of line or after newline) → - 
-    text = re.sub(r'^▸\s*', '- ', text, flags=re.MULTILINE)
+    # Log sample of input (first 300 chars)
+    logger.info(f"[BULLET FIX] Input sample (first 300 chars): {text[:300]}...")
+    logger.info(f"[BULLET FIX] Total ▸ found: {bullet_count_before}")
     
-    # Also handle inline bullets (shouldn't happen but just in case)
-    # If ▸ appears after text without newline, add newline first
-    text = re.sub(r'([^\n])\s*▸\s*', r'\1\n- ', text)
+    # CRITICAL FIX: Replace ANY character (except newline) followed by ▸ 
+    # Pattern: (non-newline char)(optional spaces)▸ → same char + newline + ▸
+    # This handles: "chính: ▸", "text. ▸", "Item ▸", etc.
+    text = re.sub(r'([^\n])\s*▸\s*', r'\1\n▸ ', text)
     
-    logger.info(f"[BULLET FIX] ✓ Converted to markdown bullets")
+    # Clean up: Remove bullet points at start of text (keep them)
+    # Clean up: Ensure no more than 2 consecutive newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Clean up: Remove trailing spaces before newlines
+    text = re.sub(r' +\n', '\n', text)
+    
+    # Log sample of output
+    logger.info(f"[BULLET FIX] Output sample (first 300 chars): {text[:300]}...")
     
     return text
 
