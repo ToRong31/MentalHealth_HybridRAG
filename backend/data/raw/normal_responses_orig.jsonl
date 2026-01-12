@@ -23,17 +23,17 @@
 {"chunk_id": "QE26", "title": "Problem with sun exposure behaviour", "type": "adjustment reaction", "score": 2, "text": "Problem with sun exposure behaviour"}
 {"chunk_id": "QE27", "title": "Problem with behaviours related to psychological health or wellbeing", "type": "adjustment reaction", "score": 2, "text": "Problem with behaviours related to psychological health or wellbeing"}
 {"chunk_id": "QE28", "title": "Problem with health literacy", "type": "adjustment reaction", "score": 2, "text": "Problem with health literacy"}
-{"chunk_id": "QE30.0", "title": "Insufficient social insurance support, aged", "type": "normal stress", "score": 1, "text": "Insufficient social insurance support, aged"}
-{"chunk_id": "QE30.1", "title": "Insufficient social insurance support, disability", "type": "normal stress", "score": 1, "text": "Insufficient social insurance support, disability"}
-{"chunk_id": "QE30.2", "title": "Insufficient social insurance support, unemployment", "type": "normal stress", "score": 1, "text": "Insufficient social insurance support, unemployment"}
-{"chunk_id": "QE30.3", "title": "Insufficient social insurance support, family support", "type": "normal stress", "score": 1, "text": "Insufficient social insurance support, family support"}
-{"chunk_id": "QE31.0", "title": "Insufficient social welfare support, child protection", "type": "normal stress", "score": 1, "text": "Insufficient social welfare support, child protection"}
-{"chunk_id": "QE31.1", "title": "Insufficient social welfare support, protection against domestic violence", "type": "normal stress", "score": 1, "text": "Insufficient social welfare support, protection against domestic violence"}
-{"chunk_id": "QE31.2", "title": "Insufficient social welfare support, protection against homelessness", "type": "normal stress", "score": 1, "text": "Insufficient social welfare support, protection against homelessness"}
-{"chunk_id": "QE31.3", "title": "Insufficient social welfare support, post prison services", "type": "normal stress", "score": 1, "text": "Insufficient social welfare support, post prison services"}
-{"chunk_id": "QE40", "title": "Problem associated with conviction in civil or criminal proceedings", "type": "normal stress", "score": 1, "text": "Problem associated with conviction in civil or criminal proceedings..."}
-{"chunk_id": "QE41", "title": "Problem associated with imprisonment and other incarceration", "type": "normal stress", "score": 1, "text": "Problem associated with imprisonment and other incarceration"}
-{"chunk_id": "QE42", "title": "Problem associated with release from prison", "type": "normal stress", "score": 1, "text": "Problem associated with release from prison"}
+{"chunk_id": "QE30.0", "title": "Insufficient social insurance support, aged", "type": "normal stress", "score": -1, "text": "Insufficient social insurance support, aged"}
+{"chunk_id": "QE30.1", "title": "Insufficient social insurance support, disability", "type": "normal stress", "score": -1, "text": "Insufficient social insurance support, disability"}
+{"chunk_id": "QE30.2", "title": "Insufficient social insurance support, unemployment", "type": "normal stress", "score": -1, "text": "Insufficient social insurance support, unemployment"}
+{"chunk_id": "QE30.3", "title": "Insufficient social insurance support, family support", "type": "normal stress", "score": -1, "text": "Insufficient social insurance support, family support"}
+{"chunk_id": "QE31.0", "title": "Insufficient social welfare support, child protection", "type": "normal stress", "score": -1, "text": "Insufficient social welfare support, child protection"}
+{"chunk_id": "QE31.1", "title": "Insufficient social welfare support, protection against domestic violence", "type": "normal stress", "score": -1, "text": "Insufficient social welfare support, protection against domestic violence"}
+{"chunk_id": "QE31.2", "title": "Insufficient social welfare support, protection against homelessness", "type": "normal stress", "score": -1, "text": "Insufficient social welfare support, protection against homelessness"}
+{"chunk_id": "QE31.3", "title": "Insufficient social welfare support, post prison services", "type": "normal stress", "score": -1, "text": "Insufficient social welfare support, post prison services"}
+{"chunk_id": "QE40", "title": "Problem associated with conviction in civil or criminal proceedings", "type": "normal stress", "score": -1, "text": "Problem associated with conviction in civil or criminal proceedings..."}
+{"chunk_id": "QE41", "title": "Problem associated with imprisonment and other incarceration", "type": "normal stress", "score": -1, "text": "Problem associated with imprisonment and other incarceration"}
+{"chunk_id": "QE42", "title": "Problem associated with release from prison", "type": "normal stress", "score": -1, "text": "Problem associated with release from prison"}
 {"chunk_id": "QE50.0", "title": "Problem associated with relationship with friend", "type": "adjustment reaction", "score": -1, "text": "Problem associated with relationship with friend"}
 {"chunk_id": "QE50.1", "title": "Relationships with teachers or classmates", "type": "adjustment reaction", "score": -1, "text": "Relationships with teachers or classmates"}
 {"chunk_id": "QE50.2", "title": "Problem associated with relationships with people at work", "type": "adjustment reaction", "score": -1, "text": "Problem associated with relationships with people at work"}
@@ -45,28 +45,28 @@
 {"chunk_id": "QE51.0", "title": "Relationship distress with spouse or partner", "type": "adjustment reaction", "score": -1, "text": "Substantial and sustained dissatisfaction with a spouse..."}
 {"chunk_id": "QE51.1", "title": "History of spouse or partner violence", "type": "adjustment reaction", "score": -1, "text": "Non-accidental acts of physical force..."}
 {"chunk_id": "QE52.0", "title": "Caregiver-child relationship problem", "type": "adjustment reaction", "score": -1, "text": "Substantial and sustained dissatisfaction within a caregiver-child relationship..."}
-{"chunk_id": "QE52.1", "title": "Loss of love relationship in childhood", "type": "normal stress", "score": 1, "text": "Loss of an emotionally close relationship..."}
-{"chunk_id": "QE60", "title": "Absence of family member", "type": "normal stress", "score": 1, "text": "Absence of family member"}
-{"chunk_id": "QE61.0", "title": "Loss or death of child", "type": "normal stress", "score": 2, "text": "Loss or death of child"}
-{"chunk_id": "QE62", "title": "Uncomplicated bereavement", "type": "normal stress", "score": 2, "text": "Uncomplicated bereavement"}
+{"chunk_id": "QE52.1", "title": "Loss of love relationship in childhood", "type": "normal stress", "score": -1, "text": "Loss of an emotionally close relationship..."}
+{"chunk_id": "QE60", "title": "Absence of family member", "type": "normal stress", "score": -1, "text": "Absence of family member"}
+{"chunk_id": "QE61.0", "title": "Loss or death of child", "type": "normal stress", "score": -1, "text": "Loss or death of child"}
+{"chunk_id": "QE62", "title": "Uncomplicated bereavement", "type": "normal stress", "score": -1, "text": "Uncomplicated bereavement"}
 {"chunk_id": "QE70.0", "title": "Inadequate family support", "type": "adjustment reaction", "score": -1, "text": "Inadequate family support"}
 {"chunk_id": "QE70.1", "title": "Disruption of family by separation or divorce", "type": "adjustment reaction", "score": -1, "text": "Disruption of family by separation or divorce"}
 {"chunk_id": "QE70.2", "title": "Dependent relative needing care at home", "type": "adjustment reaction", "score": -1, "text": "Dependent relative needing care at home"}
-{"chunk_id": "QE80", "title": "Victim of crime or terrorism", "type": "normal stress", "score": 2, "text": "Victim of crime or terrorism"}
-{"chunk_id": "QE81", "title": "Exposure to disaster, war or other hostilities", "type": "normal stress", "score": 2, "text": "Exposure to disaster, war or other hostilities"}
-{"chunk_id": "QE82.0", "title": "Personal history of physical abuse", "type": "normal stress", "score": 1, "text": "Personal history of non-accidental acts of physical force..."}
-{"chunk_id": "QE82.1", "title": "Personal history of sexual abuse", "type": "normal stress", "score": 1, "text": "Personal history of forced or coerced sexual acts..."}
-{"chunk_id": "QE82.2", "title": "Personal history of psychological abuse", "type": "normal stress", "score": 1, "text": "Personal history of non-accidental verbal or symbolic act..."}
-{"chunk_id": "QE82.3", "title": "Personal history of neglect", "type": "normal stress", "score": 1, "text": "Personal history of egregious acts or omissions by a caregiver..."}
-{"chunk_id": "QE83", "title": "Personal frightening experience in childhood", "type": "normal stress", "score": 1, "text": "Personal frightening experience in childhood"}
-{"chunk_id": "QE84", "title": "Acute stress reaction", "type": "normal stress", "score": 2, "text": "Acute stress reaction..."}
-{"chunk_id": "QE90", "title": "Inadequate parental supervision or control", "type": "normal stress", "score": 1, "text": "Lack of parental knowledge..."}
-{"chunk_id": "QE91", "title": "Parental overprotection", "type": "normal stress", "score": 1, "text": "Parental overprotection"}
-{"chunk_id": "QE92", "title": "Altered pattern of family relationships in childhood", "type": "normal stress", "score": 1, "text": "Departure of a family member..."}
-{"chunk_id": "QE93", "title": "Removal from home in childhood", "type": "normal stress", "score": 1, "text": "Removal from home in childhood"}
-{"chunk_id": "QE94", "title": "Institutional upbringing", "type": "normal stress", "score": 1, "text": "Group foster care..."}
-{"chunk_id": "QE95", "title": "Inappropriate parental pressure", "type": "normal stress", "score": 1, "text": "Parents forcing the child..."}
-{"chunk_id": "QE96", "title": "Events resulting in loss of self-esteem in childhood", "type": "normal stress", "score": 1, "text": "Events resulting in a negative self-reappraisal..."}
+{"chunk_id": "QE80", "title": "Victim of crime or terrorism", "type": "normal stress", "score": -1, "text": "Victim of crime or terrorism"}
+{"chunk_id": "QE81", "title": "Exposure to disaster, war or other hostilities", "type": "normal stress", "score": -1, "text": "Exposure to disaster, war or other hostilities"}
+{"chunk_id": "QE82.0", "title": "Personal history of physical abuse", "type": "normal stress", "score": -1, "text": "Personal history of non-accidental acts of physical force..."}
+{"chunk_id": "QE82.1", "title": "Personal history of sexual abuse", "type": "normal stress", "score": -1, "text": "Personal history of forced or coerced sexual acts..."}
+{"chunk_id": "QE82.2", "title": "Personal history of psychological abuse", "type": "normal stress", "score": -1, "text": "Personal history of non-accidental verbal or symbolic act..."}
+{"chunk_id": "QE82.3", "title": "Personal history of neglect", "type": "normal stress", "score": -1, "text": "Personal history of egregious acts or omissions by a caregiver..."}
+{"chunk_id": "QE83", "title": "Personal frightening experience in childhood", "type": "normal stress", "score": -1, "text": "Personal frightening experience in childhood"}
+{"chunk_id": "QE84", "title": "Acute stress reaction", "type": "normal stress", "score": -1, "text": "Acute stress reaction..."}
+{"chunk_id": "QE90", "title": "Inadequate parental supervision or control", "type": "normal stress", "score": -1, "text": "Lack of parental knowledge..."}
+{"chunk_id": "QE91", "title": "Parental overprotection", "type": "normal stress", "score": -1, "text": "Parental overprotection"}
+{"chunk_id": "QE92", "title": "Altered pattern of family relationships in childhood", "type": "normal stress", "score": -1, "text": "Departure of a family member..."}
+{"chunk_id": "QE93", "title": "Removal from home in childhood", "type": "normal stress", "score": -1, "text": "Removal from home in childhood"}
+{"chunk_id": "QE94", "title": "Institutional upbringing", "type": "normal stress", "score": -1, "text": "Group foster care..."}
+{"chunk_id": "QE95", "title": "Inappropriate parental pressure", "type": "normal stress", "score": -1, "text": "Parents forcing the child..."}
+{"chunk_id": "QE96", "title": "Events resulting in loss of self-esteem in childhood", "type": "normal stress", "score": -1, "text": "Events resulting in a negative self-reappraisal..."}
 {"chunk_id": "MB20.0", "title": "Stupor", "type": "adjustment reaction", "score": 99, "text": "Total or nearly total lack of spontaneous movement..."}
 {"chunk_id": "MB20.1", "title": "Coma", "type": "adjustment reaction", "score": 99, "text": "Acute state lasting more than one hour..."}
 {"chunk_id": "MB20.2", "title": "Clouding of consciousness", "type": "adjustment reaction", "score": 5, "text": "An impairment in the clarity of consciousness..."}
@@ -80,10 +80,10 @@
 {"chunk_id": "MB21.7", "title": "Impaired executive functioning", "type": "adjustment reaction", "score": 5, "text": "Impairment in higher-level cognitive abilities..."}
 {"chunk_id": "MB21.8", "title": "Impaired judgment", "type": "adjustment reaction", "score": 5, "text": "Deficit in the capacity to make sound, reasoned..."}
 {"chunk_id": "MB21.9", "title": "Perseveration", "type": "adjustment reaction", "score": 5, "text": "Persistent repetition of previously used words..."}
-{"chunk_id": "MB22.0", "title": "Avolition", "type": "adjustment reaction", "score": 4, "text": "A general lack of drive..."}
+{"chunk_id": "MB22.0", "title": "Avolition", "type": "adjustment reaction", "score": 5, "text": "A general lack of drive..."}
 {"chunk_id": "MB22.1", "title": "Decreased libido", "type": "adjustment reaction", "score": 5, "text": "Decreased sexual desire..."}
-{"chunk_id": "MB22.2", "title": "Demoralization", "type": "adjustment reaction", "score": 4, "text": "Loss of confidence in one's ability to cope..."}
-{"chunk_id": "MB22.3", "title": "Hopelessness", "type": "adjustment reaction", "score": 4, "text": "Little or no belief in a positive future."}
+{"chunk_id": "MB22.2", "title": "Demoralization", "type": "adjustment reaction", "score": 5, "text": "Loss of confidence in one's ability to cope..."}
+{"chunk_id": "MB22.3", "title": "Hopelessness", "type": "adjustment reaction", "score": 5, "text": "Little or no belief in a positive future."}
 {"chunk_id": "MB22.4", "title": "Increased energy", "type": "adjustment reaction", "score": 3, "text": "Increased physical or mental resources..."}
 {"chunk_id": "MB22.5", "title": "Increased goal-directed activity", "type": "adjustment reaction", "score": 3, "text": "Increased planning..."}
 {"chunk_id": "MB22.6", "title": "Increased libido", "type": "adjustment reaction", "score": 3, "text": "Increased sexual desire..."}
@@ -100,12 +100,12 @@
 {"chunk_id": "MB23.9", "title": "Echolalia", "type": "adjustment reaction", "score": 5, "text": "The automatic repetition..."}
 {"chunk_id": "MB24.0", "title": "Ambivalence", "type": "adjustment reaction", "score": 3, "text": "Conflicting ideas, wishes, or feelings..."}
 {"chunk_id": "MB24.1", "title": "Anger", "type": "adjustment reaction", "score": 3, "text": "An emotional state related to one's psychological interpretation..."}
-{"chunk_id": "MB24.2", "title": "Anhedonia", "type": "adjustment reaction", "score": 4, "text": "Inability to experience pleasure..."}
-{"chunk_id": "MB24.3", "title": "Anxiety", "type": "adjustment reaction", "score": 3, "text": "Apprehensiveness or anticipation of future danger..."}
-{"chunk_id": "MB24.4", "title": "Apathy", "type": "adjustment reaction", "score": 3, "text": "A reduction or lack of feeling..."}
-{"chunk_id": "MB24.5", "title": "Depressed mood", "type": "adjustment reaction", "score": 3, "text": "Negative affective state..."}
-{"chunk_id": "MB24.6", "title": "Disturbance of affect", "type": "adjustment reaction", "score": 3, "text": "A disturbance in the expression..."}
-{"chunk_id": "MB24.7", "title": "Dysphoria", "type": "adjustment reaction", "score": 3, "text": "An unpleasant mood state..."}
+{"chunk_id": "MB24.2", "title": "Anhedonia", "type": "adjustment reaction", "score": 5, "text": "Inability to experience pleasure..."}
+{"chunk_id": "MB24.3", "title": "Anxiety", "type": "adjustment reaction", "score": 5, "text": "Apprehensiveness or anticipation of future danger..."}
+{"chunk_id": "MB24.4", "title": "Apathy", "type": "adjustment reaction", "score": 5, "text": "A reduction or lack of feeling..."}
+{"chunk_id": "MB24.5", "title": "Depressed mood", "type": "adjustment reaction", "score": 5, "text": "Negative affective state..."}
+{"chunk_id": "MB24.6", "title": "Disturbance of affect", "type": "adjustment reaction", "score": 5, "text": "A disturbance in the expression..."}
+{"chunk_id": "MB24.7", "title": "Dysphoria", "type": "adjustment reaction", "score": 5, "text": "An unpleasant mood state..."}
 {"chunk_id": "MB24.8", "title": "Elevated mood", "type": "adjustment reaction", "score": 4, "text": "A positive mood state typically characterised by increased energy..."}
 {"chunk_id": "MB24.9", "title": "Euphoria", "type": "adjustment reaction", "score": 5, "text": "An exaggerated feeling of physical and emotional well-being..."}
 {"chunk_id": "MB25.0", "title": "Symptoms or signs of thought disorder", "type": "adjustment reaction", "score": 5, "text": "Disturbances in the associative thought process..."}

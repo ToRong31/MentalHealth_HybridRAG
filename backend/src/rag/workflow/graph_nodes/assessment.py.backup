@@ -24,90 +24,6 @@ from src.rag.config import rag_settings
 logger = logging.getLogger(__name__)
 
 
-def detect_severity_from_query(query: str) -> str:
-    """
-    Detect severity level from query text.
-    
-    Returns:
-        "mild", "moderate", "severe", or "unknown"
-    """
-    query_lower = query.lower()
-    
-    # Very severe indicators
-    very_severe_keywords = ["profound", "extreme", "overwhelming", "critical", "maximum intensity", "very severe"]
-    if any(keyword in query_lower for keyword in very_severe_keywords):
-        return "severe"  # Treat very severe as severe for boost logic
-    
-    # Severe indicators
-    severe_keywords = ["severe", "marked", "significant", "substantial", "high intensity", "intense", "severe intensity"]
-    if any(keyword in query_lower for keyword in severe_keywords):
-        return "severe"
-    
-    # Moderate indicators
-    moderate_keywords = ["moderate", "moderate intensity", "intermediate", "some", "partial"]
-    if any(keyword in query_lower for keyword in moderate_keywords):
-        return "moderate"
-    
-    # Mild indicators
-    mild_keywords = ["mild", "slight", "minor", "temporary", "transient", "brief", "minimal", "low intensity", "mild intensity"]
-    if any(keyword in query_lower for keyword in mild_keywords):
-        return "mild"
-    
-    return "unknown"
-
-
-def apply_severity_boost(item: Dict[str, Any], query_severity: str) -> float:
-    """
-    Apply severity-based boost/penalty to item's cohere_score.
-    
-    Logic:
-    - Mild query: Boost items with score 1-3, penalize items with score 4-5
-    - Moderate query: Neutral (no boost/penalty)
-    - Severe query: Boost items with score 4-5, don't penalize items with score 1-3 (neutral)
-    
-    Args:
-        item: Item dict with original_score and cohere_score
-        query_severity: "mild", "moderate", "severe", or "unknown"
-    
-    Returns:
-        Adjusted cohere_score (weight multiplier)
-    """
-    original_score = item.get("original_score", 0.0)
-    cohere_score = item.get("cohere_score") or item.get("rerank_score") or item.get("milvus_score", 0.0)
-    
-    # Skip emergency items (score 99) - they should always be considered
-    if original_score == 99:
-        return cohere_score
-    
-    # Skip items with score -1
-    if original_score == -1:
-        return cohere_score
-    
-    # Apply boost/penalty based on severity match
-    if query_severity == "mild":
-        # Mild query: prefer lower scores (1-3), penalize higher scores (4-5)
-        if original_score <= 3:
-            # Boost: multiply by 1.2 (up to 20% increase)
-            return min(cohere_score * 1.2, 1.0)  # Cap at 1.0
-        elif original_score >= 4:
-            # Penalize: multiply by 0.7 (30% decrease)
-            return cohere_score * 0.7
-    
-    elif query_severity == "severe":
-        # Severe query: prefer higher scores (4-5), don't penalize lower scores (1-3)
-        # Reason: If only score 3.0 items are matched, penalizing them would make score too low
-        if original_score >= 4:
-            # Boost: multiply by 1.2 (up to 20% increase)
-            return min(cohere_score * 1.2, 1.0)  # Cap at 1.0
-        elif original_score <= 3:
-            # Don't penalize: keep original weight (neutral)
-            # This allows score 3.0 items to contribute normally if score 5.0 items are not matched
-            return cohere_score
-    
-    # Moderate or unknown: no boost/penalty
-    return cohere_score
-
-
 async def assessment_node(state: KGState) -> KGState:
     """
     Dual assessment: Severity (for routing) + Disorder likelihood (for context).
@@ -232,8 +148,8 @@ async def assessment_node(state: KGState) -> KGState:
                 
                 logger.info(f"[COHERE] Reranked to {len(reranked)} items")
                 
-                # Step 3: Calculate scores for each type using weighted average
-                logger.info("[STEP 3] Calculating type scores using weighted average")
+                # Step 3: Calculate scores for each type using field 'score' from Milvus
+                logger.info("[STEP 3] Calculating type scores from field 'score'")
                 type_scores = {
                     "normal_stress": 0.0,
                     "adjustment_reaction": 0.0,
@@ -244,126 +160,30 @@ async def assessment_node(state: KGState) -> KGState:
                     "adjustment_reaction": [],
                 }
                 
-                # Filter items theo similarity threshold (lấy hết items có cohere_score > threshold)
-                # Cohere rerank đã sắp xếp items theo relevance từ cao xuống thấp
-                # Chỉ tính items có similarity đủ cao để đảm bảo độ chính xác
-                # Reduced from 0.5 to 0.4 to keep more items, especially score 5.0 items for severe cases
-                SIMILARITY_THRESHOLD = 0.4  # Chỉ tính items có cohere_score > 0.4
-                
-                filtered_items = []
                 for item in reranked:
-                    # Lấy cohere_score (từ Cohere Rerank API) làm weight
-                    cohere_score = item.get("cohere_score") or item.get("rerank_score") or item.get("milvus_score", 0.0)
-                    
-                    # Chỉ tính items có similarity đủ cao
-                    if cohere_score > SIMILARITY_THRESHOLD:
-                        filtered_items.append(item)
-                
-                logger.info(f"[FILTER] Total reranked items: {len(reranked)}, "
-                           f"Items after similarity filter (> {SIMILARITY_THRESHOLD}): {len(filtered_items)}")
-                
-                # Step 3a: Detect severity from query and apply boost/penalty
-                query_severity = detect_severity_from_query(rewritten_query)
-                logger.info(f"[SEVERITY DETECTION] Query severity: {query_severity}")
-                
-                # Apply severity-based boost/penalty to filtered items
-                boosted_items = []
-                for item in filtered_items:
-                    original_cohere_score = item.get("cohere_score") or item.get("rerank_score") or item.get("milvus_score", 0.0)
-                    adjusted_cohere_score = apply_severity_boost(item, query_severity)
-                    
-                    # Update item with adjusted score
-                    item["cohere_score"] = adjusted_cohere_score
-                    item["original_cohere_score"] = original_cohere_score  # Keep original for logging
-                    
-                    # Log boost/penalty if significant
-                    if abs(adjusted_cohere_score - original_cohere_score) > 0.01:
-                        boost_pct = ((adjusted_cohere_score - original_cohere_score) / original_cohere_score * 100) if original_cohere_score > 0 else 0
-                        logger.debug(f"[SEVERITY BOOST] {item.get('text', '')[:30]}: "
-                                   f"score={item.get('original_score', 0)}, "
-                                   f"weight={original_cohere_score:.4f} → {adjusted_cohere_score:.4f} "
-                                   f"({boost_pct:+.1f}%)")
-                    
-                    boosted_items.append(item)
-                
-                logger.info(f"[SEVERITY BOOST] Applied to {len(boosted_items)} items")
-                
-                # Track tổng weight cho mỗi type (cần để tính weighted average)
-                normal_stress_total_weight = 0.0
-                adjustment_reaction_total_weight = 0.0
-                
-                for item in boosted_items:
                     item_type = item.get("type", "").lower()
-                    original_score = item.get("original_score", 0.0)
+                    original_score = item.get("original_score", 0.0)  # Field 'score' from Milvus DB
                     chunk_id = item.get("chunk_id", "")
                     title = item.get("text", "")
                     
-                    # Xử lý score đặc biệt
-                    # Bỏ qua score -1 (không tính)
-                    if original_score == -1:
-                        continue
-                    
-                    # Xử lý score 99 (emergency cases): Cap thành 10
-                    # Score 99 thường là emergency cases (ví dụ: "Homicidal ideation", "Suicidal ideation")
-                    # Cap thành 10 để tránh score quá cao nhưng vẫn phản ánh mức độ nghiêm trọng
-                    if original_score == 99:
-                        capped_score = 10
-                    else:
-                        capped_score = original_score
-                    
-                    # Lấy cohere_score làm weight (từ Cohere Rerank API)
-                    cohere_score = item.get("cohere_score") or item.get("rerank_score") or item.get("milvus_score", 0.0)
-                    
-                    # Tính weighted contribution
-                    weighted_contribution = capped_score * cohere_score
-                    
+                    # Use field 'score' directly from database
                     if "normal" in item_type or "stress" in item_type:
-                        type_scores["normal_stress"] += weighted_contribution  # Weighted sum
-                        normal_stress_total_weight += cohere_score  # Track tổng weight
+                        type_scores["normal_stress"] += original_score
                         type_score_details["normal_stress"].append({
                             "chunk_id": chunk_id,
                             "title": title,
-                            "score": capped_score,
-                            "weight": cohere_score,
-                            "weighted_contribution": weighted_contribution,
+                            "score": original_score,
                         })
                     elif "adjustment" in item_type or "điều chỉnh" in item_type:
-                        type_scores["adjustment_reaction"] += weighted_contribution  # Weighted sum
-                        adjustment_reaction_total_weight += cohere_score  # Track tổng weight
+                        type_scores["adjustment_reaction"] += original_score
                         type_score_details["adjustment_reaction"].append({
                             "chunk_id": chunk_id,
                             "title": title,
-                            "score": capped_score,
-                            "weight": cohere_score,
-                            "weighted_contribution": weighted_contribution,
+                            "score": original_score,
                         })
-                
-                # Tính weighted average
-                # Final scores = weighted average (không phụ thuộc số lượng items)
-                if normal_stress_total_weight > 0:
-                    type_scores["normal_stress"] = type_scores["normal_stress"] / normal_stress_total_weight
-                else:
-                    type_scores["normal_stress"] = 0.0
-                
-                if adjustment_reaction_total_weight > 0:
-                    type_scores["adjustment_reaction"] = type_scores["adjustment_reaction"] / adjustment_reaction_total_weight
-                else:
-                    type_scores["adjustment_reaction"] = 0.0
                 
                 logger.info(f"[SCORES] normal_stress: {type_scores['normal_stress']:.2f}, "
                            f"adjustment_reaction: {type_scores['adjustment_reaction']:.2f}")
-                logger.info(f"[SCORE DETAILS] Normal stress items: {len(type_score_details['normal_stress'])}, "
-                           f"Adjustment reaction items: {len(type_score_details['adjustment_reaction'])}")
-                logger.info(f"[SEVERITY MATCH] Query severity: {query_severity}, "
-                           f"Applied boost/penalty to items based on severity alignment")
-                logger.info(f"[TOP ITEMS] Normal stress top 3:")
-                for i, detail in enumerate(type_score_details["normal_stress"][:3], 1):
-                    logger.info(f"  {i}. {detail['title']}: score={detail['score']}, weight={detail.get('weight', 0):.4f}, "
-                               f"contribution={detail.get('weighted_contribution', 0):.2f}")
-                logger.info(f"[TOP ITEMS] Adjustment reaction top 3:")
-                for i, detail in enumerate(type_score_details["adjustment_reaction"][:3], 1):
-                    logger.info(f"  {i}. {detail['title']}: score={detail['score']}, weight={detail.get('weight', 0):.4f}, "
-                               f"contribution={detail.get('weighted_contribution', 0):.2f}")
                 
                 # Step 4: Determine category based on scores
                 normal_stress_score = type_scores["normal_stress"]
@@ -375,11 +195,9 @@ async def assessment_node(state: KGState) -> KGState:
                 state["adjustment_reaction_score_details"] = type_score_details["adjustment_reaction"]  # Chi tiết các chunks
                 state["normal_response_chunks"] = reranked  # Save retrieved chunks
                 
-                # Routing logic: if any score > threshold, go to diagnostic_retrieval (severe symptoms)
-                # Threshold: 4.15 (adjusted based on current score distribution 3.5-5.0)
-                # Có thể điều chỉnh sau khi test
-                THRESHOLD = 4.15
-                if normal_stress_score > THRESHOLD or adjustment_reaction_score > THRESHOLD:
+                # Routing logic: if any score > 60, go to diagnostic_retrieval (severe symptoms)
+                # Otherwise, choose the higher score category
+                if normal_stress_score > 60 or adjustment_reaction_score > 60:
                     # High score indicates severe symptoms → need diagnostic assessment
                     state["assessment_category"] = "possible_disorder"
                     state["assessment_explanation"] = f"Điểm số cao (normal: {normal_stress_score:.2f}, adjustment: {adjustment_reaction_score:.2f}) - cần đánh giá chẩn đoán"

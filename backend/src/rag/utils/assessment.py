@@ -33,6 +33,7 @@ def parse_duration_score(duration_text: str) -> int:
     
     Args:
         duration_text: Duration description from slots (e.g., "3 tuần", "6 tháng", "vài ngày")
+                      Can be a string or a list
     
     Returns:
         D score:
@@ -45,7 +46,18 @@ def parse_duration_score(duration_text: str) -> int:
         logger.warning("Empty duration text, defaulting to D=0")
         return 0
     
-    duration_lower = duration_text.lower()
+    # Handle list: take first element or join
+    if isinstance(duration_text, list):
+        if len(duration_text) == 0:
+            logger.warning("Empty duration list, defaulting to D=0")
+            return 0
+        # Take first non-empty element
+        duration_text = next((item for item in duration_text if item), str(duration_text[0]) if duration_text else "")
+        if not duration_text:
+            logger.warning("No valid duration in list, defaulting to D=0")
+            return 0
+    
+    duration_lower = str(duration_text).lower()
     
     # Extract numbers from text
     numbers = re.findall(r'\d+', duration_lower)
@@ -192,7 +204,6 @@ def assess_severity_only(slots: Dict[str, Any], matched_items: List[Dict[str, An
                 "max_item_score": 99,
                 "duration_score": 0,
                 "total_score": 99,
-                "severity_modifier": 0,
                 "emergency_items": emergency_titles
             },
             0.95
@@ -202,11 +213,11 @@ def assess_severity_only(slots: Dict[str, Any], matched_items: List[Dict[str, An
     duration_text = slots.get("duration", "")
     D = parse_duration_score(duration_text)
     
-    # Step 2: Calculate scores (including severity modifiers)
-    max_item_score, total_score, severity_modifier, modifier_breakdown = calculate_scores(matched_items, D, slots)
+    # Step 2: Calculate scores
+    max_item_score, total_score = calculate_scores(matched_items, D)
     
     # Step 3: Determine severity level (NO binary classification)
-    logger.info(f"[SEVERITY] max_item_score={max_item_score}, D={D}, severity_modifier={severity_modifier}, total_score={total_score}")
+    logger.info(f"[SEVERITY] max_item_score={max_item_score}, D={D}, total_score={total_score}")
     
     # Crisis level
     if total_score > 12:
@@ -232,9 +243,7 @@ def assess_severity_only(slots: Dict[str, Any], matched_items: List[Dict[str, An
     severity_breakdown = {
         "max_item_score": max_item_score,
         "duration_score": D,
-        "severity_modifier": severity_modifier,
         "total_score": total_score,
-        "modifier_breakdown": modifier_breakdown,
         "matched_items_count": len(matched_items)
     }
     

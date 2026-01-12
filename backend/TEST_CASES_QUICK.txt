@@ -1,0 +1,48 @@
+================================================================================
+TEST CASE 1: NORMAL STRESS - NHẸ
+Expected: normal_stress_score ~2-3, route đến normal_coping_retrieval
+================================================================================
+
+Tôi vừa cãi nhau với bạn thân 3 ngày trước, cảm thấy hơi buồn và lo lắng một chút. Vấn đề chính là xung đột với bạn thân. Cảm xúc của tôi là buồn nhẹ và lo lắng nhẹ. Tâm trạng chính là hơi buồn. Triệu chứng bắt đầu 3 ngày trước sau khi cãi nhau với bạn. Kéo dài 3 ngày, xảy ra thỉnh thoảng khi nghĩ đến bạn. Triệu chứng dao động nhiều, có lúc quên đi. Cường độ nhẹ, mức độ đau khổ nhẹ, căng thẳng ở mức nhẹ. Hoạt động hàng ngày không bị ảnh hưởng, công việc bình thường, giao tiếp xã hội giảm một chút, tự chăm sóc tốt. Yếu tố kích thích là cãi nhau với bạn thân, căng thẳng hiện tại là suy nghĩ về mối quan hệ, sự kiện gần đây là cãi nhau với bạn thân 3 ngày trước. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có gia đình hỗ trợ, và tôi đang cố gắng giải quyết vấn đề bằng cách nói chuyện với bạn. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.
+
+================================================================================
+TEST CASE 2: ADJUSTMENT REACTION - NHẸ
+Expected: adjustment_reaction_score ~2-3, route đến adjustment_retrieval
+================================================================================
+
+Tôi vừa chuyển công việc mới 1 tuần trước, cảm thấy hơi lo lắng và căng thẳng. Vấn đề chính là thích nghi với môi trường làm việc mới. Cảm xúc của tôi là lo lắng nhẹ và căng thẳng nhẹ. Tâm trạng chính là lo lắng. Triệu chứng bắt đầu 1 tuần trước sau khi bắt đầu công việc mới. Kéo dài 1 tuần, xảy ra hàng ngày khi đi làm. Triệu chứng dao động ít, ổn định. Cường độ nhẹ, mức độ đau khổ nhẹ, căng thẳng ở mức nhẹ. Hoạt động hàng ngày hơi bị ảnh hưởng, công việc hơi khó tập trung, giao tiếp xã hội bình thường, tự chăm sóc tốt. Yếu tố kích thích là thay đổi công việc, căng thẳng hiện tại là lo lắng về hiệu suất làm việc, sự kiện gần đây là bắt đầu công việc mới 1 tuần trước. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có đồng nghiệp hỗ trợ, và tôi đang cố gắng thích nghi bằng cách học hỏi từ đồng nghiệp. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.
+
+================================================================================
+TEST CASE 3: ADJUSTMENT REACTION - VỪA
+Expected: adjustment_reaction_score ~4-5, route đến adjustment_retrieval
+================================================================================
+
+Tôi vừa ly dị 2 tuần trước, cảm thấy buồn, tức giận và khó ngủ. Vấn đề chính là thay đổi cuộc sống sau ly dị. Cảm xúc của tôi là buồn vừa, tức giận và lo lắng. Tâm trạng chính là buồn. Triệu chứng bắt đầu 2 tuần trước sau khi ly dị. Kéo dài 2 tuần, xảy ra hàng ngày, đặc biệt vào buổi tối. Triệu chứng dao động vừa, có lúc tốt hơn. Cường độ vừa, mức độ đau khổ vừa, căng thẳng ở mức vừa. Hoạt động hàng ngày bị ảnh hưởng vừa, công việc khó tập trung, giao tiếp xã hội giảm, tự chăm sóc vẫn tốt. Yếu tố kích thích là ly dị, căng thẳng hiện tại là lo lắng về tương lai và tài chính, sự kiện gần đây là ly dị 2 tuần trước. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có gia đình hỗ trợ, và tôi đang cố gắng thích nghi bằng cách tập thể dục và nói chuyện với bạn bè. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.
+
+================================================================================
+TEST CASE 4: ADJUSTMENT REACTION - NẶNG
+Expected: adjustment_reaction_score ~5-5.5, có thể route đến diagnostic_retrieval
+================================================================================
+
+Tôi vừa mất việc 1 tháng trước, cảm thấy rất buồn, tuyệt vọng và mất ngủ. Vấn đề chính là thất nghiệp và lo lắng về tài chính. Cảm xúc của tôi là buồn nặng, tuyệt vọng và lo lắng. Tâm trạng chính là buồn. Triệu chứng bắt đầu 1 tháng trước sau khi mất việc. Kéo dài 1 tháng, xảy ra hàng ngày, đặc biệt vào buổi sáng. Triệu chứng dao động ít, ổn định ở mức nặng. Cường độ nặng, mức độ đau khổ nặng, căng thẳng ở mức nặng. Hoạt động hàng ngày bị ảnh hưởng nhiều, công việc không thể tìm được, giao tiếp xã hội giảm nhiều, tự chăm sóc kém. Yếu tố kích thích là mất việc, căng thẳng hiện tại là lo lắng về tài chính và tương lai, sự kiện gần đây là mất việc 1 tháng trước. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có gia đình hỗ trợ một phần, và tôi đang cố gắng tìm việc nhưng chưa thành công. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.
+
+================================================================================
+TEST CASE 5: POSSIBLE DISORDER - VỪA
+Expected: adjustment_reaction_score ~5-6, route đến diagnostic_retrieval
+================================================================================
+
+Tôi cảm thấy buồn, mệt mỏi và mất hứng thú với mọi thứ trong 2 tháng qua. Vấn đề chính là trầm cảm và mất động lực. Cảm xúc của tôi là buồn nặng, tuyệt vọng và lo lắng. Tâm trạng chính là buồn. Triệu chứng bắt đầu 2 tháng trước không rõ nguyên nhân cụ thể. Kéo dài 2 tháng, xảy ra hàng ngày, cả ngày. Triệu chứng dao động ít, ổn định ở mức nặng. Cường độ nặng, mức độ đau khổ nặng, căng thẳng ở mức nặng. Hoạt động hàng ngày bị ảnh hưởng nhiều, công việc khó tập trung và hiệu suất giảm, giao tiếp xã hội giảm nhiều, tự chăm sóc kém. Yếu tố kích thích không rõ ràng, căng thẳng hiện tại là lo lắng về tương lai và cảm giác vô vọng, sự kiện gần đây không có sự kiện cụ thể. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có gia đình hỗ trợ, và tôi đang cố gắng nhưng không hiệu quả, không có cách nào để cải thiện. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.
+
+================================================================================
+TEST CASE 6: POSSIBLE DISORDER - NẶNG
+Expected: adjustment_reaction_score ~5.5-6.5, route đến diagnostic_retrieval
+================================================================================
+
+Tôi cảm thấy rất buồn, tuyệt vọng, mất ngủ và không muốn làm gì cả trong 3 tháng qua. Vấn đề chính là trầm cảm nặng và mất động lực hoàn toàn. Cảm xúc của tôi là buồn rất nặng, tuyệt vọng và lo lắng. Tâm trạng chính là buồn. Triệu chứng bắt đầu 3 tháng trước không rõ nguyên nhân cụ thể. Kéo dài 3 tháng, xảy ra hàng ngày, cả ngày. Triệu chứng dao động ít, ổn định ở mức rất nặng. Cường độ rất nặng, mức độ đau khổ rất nặng, căng thẳng ở mức rất nặng. Hoạt động hàng ngày bị ảnh hưởng rất nhiều, công việc không thể hoàn thành, giao tiếp xã hội gần như không có, tự chăm sóc rất kém. Yếu tố kích thích không rõ ràng, căng thẳng hiện tại là lo lắng về tương lai và cảm giác vô vọng, sự kiện gần đây không có sự kiện cụ thể. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có gia đình hỗ trợ nhưng không giúp được nhiều, và tôi không có cách nào để cải thiện, không có cơ chế đối phó hiệu quả. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.
+
+================================================================================
+TEST CASE 7: SEVERE SYMPTOMS (Score 5 items)
+Expected: adjustment_reaction_score ~5.5-6.5, route đến diagnostic_retrieval
+================================================================================
+
+Tôi cảm thấy rất tuyệt vọng, mất hứng thú hoàn toàn và không có động lực làm gì cả trong 2 tháng qua. Vấn đề chính là trầm cảm nặng với nhiều triệu chứng nghiêm trọng. Cảm xúc của tôi là tuyệt vọng rất nặng, buồn và lo lắng. Tâm trạng chính là tuyệt vọng. Triệu chứng bắt đầu 2 tháng trước không rõ nguyên nhân cụ thể. Kéo dài 2 tháng, xảy ra hàng ngày, cả ngày. Triệu chứng dao động ít, ổn định ở mức rất nặng. Cường độ rất nặng, mức độ đau khổ rất nặng, căng thẳng ở mức rất nặng. Hoạt động hàng ngày bị ảnh hưởng rất nhiều, công việc không thể làm được, giao tiếp xã hội không có, tự chăm sóc rất kém. Yếu tố kích thích không rõ ràng, căng thẳng hiện tại là cảm giác vô vọng và mất hứng thú hoàn toàn, sự kiện gần đây không có sự kiện cụ thể. Tôi không sử dụng chất kích thích, không có bệnh nền, không có thay đổi thuốc, uống cà phê bình thường. Tôi có gia đình hỗ trợ nhưng không giúp được, và tôi cảm thấy không có cách nào, không có cơ chế đối phó hiệu quả. Tôi không có triệu chứng giống hưng cảm, và không có triệu chứng giống loạn thần.

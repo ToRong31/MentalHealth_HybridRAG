@@ -42,6 +42,12 @@ async def classify_query_type(
     if conversation_buffer is None:
         conversation_buffer = []
     
+    # NOTE: Removed hard-coded check for empty buffer/summary
+    # Reason: This was causing TURN 2/3 to be misclassified as topic_change
+    # when buffer wasn't loaded correctly from checkpoint.
+    # Now we always call LLM to make the decision, even if buffer is empty.
+    # The LLM prompt already handles the case of "no previous conversation"
+    
     # Build conversation context from buffer + summary
     from src.rag.utils.memory import format_buffer_for_context, format_summary_context
     
@@ -60,8 +66,8 @@ async def classify_query_type(
     if not query_classifier_prompt_template:
         logger.error("Query classifier prompt is empty!")
         return {
-            "query_type": "follow_up",
-            "is_topic_change": False,
+            "query_type": "topic_change",
+            "is_topic_change": True,
             "is_off_topic": False,
             "should_enhance_query": True
         }
@@ -112,18 +118,20 @@ async def classify_query_type(
             }
         else:
             logger.warning(f"Could not parse JSON from LLM response: {response}")
+            # Default to topic_change if parsing fails (safer than follow_up)
             return {
-                "query_type": "follow_up",
-                "is_topic_change": False,
+                "query_type": "topic_change",
+                "is_topic_change": True,
                 "is_off_topic": False,
                 "should_enhance_query": True
             }
             
     except Exception as e:
         logger.error(f"Error in classify_query_type: {e}", exc_info=True)
+        # Default to topic_change on error (safer than follow_up)
         return {
-            "query_type": "follow_up",
-            "is_topic_change": False,
+            "query_type": "topic_change",
+            "is_topic_change": True,
             "is_off_topic": False,
             "should_enhance_query": True
         }

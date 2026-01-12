@@ -57,24 +57,23 @@ async def normal_coping_retrieval_node(state: KGState) -> KGState:
         logger.info(f"[ENHANCED QUERY] {enhanced_query}")
         
         # Retrieve from graph (will get normal_responses nodes if they exist)
-        result = await graph_retrieval(
-            question=enhanced_query,
-            top_k=5,  # Get top 5 most relevant nodes
-            expand_depth=1
+        result = await graph_retrieval.retrieve(
+            query=enhanced_query,
+            rerank_top_k=5  # Get top 5 most relevant nodes
         )
         
-        graph_context = result.get("graph_context", "")
-        anchors = result.get("anchors", [])
-        nodes = result.get("nodes", [])
-        rels = result.get("rels", [])
+        graph_context = result.context
+        anchors = result.metadata.get("anchors", [])
+        nodes_count = result.metadata.get("nodes_count", 0)
+        rels_count = result.metadata.get("rels_count", 0)
         
         # Update state
         state["graph_context"] = graph_context
         state["anchors"] = anchors
-        state["nodes"] = nodes
-        state["rels"] = rels
+        state["nodes_count"] = nodes_count
+        state["rels_count"] = rels_count
         
-        logger.info(f"[RETRIEVAL RESULT] Retrieved {len(nodes)} nodes, {len(rels)} relationships")
+        logger.info(f"[RETRIEVAL RESULT] Retrieved {nodes_count} nodes, {rels_count} relationships")
         logger.info(f"[CONTEXT LENGTH] {len(graph_context)} characters")
         
         if not graph_context or len(graph_context) < 100:
@@ -137,24 +136,23 @@ async def adjustment_retrieval_node(state: KGState) -> KGState:
         logger.info(f"[ENHANCED QUERY] {enhanced_query}")
         
         # Retrieve from graph
-        result = await graph_retrieval(
-            question=enhanced_query,
-            top_k=5,
-            expand_depth=1
+        result = await graph_retrieval.retrieve(
+            query=enhanced_query,
+            rerank_top_k=5
         )
         
-        graph_context = result.get("graph_context", "")
-        anchors = result.get("anchors", [])
-        nodes = result.get("nodes", [])
-        rels = result.get("rels", [])
+        graph_context = result.context
+        anchors = result.metadata.get("anchors", [])
+        nodes_count = result.metadata.get("nodes_count", 0)
+        rels_count = result.metadata.get("rels_count", 0)
         
         # Update state
         state["graph_context"] = graph_context
         state["anchors"] = anchors
-        state["nodes"] = nodes
-        state["rels"] = rels
+        state["nodes"] = nodes_count  # Use nodes_count instead of undefined nodes
+        state["rels"] = rels_count  # Use rels_count instead of undefined rels
         
-        logger.info(f"[RETRIEVAL RESULT] Retrieved {len(nodes)} nodes, {len(rels)} relationships")
+        logger.info(f"[RETRIEVAL RESULT] Retrieved {nodes_count} nodes, {rels_count} relationships")
         logger.info(f"[CONTEXT LENGTH] {len(graph_context)} characters")
         
         if not graph_context or len(graph_context) < 100:

@@ -119,12 +119,6 @@ async def disease_conclusion_node(state: KGState) -> KGState:
         if detected_disease:
             logger.info(f"✅ Disease conclusion: disease='{detected_disease}', confidence={confidence:.2f}")
             
-            # Translate disease name to Vietnamese if needed
-            disease_name_display = detected_disease
-            if language == "vi" or language == "vn":
-                disease_name_display = translate_disease_name(detected_disease)
-                logger.info(f"📝 Translated disease name: '{detected_disease}' -> '{disease_name_display}'")
-            
             # Save analysis results
             state["detected_disease"] = detected_disease
             state["diagnostic_confidence"] = confidence
@@ -133,8 +127,15 @@ async def disease_conclusion_node(state: KGState) -> KGState:
             state["disease_symptoms"] = disease_symptoms
             state["disease_causes"] = disease_causes
             
-            # Add to disease_detected list if confidence is high enough (>= 0.6)
-            if confidence >= 0.8:
+            # Only conclude disease if confidence > 0.8
+            if confidence > 0.8:
+                # Translate disease name to Vietnamese if needed
+                disease_name_display = detected_disease
+                if language == "vi" or language == "vn":
+                    disease_name_display = translate_disease_name(detected_disease)
+                    logger.info(f"📝 Translated disease name: '{detected_disease}' -> '{disease_name_display}'")
+                
+                # Add to disease_detected list
                 disease_list = state.get("disease_detected", [])
                 if disease_list is None:
                     disease_list = []
@@ -144,12 +145,10 @@ async def disease_conclusion_node(state: KGState) -> KGState:
                     logger.info(f"✅ Disease '{detected_disease}' added to disease_detected list (confidence: {confidence:.2f})")
                 else:
                     logger.info(f"ℹ️ Disease '{detected_disease}' already in disease_detected list")
-            else:
-                logger.info(f"ℹ️ Disease '{detected_disease}' confidence too low ({confidence:.2f}) to add to disease_detected")
-            
-            # Generate conclusion message with personalized explanation
-            if language == "vi" or language == "vn":
-                conclusion = f"""**Giải thích ngắn gọn về tình trạng của bạn:**
+                
+                # Generate conclusion message with personalized explanation
+                if language == "vi" or language == "vn":
+                    conclusion = f"""**Giải thích ngắn gọn về tình trạng của bạn:**
 
 {disease_description if disease_description else f"Dựa trên các triệu chứng bạn mô tả, tôi nhận thấy bạn có dấu hiệu có thể mắc **{disease_name_display}**. Đây là một tình trạng y tế ảnh hưởng đến cảm xúc, suy nghĩ và hành vi của bạn."}
 
@@ -160,8 +159,8 @@ Các triệu chứng của bạn{f" như {reasoning}" if reasoning and not reaso
 **Lưu ý:** Đây chỉ là đánh giá sơ bộ dựa trên thông tin bạn cung cấp, không thay thế cho chẩn đoán y tế chuyên nghiệp.
 
 Bạn có muốn tôi gợi ý cho bạn một số cách chữa trị không?"""
-            else:
-                conclusion = f"""**Brief explanation about your condition:**
+                else:
+                    conclusion = f"""**Brief explanation about your condition:**
 
 {disease_description if disease_description else f"Based on the symptoms you described, I observe that you may show signs of possibly having **{detected_disease}**. This is a medical condition that affects your emotions, thoughts, and behavior."}
 
@@ -170,9 +169,13 @@ Your symptoms{f" such as {reasoning}" if reasoning and not reasoning.startswith(
 **Note:** This is only a preliminary assessment based on the information you provided, and does not replace professional medical diagnosis.
 
 Would you like me to suggest some treatment options?"""
-            
-            state["answer"] = conclusion
-            state["awaiting_treatment_confirmation"] = True
+                
+                state["answer"] = conclusion
+                state["awaiting_treatment_confirmation"] = True
+            else:
+                # Confidence <= 0.8: fallback to graph retrieve
+                logger.info(f"⚠️ Confidence too low ({confidence:.2f}), will fallback to graph retrieve")
+                state["answer"] = ""  # Clear answer to trigger graph retrieve
         else:
             logger.warning("⚠️ No disease confirmed from verification")
             state["answer"] = "Xin lỗi, tôi không thể xác định bệnh từ các triệu chứng." if language == "vi" else "Sorry, I couldn't identify a condition from the symptoms."
