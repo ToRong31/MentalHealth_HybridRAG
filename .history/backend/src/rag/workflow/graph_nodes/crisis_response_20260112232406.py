@@ -30,21 +30,30 @@ async def crisis_immediate_response_node(state: Dict[str, Any]) -> Dict[str, Any
     """
     crisis_level = state.get("crisis_level", "high")
     crisis_indicators = state.get("crisis_indicators", [])
+    empathy = state.get("empathy_preamble_vi", "")
     
     logger.warning(f"[CRISIS STAGE 1] Immediate response triggered. Level: {crisis_level}")
     logger.warning(f"[CRISIS STAGE 1] Indicators: {crisis_indicators}")
     
-    # Get base crisis message (hotlines template) - already has empathy
+    # Get base crisis message (hotlines template)
     base_message = get_crisis_response_message()
+    
+    # Enhance with opening based on indicators
+    indicator_str = ", ".join(crisis_indicators) if crisis_indicators else "difficult situation"
+    
+    opening = f"{empathy}\n\n" if empathy else ""
+    opening += f"Tôi nhận thấy bạn đang trải qua một thời điểm rất khó khăn."
     
     # Add safety check question
     safety_question = "\n\n❓ Bạn có thể cho tôi biết bạn đang ở đâu và có ai ở cùng không?"
     
     if crisis_level == "critical":
-        # More urgent for critical - override with emergency header
+        # More urgent for critical
+        opening = f"{empathy}\n\n🚨 **TÌNH HUỐNG KHẨN CẤP**\n\n" if empathy else "🚨 **TÌNH HUỐNG KHẨN CẤP**\n\n"
+        opening += "Bạn đang trong tình huống nguy hiểm và cần được hỗ trợ NGAY LẬP TỨC."
         safety_question = "\n\n⚠️ **Bạn có đang an toàn ngay lúc này không?**"
     
-    message = base_message + safety_question
+    message = opening + "\n\n" + base_message + safety_question
     
     # Update state
     state["answer"] = message
@@ -195,40 +204,20 @@ async def crisis_escalation_node(state: Dict[str, Any]) -> Dict[str, Any]:
     Triggers: User confirms immediate danger
     Features: More urgent language, alternative actions, limited turns
     """
+    empathy = state.get("empathy_preamble_vi", "")
     crisis_response_count = state.get("crisis_response_count", 0)
     
     logger.critical(f"[CRISIS ESCALATION] Immediate danger confirmed. Count: {crisis_response_count}")
     
-    # Check if max escalations reached
-    if crisis_response_count >= 2:
-        logger.critical(f"[CRISIS ESCALATION] Max escalations reached (2). Ending with final message.")
-        message = """🚨 **VUI LÒNG GỌI HOTLINE KHẨN CẤP**
+    message = f"""{empathy}
 
-📞 **115** (Cấp cứu y tế - 24/7) hoặc **1800 599 913** (Tư vấn tâm lý)
-
-Tôi là chatbot và không thể cung cấp hỗ trợ khẩn cấp mà bạn cần ngay lúc này. 
-
-**Hành động quan trọng nhất:** Gọi hotline hoặc đến bệnh viện gần nhất.
-
-🙏 Bạn xứng đáng được giúp đỡ. Xin hãy tìm đến chuyên gia."""
-        
-        state["answer"] = message
-        state["skip_translation"] = True
-        state["done"] = True  # End conversation
-        state["crisis_stage"] = None  # Clear crisis stage
-        return state
-    
-    # Continue escalation (count < 2)
-    message = """🚨 **TÌNH HUỐNG KHẨN CẤP**
+🚨 **TÌNH HUỐNG KHẨN CẤP**
 
 Bạn đang trong tình huống nguy hiểm và cần được hỗ trợ NGAY LẬP TỨC từ chuyên gia.
 
 📞 **HÃY GỌI NGAY:**
-
 • **115** - Cấp cứu y tế (miễn phí, 24/7)
-
 • **113** - Cảnh sát (nếu cần bảo vệ)
-
 • **1800 599 913** - Tư vấn tâm lý khẩn cấp
 
 **Nếu bạn không thể gọi, hãy:**
@@ -242,9 +231,15 @@ Bạn đang trong tình huống nguy hiểm và cần được hỗ trợ NGAY L
 
     state["answer"] = message
     state["skip_translation"] = True
-    state["done"] = False  # Allow one more response
+    state["done"] = False  # Still allow response
     state["crisis_stage"] = 2
     state["crisis_response_count"] = crisis_response_count + 1
+    
+    # If too many escalations, consider ending
+    if crisis_response_count >= 3:
+        logger.critical(f"[CRISIS ESCALATION] Max escalations reached. Consider ending session.")
+        state["done"] = True  # End conversation gracefully
+        state["answer"] += "\n\n🙏 Vì sự an toàn của bạn, tôi khuyến khích bạn gọi hotline hoặc tìm sự giúp đỡ trực tiếp. Tôi sẽ ở đây nếu bạn cần."
     
     return state
 
@@ -374,24 +369,25 @@ async def crisis_to_normal_transition_node(state: Dict[str, Any]) -> Dict[str, A
     """
     STAGE 3D: Transition from crisis to normal flow
     
-    Triggers: User de-escalated/calmer OR safe message after recent crisis
+    Triggers: User de-escalated/calmer
     Features: Acknowledge improvement, gentle reminder, enable normal flow
     """
+    empathy = state.get("empathy_preamble_vi", "")
     
-    logger.info(f"[CRISIS TRANSITION] User de-escalated or safe after crisis. Gentle follow-up.")
+    logger.info(f"[CRISIS TRANSITION] User de-escalated. Transitioning to normal flow.")
     
-    message = """💙 Tôi rất vui vì bạn đang cảm thấy ổn định hơn.
+    message = f"""{empathy}
+
+Tôi rất vui vì bạn đang cảm thấy ổn định hơn.
 
 Để đảm bảo an toàn, tôi muốn nhắc bạn:
-
-• Nếu bất cứ lúc nào cảm giác khó khăn trở lại, hãy gọi **115** hoặc **1800 599 913**
-
+• Nếu bất cứ lúc nào cảm giác trở lại, hãy gọi **115** hoặc **1800 599 913**
 • Số này luôn sẵn sàng 24/7, không cần ngại ngùng
 
-Bây giờ, bạn có muốn nói về điều gì không? Tôi có thể giúp bạn với:
+Bây giờ, bạn muốn nói về điều gì? Tôi có thể giúp bạn với:
 • Cách đối phó với căng thẳng
-• Kỹ thuật thư giãn  
-• Thông tin về các vấn đề tâm lý
+• Kỹ thuật thư giãn
+• Thông tin về các rối loạn tâm lý
 • Hoặc bất cứ điều gì bạn cần"""
     
     state["answer"] = message
@@ -400,9 +396,8 @@ Bây giờ, bạn có muốn nói về điều gì không? Tôi có thể giúp 
     state["crisis_level"] = "moderate"  # Downgrade from "high"
     state["crisis_stage"] = None  # Exit crisis mode
     state["requires_safety_monitoring"] = True  # Enable monitoring
-    state["recent_crisis_detected"] = False  # Clear flag - allow normal flow next time
     
-    logger.info(f"[CRISIS TRANSITION] Transitioned to moderate monitoring mode. Next safe message will go to slot_filling.")
+    logger.info(f"[CRISIS TRANSITION] Transitioned to moderate monitoring mode.")
     
     return state
 

@@ -89,6 +89,5 @@ class KGState(TypedDict):
     crisis_follow_up_classification: Optional[str]  # "immediate_danger" | "seeking_help" | "declining_help" | "de_escalated"
     requires_safety_monitoring: Optional[bool]  # Whether user needs continued safety monitoring (post-crisis)
     crisis_sensitivity_increased: Optional[bool]  # Whether safety check sensitivity is heightened
-    recent_crisis_detected: Optional[bool]  # Whether user had crisis in recent messages (need follow-up before slot_filling)
 
     normal_response_chunks: Optional[List[str]]  # Chunks from normal coping retrieval

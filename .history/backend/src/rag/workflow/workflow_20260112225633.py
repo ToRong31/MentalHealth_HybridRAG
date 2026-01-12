@@ -42,18 +42,16 @@ from .graph_nodes.diagnostic_screening import diagnostic_screening_node
 logger = logging.getLogger(__name__)
 
 
-def route_after_safety_check(state: KGState) -> Literal["crisis_immediate_response", "crisis_escalation", "crisis_to_normal_transition", "slot_filling"]:
+def route_after_safety_check(state: KGState) -> Literal["crisis_immediate_response", "slot_filling"]:
     """
     Routing logic sau khi check safety:
     - Nếu high-risk -> crisis_immediate_response (NEW: multi-stage crisis flow)
-    - Nếu safe nhưng có recent crisis -> crisis_to_normal_transition (follow-up)
     - Nếu safe -> slot_filling (personal questions đã được filter trước đó)
     
     UPGRADED: Re-enabled with context-aware safety check + adaptive crisis response
     """
     is_high_risk = state.get("is_high_risk", False)
     requires_monitoring = state.get("requires_safety_monitoring", False)
-    recent_crisis = state.get("recent_crisis_detected", False)
     
     if is_high_risk:
         # Check if already in crisis flow (re-escalation)
@@ -64,12 +62,6 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_immediate_respon
             # First time detect
             logger.critical("[ROUTE] 🚨 HIGH RISK → crisis_immediate_response")
             return "crisis_immediate_response"
-    
-    elif recent_crisis:
-        # User had crisis recently but current message is safe
-        # Need gentle follow-up before returning to normal flow
-        logger.warning(f"[ROUTE] 🔄 RECENT CRISIS → crisis_to_normal_transition (gentle follow-up)")
-        return "crisis_to_normal_transition"
     
     elif requires_monitoring:
         # User từng ở crisis, giờ stable nhưng cần watch closely
@@ -407,16 +399,7 @@ def build_kg_graph():
     builder.add_node("slot_filling", slot_filling_node)  # Chạy sau safety_check
     builder.add_node("assessment", assessment_node)  # Assess severity only (no binary classification)
     builder.add_node("diagnostic_screening", diagnostic_screening_node)  # NEW: Universal disorder screening
-    
-    # Crisis response nodes (NEW: Multi-stage adaptive crisis system)
-    builder.add_node("crisis_response", crisis_response_node)  # Legacy (backward compat)
-    builder.add_node("crisis_immediate_response", crisis_immediate_response_node)  # Stage 1
-    builder.add_node("crisis_follow_up_classifier", crisis_follow_up_classifier_node)  # Stage 2
-    builder.add_node("crisis_escalation", crisis_escalation_node)  # Stage 3a
-    builder.add_node("crisis_contextual_support", crisis_contextual_support_node)  # Stage 3b
-    builder.add_node("crisis_gentle_persistence", crisis_gentle_persistence_node)  # Stage 3c
-    builder.add_node("crisis_to_normal_transition", crisis_to_normal_transition_node)  # Stage 3d
-    
+    builder.add_node("crisis_response", crisis_response_node)
     builder.add_node("not_mental_health", not_mental_health_node)
     builder.add_node("request_more_info", request_more_info_node)  # Hỏi thêm nếu thiếu slots
     builder.add_node("query_rewriter", query_rewriter_node)  # Rewrite query với slots + conversation
@@ -475,43 +458,16 @@ def build_kg_graph():
         "safety_check",
         route_after_safety_check,
         {
-            "crisis_immediate_response": "crisis_immediate_response",  # NEW: Multi-stage crisis
-            "crisis_escalation": "crisis_escalation",  # Re-escalation case
-            "crisis_to_normal_transition": "crisis_to_normal_transition",  # Safe after recent crisis
+            "crisis_response": "crisis_response",
             "slot_filling": "slot_filling",  # Personal questions -> full diagnostic flow
         },
     )
-    
-    # Crisis flow: immediate_response -> classifier (waits for next user input)
-    # Note: done=False allows user to respond, next turn re-enters at safety_check which routes to classifier
-    builder.add_edge("crisis_immediate_response", END)  # Temporary: wait for user response
-    
-    # Crisis follow-up classifier routes based on user response
-    builder.add_conditional_edges(
-        "crisis_follow_up_classifier",
-        route_after_crisis_follow_up,
-        {
-            "crisis_escalation": "crisis_escalation",
-            "crisis_contextual_support": "crisis_contextual_support",
-            "crisis_gentle_persistence": "crisis_gentle_persistence",
-            "crisis_to_normal_transition": "crisis_to_normal_transition",
-        },
-    )
-    
-    # All crisis stage nodes return to END (done=False allows continuation)
-    builder.add_edge("crisis_escalation", END)
-    builder.add_edge("crisis_contextual_support", END)
-    builder.add_edge("crisis_gentle_persistence", END)
-    builder.add_edge("crisis_to_normal_transition", END)
-    
-    # Legacy crisis response (backward compat)
-    builder.add_edge("crisis_response", END)
-    
     # Theoretical flow: theoretical_retrieval -> answer_with_theoretical -> conversation_memory
     builder.add_edge("theoretical_retrieval", "answer_with_theoretical")
     builder.add_edge("answer_with_theoretical", "conversation_memory")
 
-    # Non-relevant queries exit directly
+    # Crisis and non-relevant queries exit directly
+    builder.add_edge("crisis_response", END)
     builder.add_edge("not_mental_health", END)
 
     # Conditional routing after slot filling (SIMPLIFIED - no assessment/screening)

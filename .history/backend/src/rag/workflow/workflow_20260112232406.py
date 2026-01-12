@@ -42,18 +42,16 @@ from .graph_nodes.diagnostic_screening import diagnostic_screening_node
 logger = logging.getLogger(__name__)
 
 
-def route_after_safety_check(state: KGState) -> Literal["crisis_immediate_response", "crisis_escalation", "crisis_to_normal_transition", "slot_filling"]:
+def route_after_safety_check(state: KGState) -> Literal["crisis_immediate_response", "crisis_escalation", "slot_filling"]:
     """
     Routing logic sau khi check safety:
     - Nếu high-risk -> crisis_immediate_response (NEW: multi-stage crisis flow)
-    - Nếu safe nhưng có recent crisis -> crisis_to_normal_transition (follow-up)
     - Nếu safe -> slot_filling (personal questions đã được filter trước đó)
     
     UPGRADED: Re-enabled with context-aware safety check + adaptive crisis response
     """
     is_high_risk = state.get("is_high_risk", False)
     requires_monitoring = state.get("requires_safety_monitoring", False)
-    recent_crisis = state.get("recent_crisis_detected", False)
     
     if is_high_risk:
         # Check if already in crisis flow (re-escalation)
@@ -64,12 +62,6 @@ def route_after_safety_check(state: KGState) -> Literal["crisis_immediate_respon
             # First time detect
             logger.critical("[ROUTE] 🚨 HIGH RISK → crisis_immediate_response")
             return "crisis_immediate_response"
-    
-    elif recent_crisis:
-        # User had crisis recently but current message is safe
-        # Need gentle follow-up before returning to normal flow
-        logger.warning(f"[ROUTE] 🔄 RECENT CRISIS → crisis_to_normal_transition (gentle follow-up)")
-        return "crisis_to_normal_transition"
     
     elif requires_monitoring:
         # User từng ở crisis, giờ stable nhưng cần watch closely
@@ -477,7 +469,6 @@ def build_kg_graph():
         {
             "crisis_immediate_response": "crisis_immediate_response",  # NEW: Multi-stage crisis
             "crisis_escalation": "crisis_escalation",  # Re-escalation case
-            "crisis_to_normal_transition": "crisis_to_normal_transition",  # Safe after recent crisis
             "slot_filling": "slot_filling",  # Personal questions -> full diagnostic flow
         },
     )

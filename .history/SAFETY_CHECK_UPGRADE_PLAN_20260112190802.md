@@ -2,7 +2,7 @@
 
 ## 📋 TÓM TẮT MỤC TIÊU
 
-Nâng cấp hệ thống Safety Check với khả năng nhận ừ lịch sử hội thoại, tăng độ nhạy với các tín hiệu nguy hiểm (passive SI, NSSI, imminent threats) và giảm false positives với metaphors/idioms.
+Nâng cấp hệ thống Safety Check với khả năng nhận biết ngữ cảnh từ lịch sử hội thoại, tăng độ nhạy với các tín hiệu nguy hiểm (passive SI, NSSI, imminent threats) và giảm false positives với metaphors/idioms.
 
 ---
 

@@ -374,24 +374,25 @@ async def crisis_to_normal_transition_node(state: Dict[str, Any]) -> Dict[str, A
     """
     STAGE 3D: Transition from crisis to normal flow
     
-    Triggers: User de-escalated/calmer OR safe message after recent crisis
+    Triggers: User de-escalated/calmer
     Features: Acknowledge improvement, gentle reminder, enable normal flow
     """
+    empathy = state.get("empathy_preamble_vi", "")
     
-    logger.info(f"[CRISIS TRANSITION] User de-escalated or safe after crisis. Gentle follow-up.")
+    logger.info(f"[CRISIS TRANSITION] User de-escalated. Transitioning to normal flow.")
     
-    message = """💙 Tôi rất vui vì bạn đang cảm thấy ổn định hơn.
+    message = f"""{empathy}
+
+Tôi rất vui vì bạn đang cảm thấy ổn định hơn.
 
 Để đảm bảo an toàn, tôi muốn nhắc bạn:
-
-• Nếu bất cứ lúc nào cảm giác khó khăn trở lại, hãy gọi **115** hoặc **1800 599 913**
-
+• Nếu bất cứ lúc nào cảm giác trở lại, hãy gọi **115** hoặc **1800 599 913**
 • Số này luôn sẵn sàng 24/7, không cần ngại ngùng
 
-Bây giờ, bạn có muốn nói về điều gì không? Tôi có thể giúp bạn với:
+Bây giờ, bạn muốn nói về điều gì? Tôi có thể giúp bạn với:
 • Cách đối phó với căng thẳng
-• Kỹ thuật thư giãn  
-• Thông tin về các vấn đề tâm lý
+• Kỹ thuật thư giãn
+• Thông tin về các rối loạn tâm lý
 • Hoặc bất cứ điều gì bạn cần"""
     
     state["answer"] = message
@@ -400,9 +401,8 @@ Bây giờ, bạn có muốn nói về điều gì không? Tôi có thể giúp 
     state["crisis_level"] = "moderate"  # Downgrade from "high"
     state["crisis_stage"] = None  # Exit crisis mode
     state["requires_safety_monitoring"] = True  # Enable monitoring
-    state["recent_crisis_detected"] = False  # Clear flag - allow normal flow next time
     
-    logger.info(f"[CRISIS TRANSITION] Transitioned to moderate monitoring mode. Next safe message will go to slot_filling.")
+    logger.info(f"[CRISIS TRANSITION] Transitioned to moderate monitoring mode.")
     
     return state
 

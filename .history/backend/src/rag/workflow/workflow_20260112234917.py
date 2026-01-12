@@ -477,7 +477,6 @@ def build_kg_graph():
         {
             "crisis_immediate_response": "crisis_immediate_response",  # NEW: Multi-stage crisis
             "crisis_escalation": "crisis_escalation",  # Re-escalation case
-            "crisis_to_normal_transition": "crisis_to_normal_transition",  # Safe after recent crisis
             "slot_filling": "slot_filling",  # Personal questions -> full diagnostic flow
         },
     )

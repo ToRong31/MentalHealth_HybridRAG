@@ -60,12 +60,6 @@ __all__ = [
     
     # LLM Answer Nodes
     'crisis_response_node',
-    'crisis_immediate_response_node',
-    'crisis_follow_up_classifier_node',
-    'crisis_escalation_node',
-    'crisis_contextual_support_node',
-    'crisis_gentle_persistence_node',
-    'crisis_to_normal_transition_node',
     'not_mental_health_node',
     'safety_check_node',
     'slot_filling_node',

@@ -176,20 +176,6 @@ async def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
             logger.critical(f"[SAFETY CHECK NODE] Crisis Level: {crisis_level}")
         else:  # safe
             state["is_high_risk"] = False
-            
-            # Check if user had recent crisis (within this conversation)
-            had_recent_crisis = (
-                state.get("crisis_response_count", 0) > 0 or 
-                state.get("crisis_stage") is not None or
-                state.get("crisis_level") in ["critical", "high", "moderate"]
-            )
-            
-            if had_recent_crisis:
-                state["recent_crisis_detected"] = True
-                logger.warning(f"[SAFETY CHECK NODE] ⚠️ SAFE NOW but RECENT CRISIS detected. Need follow-up.")
-            else:
-                state["recent_crisis_detected"] = False
-            
             # No response override - continue normal flow
             logger.info(f"[SAFETY CHECK NODE] ✅ SAFE: {reason}")
         

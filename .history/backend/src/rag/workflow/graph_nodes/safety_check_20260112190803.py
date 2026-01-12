@@ -120,76 +120,16 @@ async def safety_check_node(state: Dict[str, Any]) -> Dict[str, Any]:
                 is_high_risk = False
                 reason = "No high-risk keywords found"
         
-        # === CLASSIFY CRISIS LEVEL ===
-        crisis_level = None
-        
-        if classification == "high_risk" or is_high_risk:
-            # Determine crisis level based on indicators
-            # "critical" - immediate danger (plan + means + intent)
-            # "high" - suicidal ideation or self-harm urges (no immediate action)
-            
-            indicator_set = set([ind.lower() for ind in indicators])
-            
-            # Critical: Has plan + means + intent OR active harm
-            critical_combos = [
-                {"plan", "means", "intent"},
-                {"plan", "means"},
-                {"immediate", "action"},
-                {"active", "harm"}
-            ]
-            
-            is_critical = any(
-                combo.issubset(indicator_set) for combo in critical_combos
-            )
-            
-            # Check for critical keywords in question
-            critical_keywords = [
-                "đã chuẩn bị", "đang cầm", "sắp", "ngay bây giờ", "hiện tại",
-                "ready to", "about to", "right now", "have the"
-            ]
-            
-            question_lower = question.lower()
-            has_critical_keyword = any(k in question_lower for k in critical_keywords)
-            
-            if is_critical or has_critical_keyword:
-                crisis_level = "critical"
-                logger.critical(f"[SAFETY CHECK] 🔴 CRITICAL CRISIS: Immediate danger detected")
-            else:
-                crisis_level = "high"
-                logger.warning(f"[SAFETY CHECK] 🟠 HIGH CRISIS: Significant risk detected")
-        
         # === MAP TO STATE FLAGS ===
         if classification == "high_risk" or is_high_risk:
             state["is_high_risk"] = True
             state["response_override"] = crisis_response  # Override with crisis response
             state["risk_indicators"] = indicators  # Store detected indicators
-            state["crisis_level"] = crisis_level  # NEW: Store crisis level
-            state["crisis_indicators"] = indicators  # NEW: Store for crisis nodes
-            
-            # Initialize crisis tracking if first detection
-            if state.get("crisis_response_count") is None:
-                state["crisis_response_count"] = 0
-            
             logger.critical(f"[SAFETY CHECK NODE] 🚨 HIGH RISK DETECTED: {reason}")
             if indicators:
                 logger.critical(f"[SAFETY CHECK NODE] Indicators: {', '.join(indicators)}")
-            logger.critical(f"[SAFETY CHECK NODE] Crisis Level: {crisis_level}")
         else:  # safe
             state["is_high_risk"] = False
-            
-            # Check if user had recent crisis (within this conversation)
-            had_recent_crisis = (
-                state.get("crisis_response_count", 0) > 0 or 
-                state.get("crisis_stage") is not None or
-                state.get("crisis_level") in ["critical", "high", "moderate"]
-            )
-            
-            if had_recent_crisis:
-                state["recent_crisis_detected"] = True
-                logger.warning(f"[SAFETY CHECK NODE] ⚠️ SAFE NOW but RECENT CRISIS detected. Need follow-up.")
-            else:
-                state["recent_crisis_detected"] = False
-            
             # No response override - continue normal flow
             logger.info(f"[SAFETY CHECK NODE] ✅ SAFE: {reason}")
         
