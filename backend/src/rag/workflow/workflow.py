@@ -37,7 +37,6 @@ from .graph_nodes.diagnostic_retrieval import diagnostic_retrieval_node
 from .graph_nodes.disease_conclusion import disease_conclusion_node
 from .graph_nodes.treatment_retrieval import treatment_retrieval_node
 from .graph_nodes.answer_with_treatment import answer_with_treatment_node
-from .graph_nodes.diagnostic_screening import diagnostic_screening_node
 
 logger = logging.getLogger(__name__)
 
@@ -410,7 +409,6 @@ def build_kg_graph():
     builder.add_node("safety_check", safety_check_node)
     builder.add_node("slot_filling", slot_filling_node)  # Chạy sau safety_check
     builder.add_node("assessment", assessment_node)  # Assess severity only (no binary classification)
-    builder.add_node("diagnostic_screening", diagnostic_screening_node)  # NEW: Universal disorder screening
     
     # Crisis response nodes (NEW: Multi-stage adaptive crisis system)
     builder.add_node("crisis_response", crisis_response_node)  # Legacy (backward compat)

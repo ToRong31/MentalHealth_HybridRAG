@@ -7,11 +7,16 @@ import logging
 
 from src.rag.llm.answer_nodes.crisis_response import get_crisis_response_message
 from src.rag.llm.llm_gemini import LLMClient
+from src.rag.prompts.loader import load_prompts
 
 logger = logging.getLogger(__name__)
 
 # Initialize LLM client for classifier
 llm = LLMClient()
+
+# Load crisis prompts
+crisis_prompts = load_prompts("crisis_responses_promt.yaml")
+crisis_classifier_prompt = crisis_prompts.get("crisis_follow_up_classifier_prompt", "")
 
 
 # ============================================================================
@@ -90,51 +95,18 @@ async def crisis_follow_up_classifier_node(state: Dict[str, Any]) -> Dict[str, A
         if isinstance(msg, dict) and msg.get('content')
     ])
     
-    # LLM classification prompt
-    prompt = f"""Bạn là chuyên gia crisis intervention. Phân loại phản ứng của user sau khi nhận crisis intervention message.
-
-CRISIS INDICATORS ĐÃ PHÁT HIỆN: {', '.join(crisis_indicators) if crisis_indicators else 'None'}
-CRISIS LEVEL: {crisis_level}
-
-CONVERSATION HISTORY:
-{history_str}
-
-USER RESPONSE MỚI NHẤT: {question}
-
-NHIỆM VỤ: Classify user response vào 1 trong 4 categories:
-
-1. **immediate_danger** - User confirm đang trong nguy hiểm immediate:
-   - Mention về plan cụ thể, means, intent
-   - Đang có action nguy hiểm (đã uống thuốc, cầm dao, etc.)
-   - Từ chối gọi hotline VÀ có nguy cơ cao
-   - Examples: "Tôi đã chuẩn bị thuốc ngủ", "Tôi đang ở mái nhà"
-
-2. **seeking_help** - User muốn support/nói chuyện:
-   - Cần ai đó lắng nghe, hiểu
-   - Muốn tìm cách đối phó
-   - Engage với questions, sẵn sàng chia sẻ
-   - Examples: "Tôi cần ai đó hiểu tôi", "Làm sao để bớt đau khổ?"
-
-3. **declining_help** - User defensive/từ chối:
-   - Từ chối support, resistant
-   - Defensive, angry tone
-   - Deflecting, minimizing
-   - Examples: "Không cần bạn can thiệp", "Tôi ổn rồi, thôi"
-
-4. **de_escalated** - Risk giảm, user calm hơn:
-   - Cảm xúc ổn định hơn
-   - Sẵn sàng nói về vấn đề khác
-   - Acknowledge feeling better
-   - Examples: "Tôi ổn hơn rồi", "Giờ tôi muốn nói về công việc"
-
-OUTPUT FORMAT (JSON):
-{{
-    "classification": "immediate_danger" | "seeking_help" | "declining_help" | "de_escalated",
-    "confidence": "high" | "medium" | "low",
-    "reasoning": "Brief explanation in Vietnamese"
-}}
-
-CRITICAL: Respond ONLY with valid JSON. No markdown, no code blocks."""
+    # Load and format prompt from YAML
+    if not crisis_classifier_prompt:
+        logger.error("[CRISIS CLASSIFIER] Prompt not loaded from YAML!")
+        raise ValueError("Crisis classifier prompt not found in crisis_responses_promt.yaml")
+    
+    # Format prompt with variables
+    indicators_str = ', '.join(crisis_indicators) if crisis_indicators else 'None'
+    
+    prompt = crisis_classifier_prompt.replace("{{CRISIS_INDICATORS}}", indicators_str)
+    prompt = prompt.replace("{{CRISIS_LEVEL}}", crisis_level)
+    prompt = prompt.replace("{{HISTORY}}", history_str)
+    prompt = prompt.replace("{{QUESTION}}", question)
 
     try:
         # Use the global llm instance

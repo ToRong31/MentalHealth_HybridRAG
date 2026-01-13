@@ -7,8 +7,6 @@ Each file contains one workflow node that calls logic from answer_nodes
 from .translate_question import translate_question_node
 from .translate_answer import translate_answer_node
 
-# Query similarity check
-from .query_similarity_check import query_similarity_check_node
 
 # Encoding
 from .encode import encode_node
@@ -47,8 +45,7 @@ __all__ = [
     'translate_question_node',
     'translate_answer_node',
     
-    # Query Similarity Check
-    'query_similarity_check_node',
+
     
     # Encoding
     'encode_node',
