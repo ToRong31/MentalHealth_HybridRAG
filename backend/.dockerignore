@@ -1,79 +1,44 @@
+# VCS
+.git
+.gitignore
+
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+*.pyc
+*.pyo
+*.pyd
+*.log
+.pytest_cache/
+.mypy_cache/
 
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv
-
-# Environment Variables
+# Env / venv
 .env
-.env.local
+.env.*
+venv/
+.venv/
 
-# IDE
+# App runtime folders (should be volumes, not baked into image)
+data/
+logs/
+tmp/
+
+# Caches (HuggingFace / pip / misc)
+.cache/
+**/.cache/
+huggingface/
+**/huggingface/
+
+# Large assets (if any)
+models/
+datasets/
+*.bin
+*.pt
+*.pth
+*.onnx
+*.tar
+*.zip
+
+# OS / editor
+.DS_Store
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Git
-.git/
-.gitignore
-.gitattributes
-
-# Docker
-Dockerfile
-docker-compose.yaml
-.dockerignore
-
-# Documentation
-README.md
-*.md
-docs/
-
-# Data (sẽ mount từ volume)
-data/raw/*.json
-neo4j/
-
-# Tests
-tests/
-*.test.py
-pytest.ini
-
-# CI/CD
-.github/
-.gitlab-ci.yml
-
-# Models cache (sẽ tải trong runtime)
-models/
-.cache/
-

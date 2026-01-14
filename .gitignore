@@ -65,3 +65,4 @@ models/
 .cache/
 
 Mental_Health_API.postman_collection.json
+evaluation/
