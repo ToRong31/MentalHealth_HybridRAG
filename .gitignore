@@ -27,7 +27,10 @@ env/
 .venv
 
 # Environment Variables
-# .env
+.env
+backend/src/.env
+*.env
+.env*
 .env.local
 
 # IDE
