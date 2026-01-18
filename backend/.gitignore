@@ -27,8 +27,13 @@ env/
 .venv
 
 # Environment Variables
-# .env
+.env
 .env.local
+src/.env
+
+# API Keys
+src/rag/api_key_manager/
+**/api_key.txt
 
 # IDE
 .vscode/
