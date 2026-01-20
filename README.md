@@ -181,7 +181,7 @@ The system employs **4 distinct specialized agents** to handle different types o
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ToRong31/MentalHealth_HybridRAG.git
 cd MentalHealth_HybridRAG
 ```
 
