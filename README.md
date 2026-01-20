@@ -41,27 +41,26 @@ The system employs **4 distinct specialized agents** to handle different types o
 
 ## 🖼️ Demo & Screenshots
 
-### Chat Interface
-![Chat Interface](docs/images/chat-interface.png)
-> Main chat interface with conversation history and real-time responses
+### Conversation Demo
+![Initial Query](docs/images/image_1.png)
+*User asks initial question about a mental health condition*
 
-### System Architecture
-![Architecture Diagram](docs/images/architecture.png)
-> Hybrid RAG architecture combining Knowledge Graph and Vector Search
+![Diagnostic Agent Response](docs/images/image_2.png)
+*🔍 Diagnostic Agent provides symptom assessment and diagnostic support*
 
-### Conversation Flow
-![Conversation Flow](docs/images/conversation-flow.png)
-> Example conversation showing the chatbot's empathetic responses
+![Treatment Agent Response 1](docs/images/image_3.png)
+*💊 Treatment Agent offers evidence-based treatment guidance and therapy recommendations*
 
-### Knowledge Graph Visualization
-![Knowledge Graph](docs/images/knowledge-graph.png)
-> Neo4j graph visualization of mental health knowledge relationships
+![Treatment Agent Response 2](docs/images/image_4.png)
+*💊 Treatment Agent continues with detailed intervention strategies*
 
-### RAG Workflow
-![RAG Workflow](docs/images/rag-workflow.png)
-> LangGraph workflow showing query processing and retrieval steps
+![Theoretical Agent Response 1](docs/images/image_5.png)
+*🎓 Theoretical Agent provides educational information and concept explanations*
 
-*Note: Place your demo images in the `docs/images/` directory*
+![Theoretical Agent Response 2](docs/images/image_6.png)
+*🎓 Theoretical Agent elaborates on mental health concepts and general knowledge*
+
+> Complete conversation flow demonstrating intelligent agent routing: from initial query through diagnostic assessment (🔍), treatment recommendations (💊), to educational content (🎓)
 
 ## ✨ Key Features
 
@@ -457,7 +456,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For issues, questions, or contributions:
 - Create an issue on GitHub
-- Email: support@example.com
+- Email: tronghph@gmail.com
 - Documentation: [docs/](docs/)
 
 ## 🔮 Future Roadmap
