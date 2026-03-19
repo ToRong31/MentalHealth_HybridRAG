@@ -69,3 +69,7 @@ models/
 
 Mental_Health_API.postman_collection.json
 evaluation/
+.gitnexus
+.claude
+skills-lock.json
+CLAUDE.md
