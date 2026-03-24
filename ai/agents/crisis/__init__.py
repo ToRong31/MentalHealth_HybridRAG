@@ -1,0 +1,3 @@
+"""
+Crisis module.
+"""

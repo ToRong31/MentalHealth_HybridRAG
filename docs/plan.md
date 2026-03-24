@@ -5,7 +5,7 @@ Chi tiết yêu cầu:
     + Task: Agent đảm nhận các nhiệm vụ cụ thể, như thực hiện một tác vụ nhất định hoặc giải quyết một vấn đề cụ thể.
     + Goal: Agent tập trung vào việc đạt được các mục tiêu cụ thể, như hoàn thành một dự án hoặc đạt được một kết quả nhất định.
     + Tool: Agent quản lý các công cụ và tài nguyên cần thiết để thực hiện các nhiệm vụ và đạt được các mục tiêu.
-- Thiết kế giao tiếp giữa các agent:
+- Thiết kế giao tiếp giữa các agent (yêu cầu orchestrator agent):
     + Dùng subgraph và message passing để các agent có thể trao đổi thông tin một cách hiệu quả.
 - Phân chia nhiệm vụ một cách hợp lý giữa các agent:
     + Mỗi agent sẽ đảm nhận một phần công việc cụ thể dựa trên kỹ năng và nhiệm vụ đã định nghĩa.
