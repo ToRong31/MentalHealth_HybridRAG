@@ -52,6 +52,10 @@ class AgentTimeoutError(AgentError):
         self.timeout_seconds = timeout_seconds
 
 
+# Alias for backwards compatibility with __init__.py imports
+TimeoutError = AgentTimeoutError
+
+
 class CrisisDetectedError(AgentError):
     def __init__(
         self,

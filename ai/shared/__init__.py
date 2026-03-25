@@ -25,7 +25,7 @@ from .exceptions import (
     AgentError,
     RetryableError,
     CircuitOpenError,
-    AgentTimeoutError,
+    TimeoutError,
     CrisisDetectedError,
     MessageBusError,
     AgentNotFoundError,
@@ -51,7 +51,7 @@ __all__ = [
     # State
     "GlobalState", "create_initial_state",
     # Exceptions
-    "AgentError", "RetryableError", "CircuitOpenError", "AgentTimeoutError",
+    "AgentError", "RetryableError", "CircuitOpenError", "TimeoutError",
     "CrisisDetectedError", "MessageBusError", "AgentNotFoundError",
     "QueueFullError", "RoutingError", "UnknownIntentError",
     "MemoryError", "SlotError", "SlotInsufficientError",
