@@ -6,11 +6,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ai.shared.prompts import load_prompt
+
 logger = logging.getLogger(__name__)
 
 
 class AnswerFormatting:
     """Format final response combining all skill outputs."""
+
+    SYSTEM_PROMPT = load_prompt("support.skills.answer_formatting")
 
     def __init__(self, llm: Any = None):
         self._llm = llm

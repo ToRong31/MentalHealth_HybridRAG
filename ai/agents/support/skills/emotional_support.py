@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ai.shared.prompts import load_prompt
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,6 +22,8 @@ _EMOTION_RESPONSES: dict[str, str] = {
 
 class EmotionalSupport:
     """Generate validating, empathetic responses based on detected emotion."""
+
+    SYSTEM_PROMPT = load_prompt("support.skills.emotional_support")
 
     def __init__(self, llm: Any = None):
         self._llm = llm

@@ -1,107 +1,28 @@
 """
-DiagnosticRetrieval skill — hybrid search over DSM-5 diagnostic KB.
+DiagnosticRetrieval skill — external-only retrieval.
+No local DSM KB fallback.
 """
 from __future__ import annotations
 
-import logging
-import unicodedata
-import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-logger = logging.getLogger(__name__)
+from ai.shared.exceptions import RetrievalUnavailableError
+from ai.shared.prompts import load_prompt
+from ai.agents.diagnostic.tools.retrieval_tools import (
+    embed_diagnostic_query,
+    milvus_search_diagnostic,
+    neo4j_diagnostic_names,
+    rerank_diagnostic,
+)
 
-# In-memory DSM-5 diagnostic KB (replace with Milvus + Neo4j RAG in production)
-DSM5_KB: list[dict[str, Any]] = [
-    {
-        "disorder": "Major Depressive Disorder",
-        "disorder_vi": "Rối loạn trầm cảm nặng",
-        "criteria": [
-            "Tâm trạng trầm cảm hầu hết thời gian, hầu như mỗi ngày",
-            "Mất hứng thú hoặc quan tâm (anhedonia)",
-            "Thay đổi cân nặng / ăn uống",
-            "Mất ngủ hoặc ngủ nhiều",
-            "Kích động hoặc ức chế tâm vận",
-            "Mệt mỏi, mất năng lượng",
-            "Cảm giác vô giá trị hoặc tội lỗi quá mức",
-            "Khó tập trung hoặc do dự",
-            "Ý nghĩ tự sát",
-        ],
-        "min_symptoms": 5,
-        "duration": "ít nhất 2 tuần",
-        "must_have": ["anhedonia", "sad"],
-        "keywords": ["tram cam", "trầm cảm", "depression", "depressed", "buon", "sad"],
-    },
-    {
-        "disorder": "Generalized Anxiety Disorder",
-        "disorder_vi": "Rối loạn lo âu tổng quát",
-        "criteria": [
-            "Lo âu và lo lắng quá mức, nhiều ngày trong tuần trong ít nhất 6 tháng",
-            "Khó kiểm soát sự lo âu",
-            "≥3 triệu chứng (với trẻ: 1): bồn chồn, mệt mỏi, khó tập trung, cáu kỉnh, căng cơ, rối loạn giấc ngủ",
-        ],
-        "min_symptoms": 3,
-        "duration": "ít nhất 6 tháng",
-        "must_have": ["anxiety", "lo au", "worry"],
-        "keywords": ["lo au", "lo âu", "anxiety", "anxious", "lo lắng", "worry"],
-    },
-    {
-        "disorder": "Panic Disorder",
-        "disorder_vi": "Rối loạn hoảng sợ",
-        "criteria": [
-            "Cơn hoảng sợ tái diễn, không dự đoán được",
-            "Lo âu kéo dài về việc có thêm cơn hoảng sợ",
-            "Thay đổi hành vi liên quan đến cơn hoảng (tránh né, v.v.)",
-        ],
-        "min_symptoms": 4,
-        "duration": "tái diễn",
-        "must_have": ["panic", "hoang", "đau ngực"],
-        "keywords": ["hoảng sợ", "hoang", "panic", "đau ngực", "tim đập nhanh"],
-    },
-    {
-        "disorder": "Acute Stress Disorder",
-        "disorder_vi": "Rối loạn stress cấp tính",
-        "criteria": [
-            "Phơi nhiễm với sự kiện gây chấn thương (thực tế hoặc đe dọa)",
-            "≥9 triệu chứng từ 5 nhóm: intrusive, negative mood, dissociative, avoidance, arousal",
-            "Kéo dài 3 ngày đến 1 tháng",
-        ],
-        "min_symptoms": 9,
-        "duration": "3 ngày – 1 tháng",
-        "must_have": ["trauma", "chấn thương", "stress"],
-        "keywords": ["sang chấn", "trauma", "chấn thương", "stress", "căng thẳng"],
-    },
-    {
-        "disorder": "Adjustment Disorder",
-        "disorder_vi": "Rối loạn thích nghi",
-        "criteria": [
-            "Phản ứng cảm xúc hoặc hành vi tiêu cực đáng kể",
-            "Phát triển trong vòng 3 tháng sau sự kiện căng thẳng",
-            "Các triệu chứng không đáp ứng tiêu chuẩn của rối loạn khác",
-            "Các triệu chứng không kéo dài quá 6 tháng sau sự kiện",
-        ],
-        "min_symptoms": 1,
-        "duration": "dưới 6 tháng",
-        "must_have": [],
-        "keywords": ["thích nghi", "adjustment", "đáp ứng căng thẳng", "stress response"],
-    },
-]
-
-
-def _norm(text: str) -> str:
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text.lower())
-        if unicodedata.category(c) != "Mn"
-    )
-
-
-def _match(query: str, keywords: list[str]) -> int:
-    """Count keyword matches. Returns 0 if no match."""
-    q_norm = _norm(query)
-    return sum(1 for kw in keywords if _norm(kw) in q_norm)
+if TYPE_CHECKING:
+    from ai.agents.diagnostic.agent_state import DiagnosticLocalState
 
 
 class DiagnosticRetrieval:
-    """Hybrid search over DSM-5 diagnostic KB + Milvus + Neo4j + Cohere."""
+    """Retrieve diagnostic candidates from external RAG only."""
+
+    SYSTEM_PROMPT = load_prompt("diagnostic.skills.diagnostic_retrieval")
 
     def __init__(
         self,
@@ -115,93 +36,101 @@ class DiagnosticRetrieval:
         self._neo4j = neo4j
         self._reranker = reranker
 
-    async def search(
+    async def retrieve(
         self,
         query: str,
         slots: dict[str, Any],
+        conv_id: str | None = None,
+        agent_state: dict[str, Any] | None = None,
         collection: str = "mental_health_diagnostic",
-    ) -> list[dict[str, Any]]:
-        """
-        Hybrid retrieval pipeline:
-          1) Milvus vector search (if available)
-          2) Neo4j subgraph expansion (if available)
-          3) In-memory DSM5 keyword fallback
-          4) Cohere reranking (if available)
-        """
-        candidates = []
+    ) -> dict[str, Any]:
+        if agent_state is not None:
+            agent_state["step"] = "retrieval"
+            agent_state["goal"] = "find_diagnostic_candidates"
 
-        # ── Step 1: Try Milvus vector search (best-effort) ───────────────
-        milvus_hits = []
-        if self._milvus is not None:
+        if self._milvus is None:
+            raise RetrievalUnavailableError(
+                message="Diagnostic retrieval unavailable: Milvus client is not configured",
+                agent_id="diagnostic",
+                operation="diagnostic_retrieve",
+            )
+
+        state = agent_state or {}
+        query_vector = embed_diagnostic_query(state, query)
+
+        # ── Step 1: Retrieve disorder candidates ────────────────────────────
+        hits = milvus_search_diagnostic(state, self._milvus, query_vector, top_k=10)
+
+        if not hits:
+            raise RetrievalUnavailableError(
+                message="Diagnostic retrieval unavailable: no data found in external vector index",
+                agent_id="diagnostic",
+                operation="diagnostic_retrieve",
+                context={"query": query},
+            )
+
+        names = {}
+        if self._neo4j is not None:
             try:
-                from ai.shared.rag.vectors.embeddings import encode_text
-                query_vector = encode_text(query)
-                milvus_hits = self._milvus.search(query_vector, top_k=10, threshold=0.0)
-                logger.debug("[DiagnosticRetrieval] Milvus hits: %d", len(milvus_hits))
-            except Exception as e:
-                logger.warning("[DiagnosticRetrieval] Milvus search failed: %s", e)
+                node_ids = [h.get("node_id") for h in hits if "node_id" in h]
+                names = neo4j_diagnostic_names(state, self._neo4j, node_ids)
+            except Exception:
+                pass
 
-        # ── Step 2: Expand Neo4j subgraph from Milvus node_ids ───────────
-        graph_node_names = {}
-        if self._neo4j is not None and milvus_hits:
+        candidates: list[dict[str, Any]] = []
+        for h in hits:
+            nid = h.get("node_id")
+            disorder_name = names.get(nid, f"Diagnostic Node {nid}")
+            candidates.append(
+                {
+                    "disorder": disorder_name,
+                    "disorder_vi": disorder_name,
+                    "criteria": ["Externally retrieved candidate"],
+                    "score": h.get("score", 0.0),
+                    "min_symptoms": 0,
+                    "must_have": [],
+                    "text": h.get("text", f"{disorder_name} diagnostic candidate"),
+                    "source": "milvus+neo4j" if self._neo4j is not None else "milvus",
+                }
+            )
+
+        # ── Step 2: Retrieve DSM-5 diagnostic chunks (criteria, symptoms, causes) ─
+        # Search again with different query to get criteria text
+        criteria_query = f"{query} DSM-5 criteria symptoms causes diagnostic"
+        criteria_vector = embed_diagnostic_query(state, criteria_query)
+        criteria_hits = milvus_search_diagnostic(state, self._milvus, criteria_vector, top_k=10)
+
+        diagnostic_chunks: list[str] = []
+        seen = set()
+        for h in criteria_hits:
+            text = h.get("text", "")
+            node_id = h.get("node_id")
+            if text and text not in seen and node_id not in seen:
+                seen.add(node_id)
+                diagnostic_chunks.append(text)
+
+        if self._reranker is not None:
             try:
-                node_ids = [h["node_id"] for h in milvus_hits if "node_id" in h]
-                graph_node_names = self._neo4j.get_node_names(node_ids)
-                logger.debug("[DiagnosticRetrieval] Neo4j names: %d", len(graph_node_names))
-            except Exception as e:
-                logger.warning("[DiagnosticRetrieval] Neo4j query failed: %s", e)
+                candidates = rerank_diagnostic(state, self._reranker, query, candidates)
+            except Exception:
+                pass
 
-        # ── Step 3: In-memory DSM5 fallback scoring ────────────────────────
-        # Always run this so system works without infra.
+        for c in candidates:
+            c.pop("text", None)
 
-        for disorder in DSM5_KB:
-            score = _match(query, disorder.get("keywords", []))
+        if not candidates:
+            raise RetrievalUnavailableError(
+                message="Diagnostic retrieval unavailable: candidates empty after external processing",
+                agent_id="diagnostic",
+                operation="diagnostic_retrieve",
+            )
 
-            # Boost score if slots match disorder criteria
-            emotion = slots.get("emotion", "")
-            if emotion:
-                emotion_kws = disorder.get("keywords", [])
-                if _norm(emotion) in _norm(" ".join(emotion_kws)):
-                    score += 2
+        if agent_state is not None:
+            agent_state["candidates_count"] = len(candidates)
+            agent_state["step"] = "completed"
+            agent_state["done"] = True
 
-            # Duration match
-            duration = slots.get("duration", "")
-            if duration and duration in disorder.get("duration", "").lower():
-                score += 1
-
-            if score > 0:
-                candidates.append({
-                    "disorder": disorder["disorder"],
-                    "disorder_vi": disorder["disorder_vi"],
-                    "criteria": disorder["criteria"],
-                    "score": score,
-                    "min_symptoms": disorder["min_symptoms"],
-                    "must_have": disorder["must_have"],
-                })
-
-        # Sort by score descending
-        candidates.sort(key=lambda x: x["score"], reverse=True)
-
-        # ── Step 4: Cohere rerank (if available) ───────────────────────────
-        if self._reranker is not None and candidates:
-            try:
-                # Build text field for reranker
-                for c in candidates:
-                    c["text"] = (
-                        f"{c['disorder_vi']} {c['disorder']} "
-                        + " ".join(c.get("criteria", [])[:3])
-                    )
-                candidates = self._reranker.rerank(
-                    query=query,
-                    candidates=candidates,
-                    top_k=5,
-                    candidates_key="text",
-                )
-                # Cleanup helper text
-                for c in candidates:
-                    c.pop("text", None)
-            except Exception as e:
-                logger.warning("[DiagnosticRetrieval] Rerank failed: %s", e)
-
-        logger.info(f"[DiagnosticRetrieval] Found {len(candidates)} candidates")
-        return candidates[:5] if candidates else []
+        return {
+            "candidates": candidates[:5],
+            "diagnostic_chunks": diagnostic_chunks[:5],
+        }

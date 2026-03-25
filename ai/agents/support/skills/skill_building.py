@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ai.shared.prompts import load_prompt
+
 logger = logging.getLogger(__name__)
 
 _EXERCISES: dict[str, dict[str, Any]] = {
@@ -59,6 +61,8 @@ _EXERCISES: dict[str, dict[str, Any]] = {
 
 class SkillBuilding:
     """Guide user through practical mental health skill exercises."""
+
+    SYSTEM_PROMPT = load_prompt("support.skills.skill_building")
 
     def __init__(self, llm: Any = None):
         self._llm = llm

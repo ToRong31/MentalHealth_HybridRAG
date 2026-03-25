@@ -129,6 +129,19 @@ class MemoryError(AgentError):
         self.operation = operation
 
 
+class RetrievalUnavailableError(MemoryError):
+    """Raised when external retrieval backend has no data or is not ready."""
+
+    def __init__(
+        self,
+        message: str = "External retrieval unavailable or not ready",
+        agent_id: str = "",
+        operation: str = "retrieve",
+        context: dict | None = None,
+    ):
+        super().__init__(message, agent_id=agent_id, operation=operation, context=context)
+
+
 class SlotError(AgentError):
     def __init__(
         self,

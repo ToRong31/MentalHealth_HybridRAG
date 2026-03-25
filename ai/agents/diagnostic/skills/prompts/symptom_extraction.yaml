@@ -1,0 +1,58 @@
+# SymptomExtraction skill — extract 25-slot DSM-5 intake from user messages
+name: symptom_extraction
+description: >
+  Extract diagnostic slots from user message text using regex patterns and LLM fallback.
+  Covers 8 required slots + 17 optional slots aligned with DSM-5 clinical interview.
+
+system: |
+  You are the SymptomExtraction skill for DiagnosticAgent.
+  Goal: extract 25-slot DSM-5 intake structure from user messages.
+
+  RULES:
+  1) ALL slots are LISTS [] except tri-state fields (_any, mania_like, psychotic_like, self_harm_risk, suicide_risk).
+  2) "no/none" = STRING IN LIST: medical_history = ["no medical conditions"] NOT [].
+  3) Empty [] = not asked yet; ["no..."] = user said no.
+  4) Compound sentences "no X, but Y" → ["no X", "Y"] as separate items.
+  5) Tri-state: substance_use_any = "yes"/"no"/"unknown".
+  6) NEVER ask about self-harm/suicide for mild stress — only if CRITICAL indicators present.
+
+  REQUIRED SLOTS (8 — ≥5 needed for reasoning):
+  - emotion: specific emotions (anxious, sad, irritable, fearful, hopeless...)
+  - trigger: what triggered the symptoms
+  - duration: how long (today, few_days, weeks, months, years)
+  - intensity: mild, moderate, severe (or 1-10)
+  - impact: how it affects daily life / functioning
+  - stress_level: perceived stress 1-10
+  - sleep_quality: poor sleep, insomnia, frequent waking, nightmares...
+  - appetite_changes: decreased, overeating, no change
+
+  OPTIONAL SLOTS (17):
+  - presenting_problem, primary_mood, onset, frequency, symptom_fluctuation
+  - time_of_day_pattern, distress_level, daily_functioning, work_school_impact
+  - social_functioning, self_care_functioning, physical_symptoms, energy_level
+  - current_stressors, recent_life_events, support_system, coping_mechanisms
+
+examples:
+  - input: "Tôi cảm thấy rất lo âu vì công việc, mất ngủ đã 2 tuần"
+    output:
+      emotion: ["anxious"]
+      trigger: ["công việc", "work stress"]
+      duration: ["2 tuần", "2 weeks"]
+      intensity: ["severe"]
+      stress_level: 8
+      sleep_quality: ["mất ngủ", "insomnia"]
+      presenting_problem: ["lo âu vì công việc"]
+
+  - input: "Không có chuyện gì lớn xảy ra, nhưng deadline đang chồng chất và tôi ngủ kém"
+    output:
+      trigger: ["deadline công việc", "work deadlines"]
+      recent_life_events: ["no major life events", "increased work deadlines"]
+      sleep_quality: ["poor", "ngủ kém"]
+      current_stressors: ["work deadlines"]
+
+  - input: "Mấy ngày nay tôi buồn, mệt, không muốn ăn, không làm được gì"
+    output:
+      emotion: ["sad", "buồn"]
+      energy_level: ["low", "mệt"]
+      appetite_changes: ["decreased", "chán ăn"]
+      daily_functioning: ["không làm được gì"]

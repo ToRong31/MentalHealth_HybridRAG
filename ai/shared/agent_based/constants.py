@@ -142,27 +142,44 @@ CRISIS_KEYWORDS: Final[list[str]] = CRISIS_KEYWORDS_VI + CRISIS_KEYWORDS_EN
 
 
 # =============================================================================
-# Slot definitions for DiagnosticAgent
+# Slot definitions for DiagnosticAgent — 25-slot DSM-5 intake structure
 # =============================================================================
+# 8 required slots — ≥5 must be filled to proceed to reasoning
 REQUIRED_SLOTS: Final[list[str]] = [
-    "emotion",
-    "trigger",
-    "duration",
-    "intensity",
-    "impact",
-    "stress_level",
+    "emotion",           # specific emotions: anxious, sad, irritable, fearful...
+    "trigger",           # what triggered the symptoms
+    "duration",          # how long: today, few_days, weeks, months...
+    "intensity",         # mild, moderate, severe (or 1-10 scale)
+    "impact",             # how it affects daily life / functioning
+    "stress_level",       # perceived stress 1-10
+    "sleep_quality",     # poor sleep, insomnia, frequent waking, nightmares...
+    "appetite_changes",   # decreased, overeating, no change...
 ]
 
+# 17 optional slots — collected for richer clinical picture
 OPTIONAL_SLOTS: Final[list[str]] = [
-    "sleep",
-    "appetite",
-    "concentration",
-    "social_withdrawal",
-    "physical_symptoms",
+    "presenting_problem",   # main concern in 1-2 sentences
+    "primary_mood",          # baseline mood: depressed, elevated, neutral
+    "onset",                # when did it start: specific date or relative
+    "frequency",            # how often: daily, intermittent, constant
+    "symptom_fluctuation", # constant, episodic, fluctuating, worse at specific times
+    "time_of_day_pattern",  # worse in morning, worse at night
+    "distress_level",       # subjective distress: mild/moderate/severe
+    "daily_functioning",    # overall daily tasks: minimal/moderate/severe impairment
+    "work_school_impact",   # work/study impact
+    "social_functioning",   # relationships/social impact
+    "self_care_functioning",# hygiene, eating, self-care
+    "physical_symptoms",   # rapid heartbeat, headaches, fatigue, trembling...
+    "energy_level",        # very low, exhausted, normal, unusually high
+    "current_stressors",   # work deadlines, financial concerns, family issues...
+    "recent_life_events",  # job loss, breakup, move, no major events...
+    "support_system",      # has family support, isolated, close friends available...
+    "coping_mechanisms",   # exercise, meditation, avoidance, talking to friends...
 ]
 
 ALL_SLOTS: Final[list[str]] = REQUIRED_SLOTS + OPTIONAL_SLOTS
 
+# Must fill ≥5 of the 8 required slots before LLM diagnostic reasoning
 MIN_SUFFICIENT_SLOTS: Final[int] = 5
 
 

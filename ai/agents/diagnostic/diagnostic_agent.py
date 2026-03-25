@@ -11,24 +11,25 @@ from ai.shared.agent_based.state import GlobalState
 from ai.shared.agent_based.constants import AgentID, MIN_SUFFICIENT_SLOTS
 from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
+from ai.shared.exceptions import RetrievalUnavailableError
+from .agent_state import DiagnosticLocalState
 
 from .skills.symptom_extraction import SymptomExtraction
 from .skills.diagnostic_retrieval import DiagnosticRetrieval
 from .skills.clinical_reasoning import ClinicalReasoning
-from .skills.response_drafting import ResponseDrafting
 
 logger = logging.getLogger(__name__)
 
 
 _SLOT_QUESTIONS: dict[str, str] = {
-    "emotion": "Bạn đang cảm thấy như thế nào? (buồn, lo âu, sợ, giận, chán, v.v.)",
+    "emotion": "Bạn đang cảm thấy như thế nào? (buồn, lo âu, sợ, giận, bế tắc, v.v.)",
     "trigger": "Điều gì đã xảy ra hoặc điều gì khiến bạn cảm thấy như vậy?",
     "duration": "Tình trạng này kéo dài bao lâu rồi? (hôm nay, vài ngày, tuần, tháng...)",
-    "intensity": "Mức độ nghiêm trọng? Bạn đánh giá 1-10 (1=nhẹ, 10=rất nặng)?",
-    "impact": "Triệu chứng này ảnh hưởng đến cuộc sống hàng ngày của bạn như thế nào?",
-    "stress_level": "Mức độ căng thẳng của bạn hiện tại? 1-10?",
-    "sleep": "Giấc ngủ của bạn có thay đổi gì không? (mất ngủ, ngủ nhiều, ác mộng...)",
-    "appetite": "Ăn uống của bạn có thay đổi không? (chán ăn, ăn nhiều hơn...)",
+    "intensity": "Mức độ nghiêm trọng? Bạn đánh giá như thế nào? (nhẹ, trung bình, nặng)",
+    "impact": "Triệu chứng này ảnh hưởng đến cuộc sống hàng ngày của bạn như thế nào? (công việc, học tập, ngủ, ăn...)",
+    "stress_level": "Mức độ căng thẳng hiện tại của bạn? 1-10?",
+    "sleep_quality": "Giấc ngủ của bạn có thay đổi gì không? (mất ngủ, ngủ ít, ngủ nhiều hơn, ác mộng...)",
+    "appetite_changes": "Ăn uống của bạn có thay đổi không? (chán ăn, ăn nhiều hơn, không muốn ăn...)",
 }
 
 
@@ -36,15 +37,21 @@ class DiagnosticAgent(BaseAgent):
     """
     DiagnosticAgent — DSM-5 mental health symptom assessment.
 
-    GOAL: Collect symptoms (slots), retrieve candidates, reason, and provide
-    a preliminary assessment. NOT a medical diagnosis.
+    GOAL: Collect symptoms, reason, and output binary decision.
+    NOT a medical diagnosis — just "có bệnh" or "không có bệnh".
 
     Pipeline:
       1. Extract slots from message (SymptomExtraction)
       2. Merge with accumulated slots (MemoryService)
-      3. Check sufficiency (≥5/6 required slots)
-      4. If sufficient → retrieve + reason → format
-      5. If insufficient → ask for missing slots
+      3. Check sufficiency (≥5/8 required slots)
+      4. If insufficient → ask for missing slots (slot filling)
+      5. If sufficient → retrieve candidates + DSM chunks
+      6. LLM clinical reasoning → has_disorder?
+      7. Return result to SupervisorAgent
+
+    Output:
+      - has_disorder=true  → Supervisor routes → TreatmentAgent (treatment plan)
+      - has_disorder=false → Supervisor routes → SupportAgent (coping strategies)
     """
 
     def __init__(
@@ -54,7 +61,6 @@ class DiagnosticAgent(BaseAgent):
         config: dict | None = None,
         message_bus: Any = None,
     ):
-        # RAG clients injected via config by ai.main.create_ai_engine()
         milvus = (config or {}).get("milvus")
         neo4j = (config or {}).get("neo4j")
         reranker = (config or {}).get("reranker")
@@ -67,8 +73,7 @@ class DiagnosticAgent(BaseAgent):
                 neo4j=neo4j,
                 reranker=reranker,
             ),
-            "ClinicalReasoning":   ClinicalReasoning(llm=llm),
-            "ResponseDrafting":    ResponseDrafting(llm=llm),
+            "ClinicalReasoning":   ClinicalReasoning(llm=llm, memory_service=memory_service),
         }
         self._shared_tools = create_shared_memory_tools(memory_service)
 
@@ -92,10 +97,17 @@ class DiagnosticAgent(BaseAgent):
         context: dict = input.get("context", {})
         conv_id: str = context.get("conv_id", "")
         message: str = context.get("original_message", "")
-        language: str = context.get("language", "vi")
         preliminary_slots: dict = context.get("preliminary_slots", {})
 
-        self.info(f"Processing diagnostic request: '{message[:50]}...'")
+        local: DiagnosticLocalState = {
+            "goal": "diagnostic_assessment",
+            "step": "start",
+            "done": False,
+            "query": message,
+        }
+        self.local_memory.update(local)
+
+        self.info(f"Processing diagnostic: '{message[:50]}...'")
         emitter.emit_agent_started(self.agent_id, input_summary=message[:100])
 
         try:
@@ -125,72 +137,103 @@ class DiagnosticAgent(BaseAgent):
                     missing=sufficiency["missing"],
                     merged=merged,
                     gs=gs,
-                    language=language,
                 )
 
             # ── 5. Diagnostic retrieval ─────────────────────────────────────
-            candidates = await self._skills["DiagnosticRetrieval"].search(
+            local["step"] = "retrieval"
+            retrieval_result = await self._skills["DiagnosticRetrieval"].retrieve(
                 query=message,
                 slots=merged,
+                conv_id=conv_id,
             )
+            candidates = retrieval_result["candidates"]
+            diagnostic_chunks = retrieval_result["diagnostic_chunks"]
 
-            # ── 6. Clinical reasoning ─────────────────────────────────────
+            # ── 6. Clinical reasoning (LLM) ─────────────────────────────────
+            local["step"] = "reasoning"
             diagnosis = await self._skills["ClinicalReasoning"].reason(
                 slots=merged,
                 candidates=candidates,
-                context=message,
+                diagnostic_chunks=diagnostic_chunks,
+                conv_id=conv_id,
+                context="",
             )
 
-            # ── 7. Response drafting ──────────────────────────────────────
-            formatted = await self._skills["ResponseDrafting"].format(
-                diagnosis=diagnosis,
-                slots=merged,
-                language=language,
-            )
+            has_disorder = diagnosis.get("has_disorder", False)
+            slots_collected = sum(1 for v in merged.values() if v not in (None, ""))
 
-            response_text = formatted["response"]
+            local["slots_collected"] = slots_collected
+            local["candidates_count"] = len(candidates)
+            local["has_disorder"] = has_disorder
+            local["diagnosis"] = diagnosis.get("diagnosis") or ""
+            local["confidence"] = float(diagnosis.get("confidence") or 0.0)
+            local["step"] = "completed"
+            local["done"] = True
+            self.local_memory.update(local)
 
-            # ── 8. Save to memory ─────────────────────────────────────────
+            # ── 7. Save to memory ─────────────────────────────────────────
             await self.memory_service.save_buffer(
                 conv_id=conv_id,
                 role="assistant",
-                content=response_text,
+                content=f"[DiagnosticAgent] has_disorder={has_disorder} diagnosis={diagnosis.get('diagnosis')} confidence={diagnosis.get('confidence')}",
                 metadata={
                     "agent": self.agent_id,
+                    "has_disorder": has_disorder,
                     "diagnosis": diagnosis.get("diagnosis"),
                     "confidence": diagnosis.get("confidence"),
                 },
             )
 
-            gs["detected_disease"] = diagnosis.get("diagnosis")
+            # ── 8. Update GlobalState ──────────────────────────────────────
+            gs["has_disorder"] = has_disorder
+            gs["diagnosis"] = diagnosis.get("diagnosis")
             gs["diagnostic_confidence"] = diagnosis.get("confidence")
-            gs["response"] = response_text
-            gs["skills_used"] = list(self._skills.keys())
+            gs["diagnostic_reasoning"] = diagnosis.get("reasoning", "")
+            gs["diagnostic_basis"] = diagnosis.get("basis", [])
+            gs["diagnostic_differential"] = diagnosis.get("differential", [])
+            gs["diagnostic_recommendation"] = diagnosis.get("recommendation", "")
 
-            emitter.emit_agent_finished(self.agent_id, output_summary=response_text[:80])
+            emitter.emit_agent_finished(self.agent_id, output_summary=f"has_disorder={has_disorder}")
 
+            # ── 9. Return binary result to Supervisor ─────────────────────────
             return {
-                "response": response_text,
                 "agent_id": self.agent_id,
+                "has_disorder": has_disorder,
                 "diagnosis": diagnosis.get("diagnosis"),
                 "confidence": diagnosis.get("confidence"),
-                "skills_used": list(self._skills.keys()),
+                "reasoning": diagnosis.get("reasoning", ""),
+                "basis": diagnosis.get("basis", []),
+                "differential": diagnosis.get("differential", []),
+                "recommendation": diagnosis.get("recommendation", ""),
+                "slots_collected": slots_collected,
+                "candidates_count": len(candidates),
                 "intent": "diagnostic",
             }
 
+        except RetrievalUnavailableError as e:
+            self.error(f"DiagnosticAgent retrieval unavailable: {e}")
+            emitter.emit_agent_error(self.agent_id, str(e))
+            gs["error"] = str(e)
+            gs["has_disorder"] = False
+            return {
+                "agent_id": self.agent_id,
+                "has_disorder": False,
+                "diagnosis": None,
+                "confidence": 0.0,
+                "error": str(e),
+                "intent": "diagnostic",
+            }
         except Exception as e:
             self.error(f"DiagnosticAgent failed: {e}")
             emitter.emit_agent_error(self.agent_id, str(e))
             gs["error"] = str(e)
-
-            fallback = (
-                "Mình gặp khó khăn khi xử lý thông tin chuẩn đoán. "
-                "Bạn có thể chia sẻ thêm về triệu chứng và cảm xúc của mình không?"
-            )
+            gs["has_disorder"] = False
             return {
-                "response": fallback,
                 "agent_id": self.agent_id,
-                "skills_used": [],
+                "has_disorder": False,
+                "diagnosis": None,
+                "confidence": 0.0,
+                "error": str(e),
                 "intent": "diagnostic",
             }
 
@@ -200,7 +243,6 @@ class DiagnosticAgent(BaseAgent):
         missing: list[str],
         merged: dict[str, Any],
         gs: GlobalState,
-        language: str,
     ) -> dict[str, Any]:
         """Generate a response asking for missing diagnostic slots."""
         # Ask for top 2 missing slots

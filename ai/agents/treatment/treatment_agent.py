@@ -11,6 +11,10 @@ from ai.shared.agent_based.state import GlobalState
 from ai.shared.agent_based.constants import AgentID
 from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
+from ai.shared.exceptions import RetrievalUnavailableError
+from .agent_state import TreatmentLocalState
+from ai.shared.exceptions import RetrievalUnavailableError
+from .agent_state import TreatmentLocalState
 
 from .skills.treatment_retrieval import TreatmentRetrieval
 from .skills.treatment_planning import TreatmentPlanning
@@ -83,11 +87,20 @@ class TreatmentAgent(BaseAgent):
         message: str = context.get("original_message", "")
         language: str = context.get("language", "vi")
 
+        local: TreatmentLocalState = {
+            "goal": "retrieve_and_plan_treatment",
+            "step": "start",
+            "done": False,
+            "condition": message,
+        }
+        self.local_memory.update(local)
+
         self.info(f"Processing treatment request: '{message[:50]}...'")
         emitter.emit_agent_started(self.agent_id, input_summary=message[:100])
 
         try:
             # 1. Retrieve treatments
+            local["step"] = "retrieve_treatments"
             treatments = await self._skills["TreatmentRetrieval"].retrieve(
                 condition=message,
                 context=await self.memory_service.get_context(conv_id),
@@ -136,6 +149,18 @@ class TreatmentAgent(BaseAgent):
                 },
             )
 
+            local["retrieved_count"] = len(treatments)
+            local["plans_count"] = len(plans)
+            local["step"] = "completed"
+            local["done"] = True
+            self.local_memory.update(local)
+
+            local["retrieved_count"] = len(treatments)
+            local["plans_count"] = len(plans)
+            local["step"] = "completed"
+            local["done"] = True
+            self.local_memory.update(local)
+
             gs["response"] = response_text
             gs["skills_used"] = list(self._skills.keys())
 
@@ -148,21 +173,27 @@ class TreatmentAgent(BaseAgent):
                 "intent": "treatment",
             }
 
+        except RetrievalUnavailableError as e:
+            self.error(f"TreatmentAgent external retrieval unavailable: {e}")
+            emitter.emit_agent_error(self.agent_id, str(e))
+            gs["error"] = str(e)
+            return {
+                "response": "External treatment retrieval chưa sẵn sàng hoặc không có dữ liệu. Vui lòng ingest/index dữ liệu trước.",
+                "agent_id": self.agent_id,
+                "skills_used": [],
+                "intent": "treatment",
+                "error": str(e),
+            }
         except Exception as e:
             self.error(f"TreatmentAgent failed: {e}")
             emitter.emit_agent_error(self.agent_id, str(e))
             gs["error"] = str(e)
-
-            fallback = (
-                "Mình gặp khó khăn khi tìm thông tin điều trị. "
-                "Bạn nên tham khảo bác sĩ tâm thần để được tư vấn cụ thể. "
-                "Bạn có thể gọi: 1800 2020."
-            )
             return {
-                "response": fallback,
+                "response": "TreatmentAgent gặp lỗi nội bộ khi xử lý yêu cầu.",
                 "agent_id": self.agent_id,
                 "skills_used": [],
                 "intent": "treatment",
+                "error": str(e),
             }
 
     async def _finalize(

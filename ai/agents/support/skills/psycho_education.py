@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ai.shared.prompts import load_prompt
+
 logger = logging.getLogger(__name__)
 
 # Basic psychoeducation content (replace with RAG in production)
@@ -54,6 +56,8 @@ Giống như thể chất, tâm lý cũng cần được chăm sóc và nuôi d�
 
 class PsychoEducation:
     """Provide psychoeducation content based on user's concern."""
+
+    SYSTEM_PROMPT = load_prompt("support.skills.psycho_education")
 
     def __init__(self, llm: Any = None):
         self._llm = llm

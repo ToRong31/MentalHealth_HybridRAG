@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ai.shared.prompts import load_prompt
+
 logger = logging.getLogger(__name__)
 
 # In-memory coping strategy KB (replace with RAG retrieval in production)
@@ -70,6 +72,8 @@ _COPING_BY_EMOTION: dict[str, list[dict[str, str]]] = {
 
 class CopingRetrieval:
     """Retrieve coping strategies based on detected emotion and context."""
+
+    SYSTEM_PROMPT = load_prompt("support.skills.coping_retrieval")
 
     def __init__(self, llm: Any = None):
         self._llm = llm

@@ -11,6 +11,10 @@ from ai.shared.agent_based.state import GlobalState
 from ai.shared.agent_based.constants import AgentID
 from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
+from ai.shared.exceptions import RetrievalUnavailableError
+from .agent_state import TheoryLocalState
+from ai.shared.exceptions import RetrievalUnavailableError
+from .agent_state import TheoryLocalState
 
 from .skills.concept_retrieval import ConceptRetrieval
 from .skills.educational_explanation import EducationalExplanation
@@ -72,11 +76,20 @@ class TheoryAgent(BaseAgent):
         message: str = context.get("original_message", "")
         language: str = context.get("language", "vi")
 
+        local: TheoryLocalState = {
+            "goal": "retrieve_and_explain_theory",
+            "step": "start",
+            "done": False,
+            "query": message,
+        }
+        self.local_memory.update(local)
+
         self.info(f"Processing theory request: '{message[:50]}...'")
         emitter.emit_agent_started(self.agent_id, input_summary=message[:100])
 
         try:
             # 1. Retrieve concepts
+            local["step"] = "retrieve_concepts"
             concepts = await self._skills["ConceptRetrieval"].retrieve(
                 query=message,
                 context=await self.memory_service.get_context(conv_id),
@@ -106,6 +119,18 @@ class TheoryAgent(BaseAgent):
                 metadata={"agent": self.agent_id, "concepts": formatted.get("concepts", [])},
             )
 
+            local["retrieved_count"] = len(concepts)
+            local["concepts"] = concepts
+            local["step"] = "completed"
+            local["done"] = True
+            self.local_memory.update(local)
+
+            local["retrieved_count"] = len(concepts)
+            local["concepts"] = concepts
+            local["step"] = "completed"
+            local["done"] = True
+            self.local_memory.update(local)
+
             gs["response"] = response_text
             gs["skills_used"] = list(self._skills.keys())
 
@@ -119,19 +144,25 @@ class TheoryAgent(BaseAgent):
                 "intent": "theory",
             }
 
+        except RetrievalUnavailableError as e:
+            self.error(f"TheoryAgent external retrieval unavailable: {e}")
+            emitter.emit_agent_error(self.agent_id, str(e))
+            gs["error"] = str(e)
+            return {
+                "response": "External theory retrieval chưa sẵn sàng hoặc không có dữ liệu. Vui lòng ingest/index dữ liệu trước.",
+                "agent_id": self.agent_id,
+                "skills_used": [],
+                "intent": "theory",
+                "error": str(e),
+            }
         except Exception as e:
             self.error(f"TheoryAgent failed: {e}")
             emitter.emit_agent_error(self.agent_id, str(e))
             gs["error"] = str(e)
-
-            fallback = (
-                "Mình chưa tìm được thông tin chính xác về chủ đề này. "
-                "Bạn có thể diễn đạt câu hỏi khác đi không? "
-                "Hoặc nếu bạn muốn tìm hiểu về tâm lý, mình có thể giúp!"
-            )
             return {
-                "response": fallback,
+                "response": "TheoryAgent gặp lỗi nội bộ khi xử lý yêu cầu.",
                 "agent_id": self.agent_id,
                 "skills_used": [],
                 "intent": "theory",
+                "error": str(e),
             }

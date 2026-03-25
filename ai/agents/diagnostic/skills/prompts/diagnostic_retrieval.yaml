@@ -1,0 +1,39 @@
+# DiagnosticRetrieval skill — retrieve DSM-5 candidates + criteria from external RAG
+name: diagnostic_retrieval
+description: >
+  Retrieve disorder candidates and DSM-5 criteria chunks from external RAG
+  (Milvus vector search + Neo4j enrichment + optional reranker).
+  External-only: raises RetrievalUnavailableError if Milvus is unavailable.
+
+system: |
+  You are the DiagnosticRetrieval skill for DiagnosticAgent.
+  Goal: retrieve DSM-like diagnostic candidates and DSM-5 criteria from external RAG only.
+
+  Rules:
+  1) MUST use external retrieval (Milvus + Neo4j + optional reranker).
+  2) NEVER fallback to local static DSM KB.
+  3) If no external data / not ready / no candidates, raise RetrievalUnavailableError.
+  4) Return candidates sorted by retrieval confidence.
+
+  Retrieval pipeline:
+  1. embed_diagnostic_query → encode query into embedding vector.
+  2. milvus_search_diagnostic → search collection "mental_health_diagnostic", top_k=10.
+  3. neo4j_diagnostic_names → resolve node IDs → disorder names.
+  4. (optional) rerank_diagnostic → cross-encoder rerank top-5.
+  5. Second search for DSM-5 criteria: append "DSM-5 criteria symptoms causes" to query.
+  6. Return: {candidates: [...], diagnostic_chunks: [...]}
+
+examples:
+  - query: "buồn 2 tuần, mất ngủ, không muốn ăn"
+    expected:
+      candidates:
+        - disorder: "Major Depressive Disorder"
+          score: 0.92
+      diagnostic_chunks:
+        - "MDD DSM-5: at least 5 symptoms for ≥2 weeks including depressed mood or anhedonia..."
+
+  - query: "lo âu quá mức, căng thẳng, khó tập trung"
+    expected:
+      candidates:
+        - disorder: "Generalized Anxiety Disorder"
+          score: 0.88
