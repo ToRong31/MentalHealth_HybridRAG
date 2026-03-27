@@ -1,0 +1,273 @@
+# syntax=docker/dockerfile:1.6
+version: "3.9"
+
+networks:
+  mental_health_network:
+    external: true
+
+volumes:
+  hf_cache:
+    name: hf_cache
+
+services:
+  supervisor:
+    build:
+      context: ../..
+      dockerfile: ai/agents/supervisor/Dockerfile
+    container_name: ai-supervisor
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - AGENT_NAME=supervisor
+      - AGENT_PORT=8001
+      - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-kguser2005}
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  memory:
+    build:
+      context: ../..
+      dockerfile: ai/agents/memory/Dockerfile
+    container_name: ai-memory
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - AGENT_NAME=memory
+      - AGENT_PORT=8002
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  agent-diagnostic:
+    build:
+      context: ../..
+      dockerfile: ai/agents/diagnostic/Dockerfile
+    container_name: ai-diagnostic
+    restart: unless-stopped
+    ports:
+      - "8101:8101"
+    environment:
+      - AGENT_NAME=diagnostic
+      - AGENT_PORT=8101
+      - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-kguser2005}
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8101/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  agent-theory:
+    build:
+      context: ../..
+      dockerfile: ai/agents/theory/Dockerfile
+    container_name: ai-theory
+    restart: unless-stopped
+    ports:
+      - "8102:8102"
+    environment:
+      - AGENT_NAME=theory
+      - AGENT_PORT=8102
+      - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-kguser2005}
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8102/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  agent-treatment:
+    build:
+      context: ../..
+      dockerfile: ai/agents/treatment/Dockerfile
+    container_name: ai-treatment
+    restart: unless-stopped
+    ports:
+      - "8103:8103"
+    environment:
+      - AGENT_NAME=treatment
+      - AGENT_PORT=8103
+      - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-kguser2005}
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8103/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  agent-support:
+    build:
+      context: ../..
+      dockerfile: ai/agents/support/Dockerfile
+    container_name: ai-support
+    restart: unless-stopped
+    ports:
+      - "8104:8104"
+    environment:
+      - AGENT_NAME=support
+      - AGENT_PORT=8104
+      - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-kguser2005}
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8104/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  agent-crisis:
+    build:
+      context: ../..
+      dockerfile: ai/agents/crisis/Dockerfile
+    container_name: ai-crisis
+    restart: unless-stopped
+    ports:
+      - "8105:8105"
+    environment:
+      - AGENT_NAME=crisis
+      - AGENT_PORT=8105
+      - REDIS_URL=redis://redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-kguser2005}
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@postgres:5432/${DB_NAME:-mental_health_db}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    networks:
+      - mental_health_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8105/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

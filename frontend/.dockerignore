@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.cache/
+**/.cache/
+
+.git
+.gitignore
+.DS_Store
+.vscode/
+.idea/
+
+.env
+.env.*
+*.log
