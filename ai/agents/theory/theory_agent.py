@@ -11,9 +11,6 @@ from ai.shared.agent_based.state import GlobalState
 from ai.shared.agent_based.constants import AgentID
 from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
-from ai.shared.exceptions import RetrievalUnavailableError
-from .agent_state import TheoryLocalState
-from ai.shared.exceptions import RetrievalUnavailableError
 from .agent_state import TheoryLocalState
 
 from .skills.concept_retrieval import ConceptRetrieval
@@ -36,7 +33,6 @@ class TheoryAgent(BaseAgent):
         memory_service: Any,
         llm: Any = None,
         config: dict | None = None,
-        message_bus: Any = None,
     ):
         milvus = (config or {}).get("milvus")
         neo4j = (config or {}).get("neo4j")
@@ -59,7 +55,6 @@ class TheoryAgent(BaseAgent):
             memory_service=memory_service,
             llm=llm,
             config=config or {},
-            message_bus=message_bus,
         )
 
         logger.info("[TheoryAgent] Initialized")

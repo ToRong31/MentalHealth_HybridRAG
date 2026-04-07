@@ -63,25 +63,3 @@ async def get_optional_user(
     if credentials is None:
         return None
     return get_current_user(credentials)
-
-
-# ── AI Engine dependency ───────────────────────────────────────────────────────
-
-_ai_engine: Any = None
-
-
-async def get_ai_engine() -> Any:
-    """Dependency: get wired ChatService instance."""
-    global _ai_engine
-    if _ai_engine is None:
-        from ai.main import create_ai_engine
-
-        settings = get_settings()
-        _ai_engine = create_ai_engine(
-            config={
-                "max_buffer_size": settings.ai_max_buffer_size,
-                "cache_ttl": settings.ai_cache_ttl,
-                "timeout_seconds": settings.ai_timeout_seconds,
-            }
-        )
-    return _ai_engine

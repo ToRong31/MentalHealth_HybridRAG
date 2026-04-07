@@ -11,7 +11,7 @@ from typing import Any, Callable, Coroutine, Optional
 from ..circuit_breaker import CircuitBreaker
 from .constants import AgentConfig
 from ..exceptions import AgentError, CircuitOpenError
-from .state import GlobalState
+from .state import AgentState, GlobalState
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +38,11 @@ class BaseAgent(ABC):
         memory_service: Any,
         llm: Any,
         config: Optional[dict] = None,
-        message_bus: Optional[Any] = None,
     ):
         self.agent_id = agent_id
         self.memory_service = memory_service
         self.llm = llm
         self.config = config or {}
-        self.message_bus = message_bus
-
-        # Ephemeral per-request state
-        self.local_memory: dict[str, Any] = {}
 
         # Register tools and skills
         self._tools = self._register_tools()
@@ -62,7 +57,7 @@ class BaseAgent(ABC):
                 timeout=self.config.get("circuit_breaker_timeout", AgentConfig.circuit_breaker_timeout),
             )
 
-        # Interrupt flag (set by CrisisAgent via MessageBus)
+        # Interrupt flag (cross-service crisis interrupt via HTTP header/event)
         self._interrupted = asyncio.Event()
         self._interrupt_reason: Optional[str] = None
 
@@ -178,12 +173,45 @@ class BaseAgent(ABC):
 
     # ── LLM helper ────────────────────────────────────────────────────────
 
-    async def llm_generate(self, prompt: str, **kwargs) -> str:
-        """Generate text using injected LLM client."""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None,
-            lambda: self.llm.invoke(prompt, **kwargs),
+    async def llm_generate(
+        self,
+        prompt: str,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs,
+    ) -> str:
+        """
+        Generate text using the injected LLM client.
+
+        Supports both OpenAIClient (async) and GeminiClient (async).
+        Falls back gracefully if no LLM is configured.
+        """
+        if self.llm is None:
+            raise RuntimeError(
+                f"[{self.agent_id}] No LLM configured — set NVIDIA_API_KEY or GEMINI_API_KEY"
+            )
+
+        # OpenAIClient.generate() is async
+        if hasattr(self.llm, "generate"):
+            return await self.llm.generate(
+                prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            )
+
+        # GeminiClient.generate() is also async
+        if hasattr(self.llm, "generate_content"):
+            import asyncio
+            return await asyncio.to_thread(
+                lambda: self.llm.generate_content(
+                    prompt,
+                    generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+                ).text.strip()
+            )
+
+        raise RuntimeError(
+            f"[{self.agent_id}] LLM client has no supported generate method"
         )
 
     # ── Logging ───────────────────────────────────────────────────────────

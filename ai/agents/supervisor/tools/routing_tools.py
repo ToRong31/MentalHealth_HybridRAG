@@ -18,8 +18,8 @@ def route_to_agent(intent: str, domain_agents: dict[str, Any] | None = None) -> 
     intent : str
         Classified intent (e.g. "diagnostic", "support").
     domain_agents : dict | None
-        Optional dict of available domain agents. If provided,
-        validates that target agent exists.
+        Optional dict of available domain agents. If provided and non-empty,
+        validates that target agent exists in the dict.
 
     Returns
     -------
@@ -38,7 +38,9 @@ def route_to_agent(intent: str, domain_agents: dict[str, Any] | None = None) -> 
 
     target = mapping.get(intent, AgentID.SUPPORT)
 
-    if domain_agents is not None and target not in domain_agents:
+    # Only validate against domain_agents if it was actually populated
+    # (empty dict means standalone microservice mode using HTTP routing)
+    if domain_agents and target not in domain_agents:
         # Fallback to support if specific agent not available
         return AgentID.SUPPORT
 

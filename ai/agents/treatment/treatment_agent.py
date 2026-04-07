@@ -46,7 +46,6 @@ class TreatmentAgent(BaseAgent):
         memory_service: Any,
         llm: Any = None,
         config: dict | None = None,
-        message_bus: Any = None,
     ):
         milvus = (config or {}).get("milvus")
         neo4j = (config or {}).get("neo4j")
@@ -70,7 +69,6 @@ class TreatmentAgent(BaseAgent):
             memory_service=memory_service,
             llm=llm,
             config=config or {},
-            message_bus=message_bus,
         )
 
         logger.info("[TreatmentAgent] Initialized")

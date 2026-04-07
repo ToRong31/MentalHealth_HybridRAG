@@ -43,7 +43,6 @@ class CrisisAgent(BaseAgent):
         memory_service: Any,
         llm: Any = None,
         config: dict | None = None,
-        message_bus: Any = None,
     ):
         self._skills = {
             "CrisisDetection":       CrisisDetection(llm=llm),
@@ -59,7 +58,6 @@ class CrisisAgent(BaseAgent):
             memory_service=memory_service,
             llm=llm,
             config=config or {},
-            message_bus=message_bus,
         )
 
         logger.warning("[CrisisAgent] Initialized — CRITICAL priority")
@@ -118,16 +116,18 @@ class CrisisAgent(BaseAgent):
             )
             crisis_level = detection["level"]
 
-            # ── 3. Emit interrupt to MessageBus (CRITICAL) ─────────────────
-            if self.message_bus is not None:
-                await self.message_bus.emit_interrupt(
-                    from_agent=AgentID.CRISIS,
-                    reason=f"crisis_level={crisis_level}",
-                    metadata={
-                        "conv_id": conv_id,
-                        "level": crisis_level,
-                    },
-                )
+            # ── 3. Persist crisis state in Redis ────────────────────────────
+            # Subsequent requests for this conversation will route to CrisisAgent immediately
+            # (checked in MemoryService.get_crisis_state by all agents)
+            await self.update_crisis_state(
+                conv_id,
+                {
+                    "is_high_risk": True,
+                    "level": crisis_level,
+                    "indicators": detection["indicators"],
+                    "detected_at": detection.get("detected_at"),
+                },
+            )
 
             gs["is_high_risk"] = True
             gs["crisis_level"] = crisis_level

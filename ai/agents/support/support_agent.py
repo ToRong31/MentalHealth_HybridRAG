@@ -34,9 +34,7 @@ class SupportAgent(BaseAgent):
         memory_service: Any,
         llm: Any = None,
         config: dict | None = None,
-        message_bus: Any = None,
     ):
-        # Assign BEFORE super().__init__ (which calls _register_tools)
         self._skills = {
             "CopingRetrieval":    CopingRetrieval(llm=llm),
             "EmotionalSupport":   EmotionalSupport(llm=llm),
@@ -51,7 +49,6 @@ class SupportAgent(BaseAgent):
             memory_service=memory_service,
             llm=llm,
             config=config or {},
-            message_bus=message_bus,
         )
 
         logger.info("[SupportAgent] Initialized")

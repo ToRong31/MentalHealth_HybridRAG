@@ -1,15 +1,28 @@
 """
-Communication — MessageBus, events, and subscriptions.
-Inter-agent communication layer.
+Communication — HTTP client and schemas for inter-agent microservice communication.
 """
-from .message_bus import MessageBus
 from .events import EventEmitter, AgentEvent, emitter
-from .subscriptions import SubscriptionManager
+from .http_client import AgentHTTPClient
+from .http_schemas import (
+    AgentRequest,
+    AgentResponse,
+    RoutingDecision,
+    RoutingRequest,
+    RoutingResponse,
+    HealthResponse,
+)
 
 __all__ = [
-    "MessageBus",
+    # HTTP (microservice)
+    "AgentHTTPClient",
+    "AgentRequest",
+    "AgentResponse",
+    "RoutingDecision",
+    "RoutingRequest",
+    "RoutingResponse",
+    "HealthResponse",
+    # Events (still used for observability/logging)
     "EventEmitter",
     "AgentEvent",
-    "SubscriptionManager",
     "emitter",
 ]

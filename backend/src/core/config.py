@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     ai_cache_ttl: int = 3600
     ai_timeout_seconds: int = 60
 
+    # ── LLM Provider ─────────────────────────────────────────────────────────
+    # Set LLM_PROVIDER=openai (NVIDIA) or LLM_PROVIDER=gemini
+    # OpenAI-compatible (NVIDIA API)
+    llm_provider: str = "openai"  # "openai" | "gemini"
+    openai_base_url: str = "https://integrate.api.nvidia.com/v1"
+    openai_model: str = "openai/gpt-oss-120b"
+    llm_temperature: float = 0.7
+    llm_max_tokens: int = 1024
+    # Gemini
+    gemini_model: str = "gemini-1.5-flash"
+
     # ── CORS ───────────────────────────────────────────────────────────────
     allowed_origins: list[str] = ["http://localhost:3000"]
 

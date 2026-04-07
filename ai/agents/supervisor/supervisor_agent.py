@@ -43,11 +43,12 @@ class SupervisorAgent(BaseAgent):
         memory_service: Any,
         llm: Any = None,
         config: dict | None = None,
-        message_bus: Any = None,
     ):
-        # Assign skills BEFORE super().__init__ (which calls _register_skills)
         self._intent_classifier = IntentClassification(llm=llm)
         self._preliminary_context = PreliminaryContextSkill(llm=llm)
+        # _domain_agents: populated by register_domain_agents() for in-process routing.
+        # For standalone microservice (main.py), domain agents are called via HTTP,
+        # so this dict is not used — but we initialize to {} to avoid AttributeError.
         self._domain_agents: dict[str, Any] = {}
 
         super().__init__(
@@ -55,20 +56,14 @@ class SupervisorAgent(BaseAgent):
             memory_service=memory_service,
             llm=llm,
             config=config or {},
-            message_bus=message_bus,
         )
-
-        logger.info("[SupervisorAgent] Initialized — routing only, no ReAct loop")
-
-        # Domain agents registry (injected by ChatService)
-        self._domain_agents: dict[str, Any] = {}
 
         logger.info("[SupervisorAgent] Initialized — routing only, no ReAct loop")
 
     # ── Register domain agents ──────────────────────────────────────────────
 
     def register_domain_agents(self, agents: dict[str, Any]) -> None:
-        """Called by ChatService to inject domain agent references."""
+        """Called by ChatService to inject domain agent references (in-process mode)."""
         self._domain_agents = agents
         logger.info(f"[SupervisorAgent] Domain agents registered: {list(agents.keys())}")
 
