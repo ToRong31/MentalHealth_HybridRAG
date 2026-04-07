@@ -33,7 +33,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Install Python dependencies
 COPY backend/requirements.txt /tmp/requirements.txt
-RUN uv pip install --system --no-cache --retries 20 -r /tmp/requirements.txt
+RUN uv pip install --system --no-cache -r /tmp/requirements.txt
 
 # Copy agent code
 COPY ai/ /app/ai/

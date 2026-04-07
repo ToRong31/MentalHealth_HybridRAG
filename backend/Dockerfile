@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY backend/requirements.txt .
-RUN uv pip install --system --no-cache --retries 20 -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 
 ############################

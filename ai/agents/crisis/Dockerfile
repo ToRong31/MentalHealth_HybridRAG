@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY ai/agents/crisis/requirements.txt .
-RUN uv pip install --system --no-cache --retries 20 -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # ── runtime ────────────────────────────────────────────────────────────────────
 FROM python:3.11-slim AS runtime
