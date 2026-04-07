@@ -7,7 +7,6 @@ from ai.shared import (
     BaseAgent,
     CircuitBreaker,
     GlobalState,
-    AgentMessage,
 )
 
 __all__ = [
@@ -16,5 +15,4 @@ __all__ = [
     "BaseAgent",
     "CircuitBreaker",
     "GlobalState",
-    "AgentMessage",
 ]

@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN uv pip install --system --no-cache --retries 20 -r requirements.txt
 
 
@@ -41,9 +41,9 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy app source
-COPY src/ ./src/
+COPY backend/src/ ./backend/src/
 COPY ai/ ./ai/
-COPY .env.example ./
+COPY backend/.env.example ./
 
 EXPOSE 8000
 

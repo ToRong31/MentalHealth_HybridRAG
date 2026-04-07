@@ -1024,7 +1024,7 @@ class CircuitBreaker:
 ## 7. Cấu Trúc File Cuối Cùng (Domain-Centric)
 
 ```
-ai/modules/
+ai/
 ├── agents/                                  # 5 Domain Agents + SupervisorAgent
 │   ├── __init__.py
 │   ├── shared/

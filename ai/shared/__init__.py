@@ -19,7 +19,6 @@ from .agent_based.constants import (
     CRISIS_KEYWORDS,
     Language,
 )
-from .communication.message import AgentMessage
 from .agent_based.state import GlobalState, create_initial_state
 from .exceptions import (
     AgentError,
@@ -46,8 +45,6 @@ __all__ = [
     "INTENT_TO_AGENT", "AGENT_TO_INTENT",
     "REQUIRED_SLOTS", "OPTIONAL_SLOTS", "ALL_SLOTS", "MIN_SUFFICIENT_SLOTS",
     "CRISIS_KEYWORDS", "Language",
-    # Message
-    "AgentMessage",
     # State
     "GlobalState", "create_initial_state",
     # Exceptions
