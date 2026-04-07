@@ -4,7 +4,7 @@ Each agent injects this into their tool registry.
 """
 from __future__ import annotations
 
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ai.shared.services.memory_service import MemoryService

@@ -4,7 +4,7 @@ No local DSM KB fallback.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from ai.shared.exceptions import RetrievalUnavailableError
 from ai.shared.prompts import load_prompt
@@ -14,9 +14,6 @@ from ai.agents.diagnostic.tools.retrieval_tools import (
     neo4j_diagnostic_names,
     rerank_diagnostic,
 )
-
-if TYPE_CHECKING:
-    from ai.agents.diagnostic.agent_state import DiagnosticLocalState
 
 
 class DiagnosticRetrieval:

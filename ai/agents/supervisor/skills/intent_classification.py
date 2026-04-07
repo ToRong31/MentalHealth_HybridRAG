@@ -8,7 +8,7 @@ import logging
 from typing import Any, Optional
 
 from ai.agents.supervisor.agent_state import IntentClassificationResult
-from ai.shared.agent_based.constants import Intent, Language
+from ai.shared.agent_based.constants import Intent
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class IntentClassification:
                 return refined
 
         reasoning = (
-            f"Keyword scoring: "
+            "Keyword scoring: "
             + ", ".join(f"{k}={v:.2f}" for k, v in scores.items())
             + f" → {best_intent}"
         )

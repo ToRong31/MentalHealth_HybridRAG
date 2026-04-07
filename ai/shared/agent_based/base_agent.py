@@ -10,8 +10,8 @@ from typing import Any, Callable, Coroutine, Optional
 
 from ..circuit_breaker import CircuitBreaker
 from .constants import AgentConfig
-from ..exceptions import AgentError, CircuitOpenError
-from .state import AgentState, GlobalState
+from ..exceptions import AgentError
+from .state import GlobalState
 
 logger = logging.getLogger(__name__)
 

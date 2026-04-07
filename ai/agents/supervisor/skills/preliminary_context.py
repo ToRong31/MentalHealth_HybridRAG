@@ -5,7 +5,6 @@ Language detection, crisis keywords, and preliminary slot hints.
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 from ai.agents.supervisor.agent_state import PreliminaryContext

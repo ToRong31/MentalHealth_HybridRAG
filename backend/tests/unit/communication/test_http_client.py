@@ -39,10 +39,10 @@ class TestResolveUrl:
         url = _resolve_url("agent-diagnostic")
         assert url == DEFAULT_AGENT_URLS["agent-diagnostic"]
 
-    def test_env_var_overrides_default(self):
-        with patch.dict("os.environ", {"AGENT_DIAGNOSTIC_URL": "http://custom:9999"}):
-            url = _resolve_url("agent-diagnostic")
-            assert url == "http://custom:9999"
+    def test_env_var_overrides_default(self, monkeypatch):
+        monkeypatch.setenv("AGENT_DIAGNOSTIC_URL", "http://custom:9999")
+        url = _resolve_url("agent-diagnostic")
+        assert url == "http://custom:9999"
 
     def test_unknown_agent_returns_empty(self):
         url = _resolve_url("agent-nonexistent")

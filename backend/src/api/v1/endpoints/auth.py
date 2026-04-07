@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
 from backend.src.core.security import create_access_token, verify_password, hash_password
-from backend.src.core.deps import get_db, get_current_user
+from backend.src.core.deps import get_current_user
 
 router = APIRouter()
 

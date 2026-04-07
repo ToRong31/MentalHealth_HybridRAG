@@ -14,10 +14,10 @@ import os
 from typing import Any, AsyncIterator
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from .schemas import ChatRequest, ChatResponse, ErrorResponse, StreamEvent
+from .schemas import ChatRequest, ChatResponse, ErrorResponse
 from backend.src.core.deps import get_current_user
 
 router = APIRouter()

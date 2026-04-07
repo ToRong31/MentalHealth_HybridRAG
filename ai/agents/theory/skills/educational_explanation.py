@@ -56,7 +56,7 @@ class EducationalExplanation:
                 if isinstance(items, list) and items:
                     items_text = "\n".join(f"- {item}" for item in items)
                     label = section_key.replace("_", " ").title()
-                    parts.append(f"**{label}:**\n{items}\n")
+                    parts.append(f"**{label}:**\n{items_text}\n")
 
         explanation = "\n".join(parts)
 

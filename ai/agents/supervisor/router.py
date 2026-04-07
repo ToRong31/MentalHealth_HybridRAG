@@ -4,7 +4,8 @@ SupervisorAgent routing logic — maps intent → domain agent.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+import re
+import unicodedata
 
 from ai.shared.agent_based.constants import (
     AgentID,
@@ -14,14 +15,9 @@ from ai.shared.agent_based.constants import (
 from .agent_state import (
     IntentClassificationResult,
     RoutingDecision,
-    SupervisorState,
 )
 
 logger = logging.getLogger(__name__)
-
-
-import unicodedata
-import re
 
 
 def _remove_diacritics(text: str) -> str:
@@ -44,20 +40,28 @@ def _normalize_text(text: str) -> list[str]:
 def check_crisis_gate(message: str) -> tuple[bool, list[str]]:
     """
     O(1) keyword match for crisis safety gate.
-    Handles Vietnamese diacritics via word-level fuzzy matching.
+    Uses exact substring matching to avoid diacritic normalization false positives.
 
     Returns
     -------
     (has_crisis, matched_keywords)
     """
-    msg_words = _normalize_text(message)
+    msg_lower = message.lower()
     matched = []
 
     for kw in CRISIS_KEYWORDS:
-        kw_words = _normalize_text(kw)
-        # All words in keyword must be present in message
-        if all(kw_w in msg_words for kw_w in kw_words):
-            matched.append(kw)
+        kw_lower = kw.lower()
+        kw_words = kw_lower.split()
+
+        if len(kw_words) == 1:
+            # Single word: check if it appears as a whole word
+            if re.search(r"(?<!\w)" + re.escape(kw_words[0]) + r"(?!\w)", msg_lower):
+                matched.append(kw)
+        else:
+            # Multi-word: exact substring match
+            # This avoids false positives like "tự hỏi" matching "tự tử"
+            if kw_lower in msg_lower:
+                matched.append(kw)
 
     return len(matched) > 0, matched
 

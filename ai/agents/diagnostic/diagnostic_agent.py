@@ -8,7 +8,7 @@ from typing import Any
 
 from ai.shared.agent_based.base_agent import BaseAgent
 from ai.shared.agent_based.state import GlobalState
-from ai.shared.agent_based.constants import AgentID, MIN_SUFFICIENT_SLOTS
+from ai.shared.agent_based.constants import AgentID
 from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
 from ai.shared.exceptions import RetrievalUnavailableError

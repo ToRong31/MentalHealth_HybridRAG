@@ -13,12 +13,9 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from ai.shared.prompts import load_prompt_meta
-
-if TYPE_CHECKING:
-    from ai.shared.agent_based.state import GlobalState
 
 logger = logging.getLogger(__name__)
 

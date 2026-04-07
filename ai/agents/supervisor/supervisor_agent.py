@@ -12,7 +12,7 @@ KHÔNG điều khiển từng bước. KHÔNG gọi domain agents trực tiếp.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ai.shared.agent_based.base_agent import BaseAgent
 from ai.shared.agent_based.state import GlobalState
@@ -22,7 +22,7 @@ from ai.shared.communication.events import emitter
 from .skills.intent_classification import IntentClassification
 from .skills.preliminary_context import PreliminaryContextSkill
 from .tools.routing_tools import route_to_agent, build_routing_context
-from .agent_state import SupervisorState, RoutingDecision
+from .agent_state import RoutingDecision
 
 logger = logging.getLogger(__name__)
 

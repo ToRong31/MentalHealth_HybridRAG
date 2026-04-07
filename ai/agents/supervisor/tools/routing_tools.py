@@ -3,10 +3,7 @@ Routing tools for SupervisorAgent.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ai.shared.agent_based.constants import Intent
+from typing import Any
 
 
 def route_to_agent(intent: str, domain_agents: dict[str, Any] | None = None) -> str:
@@ -26,7 +23,7 @@ def route_to_agent(intent: str, domain_agents: dict[str, Any] | None = None) -> 
     str
         Agent ID string: "diagnostic" | "theory" | "treatment" | "support" | "crisis"
     """
-    from ai.shared.agent_based.constants import INTENT_TO_AGENT, AgentID
+    from ai.shared.agent_based.constants import AgentID
 
     mapping: dict[str, str] = {
         "diagnostic": AgentID.DIAGNOSTIC,

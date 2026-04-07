@@ -4,11 +4,10 @@ SymptomExtraction skill — extracts 8 diagnostic slots from user messages.
 from __future__ import annotations
 
 import logging
-import re
 import unicodedata
 from typing import Any
 
-from ai.shared.agent_based.constants import REQUIRED_SLOTS, OPTIONAL_SLOTS, ALL_SLOTS
+from ai.shared.agent_based.constants import REQUIRED_SLOTS
 
 logger = logging.getLogger(__name__)
 

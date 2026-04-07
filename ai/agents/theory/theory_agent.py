@@ -11,6 +11,7 @@ from ai.shared.agent_based.state import GlobalState
 from ai.shared.agent_based.constants import AgentID
 from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
+from ai.shared.exceptions import RetrievalUnavailableError
 from .agent_state import TheoryLocalState
 
 from .skills.concept_retrieval import ConceptRetrieval

@@ -6,8 +6,8 @@ Replaces the unused `local_memory` in BaseAgent.
 """
 from __future__ import annotations
 
-from typing import Any
 from dataclasses import dataclass, field
+from typing import Any, Literal, Optional, TypedDict
 
 
 @dataclass
@@ -96,8 +96,6 @@ def create_agent_state(
 
 
 # ── GlobalState (shared across agents, per request) ─────────────────────────
-
-from typing import Any, Literal, Optional, TypedDict
 
 
 class GlobalState(TypedDict, total=False):

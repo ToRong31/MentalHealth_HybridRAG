@@ -21,8 +21,19 @@ from ai.shared.agent_based.constants import AgentID, AgentConfig
 class DummyAgent(BaseAgent):
     """Concrete agent for testing BaseAgent."""
 
-    def __init__(self, agent_id: str = "test-agent", **kwargs):
-        super().__init__(agent_id=agent_id, **kwargs)
+    def __init__(
+        self,
+        agent_id: str = "test-agent",
+        memory_service: Any = None,
+        llm: Any = None,
+        **kwargs,
+    ):
+        super().__init__(
+            agent_id=agent_id,
+            memory_service=memory_service,
+            llm=llm,
+            **kwargs,
+        )
         self._run_count = 0
 
     def _register_tools(self) -> dict:

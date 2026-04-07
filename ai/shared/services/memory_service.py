@@ -17,7 +17,6 @@ from typing import Any, Optional
 
 from ai.shared.agent_based.constants import (
     REQUIRED_SLOTS,
-    ALL_SLOTS,
     MIN_SUFFICIENT_SLOTS,
 )
 

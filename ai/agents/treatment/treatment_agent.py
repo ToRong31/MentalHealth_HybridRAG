@@ -13,8 +13,6 @@ from ai.shared.communication.events import emitter
 from ai.shared.memory_tools import create_shared_memory_tools
 from ai.shared.exceptions import RetrievalUnavailableError
 from .agent_state import TreatmentLocalState
-from ai.shared.exceptions import RetrievalUnavailableError
-from .agent_state import TreatmentLocalState
 
 from .skills.treatment_retrieval import TreatmentRetrieval
 from .skills.treatment_planning import TreatmentPlanning
