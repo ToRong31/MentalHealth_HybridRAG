@@ -1,6 +1,7 @@
 """
 Support Agent — Standalone FastAPI microservice.
 """
+
 from __future__ import annotations
 
 import os
@@ -18,7 +19,9 @@ from ai.shared.rag import MilvusClient, Neo4jClient, OpenAIClient, CohereReranke
 from ai.shared.communication import AgentRequest, AgentResponse, HealthResponse
 from ai.agents.support.support_agent import SupportAgent
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +30,9 @@ def _build_llm():
     if api_key := os.getenv("NVIDIA_API_KEY"):
         try:
             return OpenAIClient(
-                base_url=os.getenv("OPENAI_BASE_URL", "https://integrate.api.nvidia.com/v1"),
+                base_url=os.getenv(
+                    "OPENAI_BASE_URL", "https://integrate.api.nvidia.com/v1"
+                ),
                 api_key=api_key,
                 model=os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b"),
             )
@@ -37,7 +42,10 @@ def _build_llm():
     if api_key := os.getenv("GEMINI_API_KEY"):
         try:
             from ai.shared.rag import GeminiClient
-            return GeminiClient(api_key=api_key, model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
+
+            return GeminiClient(
+                api_key=api_key, model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            )
         except Exception as e:
             logger.warning("[Support] Gemini init failed: %s", e)
 
@@ -49,6 +57,7 @@ async def lifespan(app: FastAPI):
     redis_client = None
     if redis_url := os.getenv("REDIS_URL"):
         import redis.asyncio as redis_async
+
         redis_client = redis_async.from_url(redis_url, decode_responses=True)
 
     milvus: MilvusClient | None = None
@@ -89,12 +98,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Support Agent", version="1.0.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health():
-    return HealthResponse(status="ok", agent="support", port=int(os.getenv("AGENT_PORT", "8104")))
+    return HealthResponse(
+        status="ok", agent="support", port=int(os.getenv("AGENT_PORT", "8104"))
+    )
 
 
 @app.post("/agent/support", response_model=AgentResponse)
@@ -104,12 +121,12 @@ async def run_support(req: AgentRequest):
     try:
         result = await agent.run(
             input={
-                "message":         req.message,
+                "message": req.message,
                 "conversation_id": req.conversation_id,
-                "user_id":         req.user_id,
-                "language":        req.language,
-                "context":         req.context,
-                "metadata":        req.metadata,
+                "user_id": req.user_id,
+                "language": req.language,
+                "context": req.context,
+                "metadata": req.metadata,
             },
             gs=gs,
         )

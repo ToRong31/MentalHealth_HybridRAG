@@ -1,6 +1,7 @@
 """
 Unit tests for AgentHTTPClient — call_agent, call_all, retry, timeout behavior.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -132,6 +133,7 @@ class TestCallAll:
 
         async def mock_call(agent_id, req, retry=True):
             from ai.shared.communication.http_schemas import AgentResponse
+
             return AgentResponse(
                 response=f"response from {agent_id}",
                 agent_id=agent_id,

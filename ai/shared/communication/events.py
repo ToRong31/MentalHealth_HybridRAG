@@ -1,6 +1,7 @@
 """
 Event emitter with LangSmith integration.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AgentEvent:
     """Structured event emitted by agents during execution."""
+
     event_type: str
     agent_id: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
@@ -64,8 +66,11 @@ class EventEmitter:
         if self.enable_langsmith:
             try:
                 from langsmith.run_helpers import traceable
+
                 self._traceable = traceable
-                logger.info(f"[EventEmitter] LangSmith enabled (project={_LANGSMITH_PROJECT})")
+                logger.info(
+                    f"[EventEmitter] LangSmith enabled (project={_LANGSMITH_PROJECT})"
+                )
             except ImportError:
                 logger.warning("[EventEmitter] langsmith not installed")
                 self.enable_langsmith = False
@@ -107,10 +112,14 @@ class EventEmitter:
         output_summary: str = "",
         duration_ms: Optional[float] = None,
     ) -> None:
-        self.emit("agent_finished", agent_id, {
-            "output_summary": output_summary,
-            "duration_ms": duration_ms,
-        })
+        self.emit(
+            "agent_finished",
+            agent_id,
+            {
+                "output_summary": output_summary,
+                "duration_ms": duration_ms,
+            },
+        )
 
     def emit_agent_error(
         self,
@@ -134,10 +143,14 @@ class EventEmitter:
         crisis_level: str,
         indicators: list[str],
     ) -> None:
-        self.emit("crisis_detected", agent_id, {
-            "crisis_level": crisis_level,
-            "indicators": indicators,
-        })
+        self.emit(
+            "crisis_detected",
+            agent_id,
+            {
+                "crisis_level": crisis_level,
+                "indicators": indicators,
+            },
+        )
 
     def emit_routing_decided(
         self,
@@ -145,10 +158,14 @@ class EventEmitter:
         intent: str,
         target_agent: str,
     ) -> None:
-        self.emit("routing_decided", agent_id, {
-            "intent": intent,
-            "target_agent": target_agent,
-        })
+        self.emit(
+            "routing_decided",
+            agent_id,
+            {
+                "intent": intent,
+                "target_agent": target_agent,
+            },
+        )
 
     def emit_retrieval_completed(
         self,
@@ -157,11 +174,15 @@ class EventEmitter:
         result_count: int,
         duration_ms: Optional[float] = None,
     ) -> None:
-        self.emit("retrieval_completed", agent_id, {
-            "collection": collection,
-            "result_count": result_count,
-            "duration_ms": duration_ms,
-        })
+        self.emit(
+            "retrieval_completed",
+            agent_id,
+            {
+                "collection": collection,
+                "result_count": result_count,
+                "duration_ms": duration_ms,
+            },
+        )
 
     def subscribe(self, callback: Callable[[AgentEvent], None]) -> None:
         self._subscribers.append(callback)
@@ -221,7 +242,9 @@ class Span:
         duration_ms = (time.perf_counter() - self._start_time) * 1000
         if exc_type is not None:
             self._error = str(exc_val)
-            self.emitter.emit_agent_error(self.agent_id, self._error or "unknown", duration_ms)
+            self.emitter.emit_agent_error(
+                self.agent_id, self._error or "unknown", duration_ms
+            )
         else:
             self.emitter.emit(
                 self.name,

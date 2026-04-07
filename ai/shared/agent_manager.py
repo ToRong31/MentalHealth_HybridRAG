@@ -10,6 +10,7 @@ Usage:
     manager = get_agent_manager()
     supervisor = manager.get_agent(AgentID.SUPERVISOR)
 """
+
 from __future__ import annotations
 
 import logging
@@ -62,7 +63,9 @@ class AgentManager:
         """Get or create the singleton AgentManager instance."""
         if cls._instance is None:
             if memory_service is None:
-                raise ValueError("AgentManager.get_instance() called without memory_service on first call")
+                raise ValueError(
+                    "AgentManager.get_instance() called without memory_service on first call"
+                )
             cls._instance = cls(memory_service=memory_service, llm=llm, config=config)
             logger.info("[AgentManager] Singleton created")
         return cls._instance

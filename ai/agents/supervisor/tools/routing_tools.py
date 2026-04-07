@@ -1,6 +1,7 @@
 """
 Routing tools for SupervisorAgent.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -27,10 +28,10 @@ def route_to_agent(intent: str, domain_agents: dict[str, Any] | None = None) -> 
 
     mapping: dict[str, str] = {
         "diagnostic": AgentID.DIAGNOSTIC,
-        "theory":     AgentID.THEORY,
-        "treatment":  AgentID.TREATMENT,
-        "support":    AgentID.SUPPORT,
-        "crisis":     AgentID.CRISIS,
+        "theory": AgentID.THEORY,
+        "treatment": AgentID.TREATMENT,
+        "support": AgentID.SUPPORT,
+        "crisis": AgentID.CRISIS,
     }
 
     target = mapping.get(intent, AgentID.SUPPORT)
@@ -57,10 +58,10 @@ def build_routing_context(
     This is the canonical input format for all domain agents.
     """
     return {
-        "original_message":   original_message,
+        "original_message": original_message,
         "translated_message": translated_message,
-        "language":          language,
+        "language": language,
         "preliminary_slots": preliminary_slots,
-        "intent":            intent,
-        "conv_id":           conv_id,
+        "intent": intent,
+        "conv_id": conv_id,
     }

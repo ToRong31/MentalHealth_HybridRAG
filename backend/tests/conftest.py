@@ -1,6 +1,7 @@
 """
 pytest configuration — shared fixtures and setup.
 """
+
 from __future__ import annotations
 
 import sys
@@ -15,6 +16,7 @@ import pytest
 
 # Disable LangSmith tracing during tests
 import os
+
 os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
 
 
@@ -22,6 +24,7 @@ os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
 def sample_agent_request():
     """Sample AgentRequest for testing."""
     from ai.shared.communication.http_schemas import AgentRequest
+
     return AgentRequest(
         message="Tôi cảm thấy lo âu về công việc",
         conversation_id="test-conv-1",
@@ -34,6 +37,7 @@ def sample_agent_request():
 def sample_global_state():
     """Sample GlobalState for testing."""
     from ai.shared.agent_based.state import GlobalState
+
     return GlobalState(
         conversation_id="test-conv-1",
         user_id="test-user-1",

@@ -1,6 +1,7 @@
 """
 CohereReranker — semantic reranking with Cohere API.
 """
+
 from __future__ import annotations
 
 import os
@@ -41,6 +42,7 @@ class CohereReranker:
 
         try:
             import cohere
+
             self._client = cohere.Client(self.api_key)
             logger.info("[CohereReranker] Client initialized")
             return self._client
@@ -103,13 +105,18 @@ class CohereReranker:
             results = []
             for hit in response.results:
                 original_idx = hit.index
-                results.append({
-                    **candidates[original_idx],
-                    "relevance_score": hit.relevance_score,
-                })
+                results.append(
+                    {
+                        **candidates[original_idx],
+                        "relevance_score": hit.relevance_score,
+                    }
+                )
 
-            logger.debug("[CohereReranker] reranked %d candidates to %d results",
-                        len(candidates), len(results))
+            logger.debug(
+                "[CohereReranker] reranked %d candidates to %d results",
+                len(candidates),
+                len(results),
+            )
             return results
 
         except Exception as e:

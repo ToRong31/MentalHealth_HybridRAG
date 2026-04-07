@@ -2,6 +2,7 @@
 ConceptRetrieval skill — external-only retrieval.
 No local KB fallback.
 """
+
 from __future__ import annotations
 
 from typing import Any

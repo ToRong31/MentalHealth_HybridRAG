@@ -9,6 +9,7 @@ Responsibilities:
 
 KHÔNG điều khiển từng bước. KHÔNG gọi domain agents trực tiếp.
 """
+
 from __future__ import annotations
 
 import logging
@@ -65,7 +66,9 @@ class SupervisorAgent(BaseAgent):
     def register_domain_agents(self, agents: dict[str, Any]) -> None:
         """Called by ChatService to inject domain agent references (in-process mode)."""
         self._domain_agents = agents
-        logger.info(f"[SupervisorAgent] Domain agents registered: {list(agents.keys())}")
+        logger.info(
+            f"[SupervisorAgent] Domain agents registered: {list(agents.keys())}"
+        )
 
     # ── BaseAgent abstract methods ──────────────────────────────────────────
 
@@ -124,6 +127,7 @@ class SupervisorAgent(BaseAgent):
         try:
             # ── Step 1: Crisis gate ────────────────────────────────────────
             from ai.agents.supervisor.router import check_crisis_gate
+
             has_crisis, matched_keywords = check_crisis_gate(message)
 
             if has_crisis:
@@ -168,7 +172,9 @@ class SupervisorAgent(BaseAgent):
                 context={
                     "language": preliminary.get("language", language),
                     "has_crisis_keywords": intent_result["has_crisis_keywords"],
-                    "crisis_keywords_found": intent_result.get("crisis_keywords_found", []),
+                    "crisis_keywords_found": intent_result.get(
+                        "crisis_keywords_found", []
+                    ),
                     "preliminary_slots": preliminary.get("preliminary_slots", {}),
                 },
                 translated_message=message,
@@ -186,7 +192,9 @@ class SupervisorAgent(BaseAgent):
                 duration_ms=None,
             )
 
-            self.info(f"Routed: intent={intent_result['intent']} confidence={intent_result['confidence']:.2f} → {target}")
+            self.info(
+                f"Routed: intent={intent_result['intent']} confidence={intent_result['confidence']:.2f} → {target}"
+            )
 
             return {
                 "target_agent": target,

@@ -1,4 +1,5 @@
 """Tool functions for Diagnostic retrieval skill."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -6,9 +7,13 @@ from typing import Any
 from ai.shared.agent_based.tooling import tool
 
 
-@tool(name="embed_diagnostic_query", description="Encode diagnostic query into embedding vector")
+@tool(
+    name="embed_diagnostic_query",
+    description="Encode diagnostic query into embedding vector",
+)
 def embed_diagnostic_query(agent_state: dict, query: str) -> list[float]:
     from ai.shared.rag.vectors.embeddings import encode_text
+
     agent_state["step"] = "embedding"
     return encode_text(query)
 
@@ -24,7 +29,10 @@ def milvus_search_diagnostic(
     return milvus_client.search(query_vector, top_k=top_k, threshold=0.0)
 
 
-@tool(name="neo4j_diagnostic_names", description="Resolve diagnostic node names from Neo4j")
+@tool(
+    name="neo4j_diagnostic_names",
+    description="Resolve diagnostic node names from Neo4j",
+)
 def neo4j_diagnostic_names(
     agent_state: dict,
     neo4j_client: Any,

@@ -21,6 +21,7 @@ Usage:
     print(meta["system"])     # full system prompt
     print(meta["examples"])     # list of examples
 """
+
 from __future__ import annotations
 
 from pathlib import Path

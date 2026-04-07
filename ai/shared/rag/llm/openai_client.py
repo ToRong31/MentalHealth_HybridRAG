@@ -9,6 +9,7 @@ Usage:
     )
     text = await client.generate("Hello", temperature=0.7)
 """
+
 from __future__ import annotations
 
 import json
@@ -84,8 +85,12 @@ class OpenAIClient:
         response = await client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=temperature if temperature is not None else self.default_temperature,
-            max_tokens=max_tokens if max_tokens is not None else self.default_max_tokens,
+            temperature=(
+                temperature if temperature is not None else self.default_temperature
+            ),
+            max_tokens=(
+                max_tokens if max_tokens is not None else self.default_max_tokens
+            ),
             stop=stop,
             stream=False,
             **kwargs,
@@ -107,8 +112,12 @@ class OpenAIClient:
             response = await client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=temperature if temperature is not None else self.default_temperature,
-                max_tokens=max_tokens if max_tokens is not None else self.default_max_tokens,
+                temperature=(
+                    temperature if temperature is not None else self.default_temperature
+                ),
+                max_tokens=(
+                    max_tokens if max_tokens is not None else self.default_max_tokens
+                ),
                 response_format={"type": "json_object"},
             )
             raw = response.choices[0].message.content or "{}"

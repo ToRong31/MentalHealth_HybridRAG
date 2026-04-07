@@ -1,6 +1,7 @@
 """
 TreatmentAgent — evidence-based treatment guidance.
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,15 +51,15 @@ class TreatmentAgent(BaseAgent):
         reranker = (config or {}).get("reranker")
 
         self._skills = {
-            "TreatmentRetrieval":  TreatmentRetrieval(
+            "TreatmentRetrieval": TreatmentRetrieval(
                 llm=llm,
                 milvus=milvus,
                 neo4j=neo4j,
                 reranker=reranker,
             ),
-            "TreatmentPlanning":   TreatmentPlanning(llm=llm),
-            "PatientGuidance":     PatientGuidance(llm=llm),
-            "AnswerFormatting":     AnswerFormatting(llm=llm),
+            "TreatmentPlanning": TreatmentPlanning(llm=llm),
+            "PatientGuidance": PatientGuidance(llm=llm),
+            "AnswerFormatting": AnswerFormatting(llm=llm),
         }
         self._shared_tools = create_shared_memory_tools(memory_service)
 
@@ -160,7 +161,9 @@ class TreatmentAgent(BaseAgent):
             gs["response"] = response_text
             gs["skills_used"] = list(self._skills.keys())
 
-            emitter.emit_agent_finished(self.agent_id, output_summary=response_text[:80])
+            emitter.emit_agent_finished(
+                self.agent_id, output_summary=response_text[:80]
+            )
 
             return {
                 "response": response_text,
@@ -200,10 +203,17 @@ class TreatmentAgent(BaseAgent):
         conv_id: str,
         language: str,
     ) -> dict[str, Any]:
-        await self.memory_service.save_buffer(conv_id, "assistant", text, metadata={"agent": self.agent_id})
+        await self.memory_service.save_buffer(
+            conv_id, "assistant", text, metadata={"agent": self.agent_id}
+        )
         gs["response"] = text
         gs["skills_used"] = skills
-        return {"response": text, "agent_id": self.agent_id, "skills_used": skills, "intent": "treatment"}
+        return {
+            "response": text,
+            "agent_id": self.agent_id,
+            "skills_used": skills,
+            "intent": "treatment",
+        }
 
     def _estimate_severity(self, context: dict) -> str:
         """Estimate condition severity from context."""

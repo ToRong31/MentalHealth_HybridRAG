@@ -1,6 +1,7 @@
 """
 SkillBuilding skill — guides user through practical mental health skill exercises.
 """
+
 from __future__ import annotations
 
 import logging

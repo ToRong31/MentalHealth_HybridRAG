@@ -1,6 +1,7 @@
 """
 TheoryAgent — psychological knowledge and educational explanations.
 """
+
 from __future__ import annotations
 
 import logging
@@ -40,14 +41,14 @@ class TheoryAgent(BaseAgent):
         reranker = (config or {}).get("reranker")
 
         self._skills = {
-            "ConceptRetrieval":        ConceptRetrieval(
+            "ConceptRetrieval": ConceptRetrieval(
                 llm=llm,
                 milvus=milvus,
                 neo4j=neo4j,
                 reranker=reranker,
             ),
-            "EducationalExplanation":  EducationalExplanation(llm=llm),
-            "AnswerFormatting":         AnswerFormatting(llm=llm),
+            "EducationalExplanation": EducationalExplanation(llm=llm),
+            "AnswerFormatting": AnswerFormatting(llm=llm),
         }
         self._shared_tools = create_shared_memory_tools(memory_service)
 
@@ -112,7 +113,10 @@ class TheoryAgent(BaseAgent):
                 conv_id=conv_id,
                 role="assistant",
                 content=response_text,
-                metadata={"agent": self.agent_id, "concepts": formatted.get("concepts", [])},
+                metadata={
+                    "agent": self.agent_id,
+                    "concepts": formatted.get("concepts", []),
+                },
             )
 
             local["retrieved_count"] = len(concepts)
@@ -130,7 +134,9 @@ class TheoryAgent(BaseAgent):
             gs["response"] = response_text
             gs["skills_used"] = list(self._skills.keys())
 
-            emitter.emit_agent_finished(self.agent_id, output_summary=response_text[:80])
+            emitter.emit_agent_finished(
+                self.agent_id, output_summary=response_text[:80]
+            )
 
             return {
                 "response": response_text,

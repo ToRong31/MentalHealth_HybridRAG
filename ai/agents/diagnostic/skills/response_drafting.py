@@ -1,6 +1,7 @@
 """
 ResponseDrafting skill — format diagnostic response with translation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -67,9 +68,7 @@ class ResponseDrafting:
         missing = diagnosis.get("missing_criteria", [])
         if missing:
             missing_text = "\n".join(f"- {m}" for m in missing[:3])
-            parts.append(
-                f"\n**Thông tin cần bổ sung:**\n{missing_text}\n"
-            )
+            parts.append(f"\n**Thông tin cần bổ sung:**\n{missing_text}\n")
 
         # Recommendation
         if diagnosis.get("recommendation"):
@@ -108,5 +107,12 @@ class ResponseDrafting:
             "diagnosis": diagnosis.get("diagnosis"),
             "confidence": diagnosis.get("confidence", 0.0),
             "disorder_en": diagnosis.get("disorder_en"),
-            "sections": ["diagnosis", "reasoning", "slots", "differential", "recommendation", "disclaimer"],
+            "sections": [
+                "diagnosis",
+                "reasoning",
+                "slots",
+                "differential",
+                "recommendation",
+                "disclaimer",
+            ],
         }

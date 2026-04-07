@@ -1,18 +1,24 @@
 """
 Auth endpoints — login, register, token refresh.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
-from backend.src.core.security import create_access_token, verify_password, hash_password
+from backend.src.core.security import (
+    create_access_token,
+    verify_password,
+    hash_password,
+)
 from backend.src.core.deps import get_current_user
 
 router = APIRouter()
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
+
 
 class UserRegister(BaseModel):
     email: EmailStr
@@ -40,6 +46,7 @@ _users_db: dict[str, dict] = {}  # email -> {user_id, hashed_password}
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
+
 
 @router.post("/auth/register", response_model=UserResponse)
 async def register(body: UserRegister) -> UserResponse:
@@ -75,4 +82,6 @@ async def login(body: UserLogin) -> Token:
 @router.get("/auth/me", response_model=UserResponse)
 async def me(current_user: dict = Depends(get_current_user)) -> UserResponse:
     """Get current authenticated user."""
-    return UserResponse(user_id=current_user["user_id"], email=current_user.get("email", ""))
+    return UserResponse(
+        user_id=current_user["user_id"], email=current_user.get("email", "")
+    )

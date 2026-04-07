@@ -1,6 +1,7 @@
 """
 PatientGuidance skill — guidance for patients seeking treatment.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,14 +17,12 @@ WHAT_TO_EXPECT = {
 3. **Bí mật**: Mọi thông tin bạn chia sẻ đều được bảo mật (trừ nguy hiểm tính mạng)
 4. **Không có lời phán xét**: Bạn có thể thoải mái nói về bất cứ điều gì
 5. **Kế hoạch**: Cuối buổi, bạn sẽ cùng nhau xây dựng kế hoạch điều trị""",
-
     "medication": """**Khi được kê thuốc tâm thần:**
 1. **Tuân thủ**: Uống đúng liều, đúng giờ như bác sĩ chỉ định
 2. **Không tự ý dừng**: Thuốc cần thời gian phát huy (4-6 tuần)
 3. **Theo dõi**: Ghi nhận tác dụng phụ để báo lại bác sĩ
 4. **Kiên nhẫn**: Nhiều người cần thử 2-3 loại thuốc trước khi tìm được loại phù hợp
 5. **Tái khám**: Đi tái khám đúng lịch, không tự ý tăng/giảm liều""",
-
     "crisis": """**Nếu bạn đang trong khủng hoảng:**
 1. Gọi đường dây hỗ trợ: 094 234 99 99 (24/7)
 2. Đến phòng cấp cứu tâm thần gần nhất
@@ -58,10 +57,13 @@ class PatientGuidance:
             sections.append(WHAT_TO_EXPECT["crisis"])
 
         # Add general first steps
-        sections.insert(0, """**Bước đầu tiên của bạn:**
+        sections.insert(
+            0,
+            """**Bước đầu tiên của bạn:**
 1. **Gặp bác sĩ tâm thần hoặc nhà tâm lý** — không cần giấy giới thiệu
 2. **Chuẩn bị**: Ghi sẵn triệu chứng, thời gian xuất hiện, ảnh hưởng đến cuộc sống
-3. **Trung thực**: Càng chia sẻ nhiều, bác sĩ càng giúp bạn tốt hơn""")
+3. **Trung thực**: Càng chia sẻ nhiều, bác sĩ càng giúp bạn tốt hơn""",
+        )
 
         guidance = "\n\n".join(sections)
 

@@ -139,7 +139,9 @@ class RetrievalUnavailableError(MemoryError):
         operation: str = "retrieve",
         context: dict | None = None,
     ):
-        super().__init__(message, agent_id=agent_id, operation=operation, context=context)
+        super().__init__(
+            message, agent_id=agent_id, operation=operation, context=context
+        )
 
 
 class SlotError(AgentError):

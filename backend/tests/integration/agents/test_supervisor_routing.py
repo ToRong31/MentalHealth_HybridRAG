@@ -2,6 +2,7 @@
 Integration tests for SupervisorAgent routing — crisis gate, intent classification,
 and domain agent dispatch.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -15,7 +16,10 @@ from ai.shared.agent_based.constants import AgentID
 from ai.shared.agent_based.state import GlobalState
 from ai.agents.supervisor.supervisor_agent import SupervisorAgent
 from ai.agents.supervisor.router import check_crisis_gate, make_routing_decision
-from ai.agents.supervisor.tools.routing_tools import route_to_agent, build_routing_context
+from ai.agents.supervisor.tools.routing_tools import (
+    route_to_agent,
+    build_routing_context,
+)
 
 
 class TestCrisisGate:
@@ -29,7 +33,9 @@ class TestCrisisGate:
     def test_detects_english_crisis_keywords(self):
         has_crisis, matched = check_crisis_gate("I want to kill myself")
         assert has_crisis is True
-        assert any("suicide" in kw.lower() or "kill myself" in kw.lower() for kw in matched)
+        assert any(
+            "suicide" in kw.lower() or "kill myself" in kw.lower() for kw in matched
+        )
 
     def test_no_false_positive_on_normal_text(self):
         has_crisis, matched = check_crisis_gate("Tôi cảm thấy buồn vì công việc")
@@ -148,7 +154,10 @@ class TestSupervisorAgentRouting:
         mock_memory = AsyncMock()
         mock_memory.get_context.return_value = ""
         mock_memory.get_accumulated_slots.return_value = {}
-        mock_memory.get_crisis_state.return_value = {"is_high_risk": False, "crisis_level": "none"}
+        mock_memory.get_crisis_state.return_value = {
+            "is_high_risk": False,
+            "crisis_level": "none",
+        }
 
         agent = SupervisorAgent(memory_service=mock_memory, llm=None, config={})
         gs: GlobalState = {}
@@ -177,7 +186,10 @@ class TestSupervisorAgentRouting:
         mock_memory = AsyncMock()
         mock_memory.get_context.return_value = ""
         mock_memory.get_accumulated_slots.return_value = {}
-        mock_memory.get_crisis_state.return_value = {"is_high_risk": False, "crisis_level": "none"}
+        mock_memory.get_crisis_state.return_value = {
+            "is_high_risk": False,
+            "crisis_level": "none",
+        }
 
         agent = SupervisorAgent(memory_service=mock_memory, llm=None, config={})
         gs: GlobalState = {}
@@ -199,7 +211,10 @@ class TestSupervisorAgentRouting:
         mock_memory = AsyncMock()
         mock_memory.get_context.return_value = ""
         mock_memory.get_accumulated_slots.return_value = {}
-        mock_memory.get_crisis_state.return_value = {"is_high_risk": False, "crisis_level": "none"}
+        mock_memory.get_crisis_state.return_value = {
+            "is_high_risk": False,
+            "crisis_level": "none",
+        }
 
         agent = SupervisorAgent(memory_service=mock_memory, llm=None, config={})
         gs: GlobalState = {}

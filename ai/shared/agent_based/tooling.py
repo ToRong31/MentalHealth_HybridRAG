@@ -10,6 +10,7 @@ Example:
         agent_state["step"] = "searching"
         ...
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

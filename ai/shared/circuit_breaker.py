@@ -1,6 +1,7 @@
 """
 Circuit Breaker pattern implementation.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -131,9 +132,7 @@ class CircuitBreaker:
 
         if self._failure_count >= self.threshold:
             if self._state != CircuitState.OPEN:
-                logger.error(
-                    f"[CircuitBreaker:{self.name}] Threshold reached -> OPEN"
-                )
+                logger.error(f"[CircuitBreaker:{self.name}] Threshold reached -> OPEN")
             self._state = CircuitState.OPEN
             self._half_open_calls = 0
 

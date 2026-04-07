@@ -1,6 +1,7 @@
 """
 SymptomExtraction skill — extracts 8 diagnostic slots from user messages.
 """
+
 from __future__ import annotations
 
 import logging
@@ -13,9 +14,11 @@ logger = logging.getLogger(__name__)
 
 # ─── Extraction patterns ────────────────────────────────────────────────────────
 
+
 def _norm(text: str) -> str:
     return "".join(
-        c for c in unicodedata.normalize("NFD", text.lower())
+        c
+        for c in unicodedata.normalize("NFD", text.lower())
         if unicodedata.category(c) != "Mn"
     )
 
@@ -100,9 +103,21 @@ _DURATION_MAP: dict[str, str] = {
 
 
 _IMPACT_WORDS: list[str] = [
-    "ảnh hưởng", "work", "học", "ngủ", "giấc ngủ", "ăn", "uống",
-    "quan hệ", "giao tiếp", "tập trung", "quyết định",
-    "can't sleep", "can't work", "can't eat", "relationship",
+    "ảnh hưởng",
+    "work",
+    "học",
+    "ngủ",
+    "giấc ngủ",
+    "ăn",
+    "uống",
+    "quan hệ",
+    "giao tiếp",
+    "tập trung",
+    "quyết định",
+    "can't sleep",
+    "can't work",
+    "can't eat",
+    "relationship",
 ]
 
 
@@ -159,9 +174,19 @@ class SymptomExtraction:
         # ── Trigger ────────────────────────────────────────────────────────
         if "trigger" not in existing:
             trigger_indicators = [
-                "vì", "do", "bởi", "khi", "sau khi", "mỗi khi",
-                "bắt đầu từ", "từ khi",
-                "because", "due to", "after", "when", "since",
+                "vì",
+                "do",
+                "bởi",
+                "khi",
+                "sau khi",
+                "mỗi khi",
+                "bắt đầu từ",
+                "từ khi",
+                "because",
+                "due to",
+                "after",
+                "when",
+                "since",
             ]
             for indicator in trigger_indicators:
                 if _norm(indicator) in msg_lower:
@@ -183,8 +208,14 @@ class SymptomExtraction:
         # ── Sleep ──────────────────────────────────────────────────────────
         if "sleep" not in existing:
             sleep_patterns = [
-                "mất ngủ", "không ngủ", "ngủ ít", "ngủ nhiều",
-                "insomnia", "can't sleep", "sleep", "sleepless",
+                "mất ngủ",
+                "không ngủ",
+                "ngủ ít",
+                "ngủ nhiều",
+                "insomnia",
+                "can't sleep",
+                "sleep",
+                "sleepless",
             ]
             for p in sleep_patterns:
                 if _norm(p) in msg_lower:
@@ -194,8 +225,13 @@ class SymptomExtraction:
         # ── Appetite ───────────────────────────────────────────────────────
         if "appetite" not in existing:
             appetite_patterns = [
-                "không ăn", "ăn ít", "ăn nhiều", "chán ăn",
-                "no appetite", "lost appetite", "overeating",
+                "không ăn",
+                "ăn ít",
+                "ăn nhiều",
+                "chán ăn",
+                "no appetite",
+                "lost appetite",
+                "overeating",
             ]
             for p in appetite_patterns:
                 if _norm(p) in msg_lower:
@@ -213,7 +249,9 @@ class SymptomExtraction:
                         break
 
         # ── LLM enhancement if still missing slots ──────────────────────────
-        missing = [k for k in REQUIRED_SLOTS if k not in existing and k not in extracted]
+        missing = [
+            k for k in REQUIRED_SLOTS if k not in existing and k not in extracted
+        ]
         if missing and self._llm and len(missing) > 0:
             llm_extracted = await self._llm_extract(message, missing)
             extracted.update(llm_extracted)
@@ -236,6 +274,7 @@ class SymptomExtraction:
             )
             response = await self._llm.generate(prompt)
             import json
+
             data = json.loads(response)
             return {k: v for k, v in data.items() if k in missing_slots and v}
         except Exception as e:

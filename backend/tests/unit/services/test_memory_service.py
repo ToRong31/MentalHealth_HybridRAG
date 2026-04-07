@@ -1,6 +1,7 @@
 """
 Unit tests for MemoryService — buffer, slots, context, crisis state.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -85,9 +86,10 @@ class TestGetBuffer:
     async def test_falls_back_to_redis(self, memory, redis_mock):
         # Directly set in Redis
         import json
-        redis_mock._store["mental_health:conv-5:buffer"] = json.dumps([
-            {"role": "user", "content": "from redis", "metadata": {}}
-        ])
+
+        redis_mock._store["mental_health:conv-5:buffer"] = json.dumps(
+            [{"role": "user", "content": "from redis", "metadata": {}}]
+        )
         buf = await memory.get_buffer("conv-5")
         assert buf[0]["content"] == "from redis"
 
@@ -103,7 +105,9 @@ class TestMergeSlots:
     @pytest.mark.asyncio
     async def test_merges_new_slots(self, memory, redis_mock):
         # First merge
-        result = await memory.merge_slots("conv-6", {"emotion": "lo âu", "trigger": "công việc"})
+        result = await memory.merge_slots(
+            "conv-6", {"emotion": "lo âu", "trigger": "công việc"}
+        )
         assert result["emotion"] == "lo âu"
         assert result["trigger"] == "công việc"
 
@@ -151,10 +155,13 @@ class TestCrisisState:
 
     @pytest.mark.asyncio
     async def test_update_crisis_state(self, memory):
-        await memory.update_crisis_state("conv-11", {
-            "is_high_risk": True,
-            "crisis_level": "high",
-        })
+        await memory.update_crisis_state(
+            "conv-11",
+            {
+                "is_high_risk": True,
+                "crisis_level": "high",
+            },
+        )
         state = await memory.get_crisis_state("conv-11")
         assert state["is_high_risk"] is True
         assert state["crisis_level"] == "high"
@@ -202,10 +209,13 @@ class TestGetContext:
 
     @pytest.mark.asyncio
     async def test_context_includes_crisis_flag(self, memory):
-        await memory.update_crisis_state("conv-15", {
-            "is_high_risk": True,
-            "crisis_level": "high",
-        })
+        await memory.update_crisis_state(
+            "conv-15",
+            {
+                "is_high_risk": True,
+                "crisis_level": "high",
+            },
+        )
         ctx = await memory.get_context("conv-15")
         assert "CRISIS STATE" in ctx
 

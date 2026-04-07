@@ -2,6 +2,7 @@
 DiagnosticRetrieval skill — external-only retrieval.
 No local DSM KB fallback.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -95,7 +96,9 @@ class DiagnosticRetrieval:
         # Search again with different query to get criteria text
         criteria_query = f"{query} DSM-5 criteria symptoms causes diagnostic"
         criteria_vector = embed_diagnostic_query(state, criteria_query)
-        criteria_hits = milvus_search_diagnostic(state, self._milvus, criteria_vector, top_k=10)
+        criteria_hits = milvus_search_diagnostic(
+            state, self._milvus, criteria_vector, top_k=10
+        )
 
         diagnostic_chunks: list[str] = []
         seen = set()

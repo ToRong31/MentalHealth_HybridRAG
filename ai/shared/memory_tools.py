@@ -2,6 +2,7 @@
 Factory — creates shared memory tools dict from a MemoryService instance.
 Each agent injects this into their tool registry.
 """
+
 from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
@@ -10,7 +11,9 @@ if TYPE_CHECKING:
     from ai.shared.services.memory_service import MemoryService
 
 
-def create_shared_memory_tools(memory_service: "MemoryService") -> dict[str, dict[str, Any]]:
+def create_shared_memory_tools(
+    memory_service: "MemoryService",
+) -> dict[str, dict[str, Any]]:
     """
     Factory: build the standard 6 memory tools from a MemoryService instance.
 

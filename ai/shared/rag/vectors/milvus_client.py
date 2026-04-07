@@ -1,6 +1,7 @@
 """
 MilvusClient — vector search wrapper.
 """
+
 from __future__ import annotations
 
 import logging
@@ -77,7 +78,9 @@ class MilvusClient:
             _col = self._col
             _connected = True
             self._connected = True
-            logger.info("[MilvusClient] Connected, collection: %s", self.collection_name)
+            logger.info(
+                "[MilvusClient] Connected, collection: %s", self.collection_name
+            )
 
         except ImportError:
             logger.warning("[MilvusClient] pymilvus not installed")
@@ -180,6 +183,7 @@ class MilvusClient:
         self._col = None
         try:
             from pymilvus import connections
+
             connections.disconnect("default")
         except Exception:
             pass

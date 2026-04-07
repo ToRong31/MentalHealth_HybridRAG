@@ -1,6 +1,7 @@
 """
 SupportAgent — emotional support, coping strategies, psychoeducation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -36,11 +37,11 @@ class SupportAgent(BaseAgent):
         config: dict | None = None,
     ):
         self._skills = {
-            "CopingRetrieval":    CopingRetrieval(llm=llm),
-            "EmotionalSupport":   EmotionalSupport(llm=llm),
-            "PsychoEducation":   PsychoEducation(llm=llm),
-            "SkillBuilding":      SkillBuilding(llm=llm),
-            "AnswerFormatting":   AnswerFormatting(llm=llm),
+            "CopingRetrieval": CopingRetrieval(llm=llm),
+            "EmotionalSupport": EmotionalSupport(llm=llm),
+            "PsychoEducation": PsychoEducation(llm=llm),
+            "SkillBuilding": SkillBuilding(llm=llm),
+            "AnswerFormatting": AnswerFormatting(llm=llm),
         }
         self._shared_tools = create_shared_memory_tools(memory_service)
 
@@ -170,4 +171,5 @@ class SupportAgent(BaseAgent):
     async def _run_parallel(self, *tasks):
         """Run coroutines in parallel and return results."""
         import asyncio
+
         return await asyncio.gather(*tasks, return_exceptions=True)

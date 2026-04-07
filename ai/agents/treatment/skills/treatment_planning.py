@@ -1,6 +1,7 @@
 """
 TreatmentPlanning skill — creates personalized treatment plans.
 """
+
 from __future__ import annotations
 
 import logging
@@ -48,7 +49,9 @@ class TreatmentPlanning:
                 "duration": treatment.get("duration", ""),
                 "techniques": treatment.get("techniques", []),
                 "suitable_for": suitable_for,
-                "priority": self._rank_priority(evidence_letter, severity, suitable_for),
+                "priority": self._rank_priority(
+                    evidence_letter, severity, suitable_for
+                ),
             }
 
             if "examples" in treatment:

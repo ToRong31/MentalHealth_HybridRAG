@@ -9,6 +9,7 @@ Pipeline:
 
 Prompts loaded from: ai/agents/diagnostic/skills/prompts/clinical_reasoning.yaml
 """
+
 from __future__ import annotations
 
 import json
@@ -22,7 +23,9 @@ logger = logging.getLogger(__name__)
 # Load skill metadata from YAML
 _SKILL_META = load_prompt_meta("diagnostic.skills.clinical_reasoning")
 _SYSTEM_PROMPT = _SKILL_META["system"]
-_EXAMPLES_BLOCK = json.dumps(_SKILL_META.get("examples", []), ensure_ascii=False, indent=2)
+_EXAMPLES_BLOCK = json.dumps(
+    _SKILL_META.get("examples", []), ensure_ascii=False, indent=2
+)
 
 
 class ClinicalReasoning:
@@ -103,7 +106,9 @@ class ClinicalReasoning:
             try:
                 conversation_context = await self._memory_service.get_context(conv_id)
             except Exception as e:
-                logger.warning(f"[ClinicalReasoning] MemoryService.get_context failed: {e}")
+                logger.warning(
+                    f"[ClinicalReasoning] MemoryService.get_context failed: {e}"
+                )
 
         # ── 2. Fallback if no candidates ───────────────────────────────────
         if not candidates:
@@ -126,7 +131,9 @@ class ClinicalReasoning:
             raw_response = await self._llm.generate(prompt)
             return self._parse_llm_response(raw_response, agent_state)
         except json.JSONDecodeError as e:
-            logger.warning(f"[ClinicalReasoning] LLM JSON parse failed: {e}, falling back to score-based")
+            logger.warning(
+                f"[ClinicalReasoning] LLM JSON parse failed: {e}, falling back to score-based"
+            )
             return self._score_based_reasoning(slots, candidates, agent_state)
         except Exception as e:
             logger.error(f"[ClinicalReasoning] LLM call failed: {e}")
@@ -146,17 +153,25 @@ class ClinicalReasoning:
         slots_str = json.dumps(filled_slots, ensure_ascii=False, indent=2)
 
         # Format candidates
-        candidate_names = [c.get("disorder", c.get("disorder_vi", "Unknown")) for c in candidates]
+        candidate_names = [
+            c.get("disorder", c.get("disorder_vi", "Unknown")) for c in candidates
+        ]
         candidates_str = ", ".join(candidate_names) if candidate_names else "None"
 
         # Format diagnostic chunks
-        chunks_str = "\n\n".join(
-            f"--- Chunk {i+1} ---\n{chunk}"
-            for i, chunk in enumerate(diagnostic_chunks[:8])
-        ) if diagnostic_chunks else "No diagnostic chunks available."
+        chunks_str = (
+            "\n\n".join(
+                f"--- Chunk {i+1} ---\n{chunk}"
+                for i, chunk in enumerate(diagnostic_chunks[:8])
+            )
+            if diagnostic_chunks
+            else "No diagnostic chunks available."
+        )
 
         # Conversation context
-        ctx_str = conversation_context if conversation_context else "No prior conversation."
+        ctx_str = (
+            conversation_context if conversation_context else "No prior conversation."
+        )
 
         prompt = f"""\
 {_SYSTEM_PROMPT}

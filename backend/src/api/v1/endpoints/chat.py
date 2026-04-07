@@ -5,6 +5,7 @@ Flow:
   Frontend → Backend /api/v1/chat → SupervisorAgent (HTTP)
   SupervisorAgent routes → calls domain agents → returns response
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -64,6 +65,7 @@ def _next_turn(conversation_id: str) -> int:
 
 # ─── Endpoints ─────────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/chat",
     response_model=ChatResponse,
@@ -115,13 +117,19 @@ async def chat_endpoint(
         )
 
     except httpx.HTTPStatusError as e:
-        logger.error("[chat] SupervisorAgent HTTP error: %s %s", e.response.status_code, e.response.text)
+        logger.error(
+            "[chat] SupervisorAgent HTTP error: %s %s",
+            e.response.status_code,
+            e.response.text,
+        )
         raise HTTPException(
             status_code=e.response.status_code,
             detail=f"SupervisorAgent error: {e.response.text}",
         )
     except httpx.TransportError as e:
-        logger.error("[chat] Cannot connect to SupervisorAgent at %s: %s", SUPERVISOR_URL, e)
+        logger.error(
+            "[chat] Cannot connect to SupervisorAgent at %s: %s", SUPERVISOR_URL, e
+        )
         raise HTTPException(
             status_code=503,
             detail=f"Cannot reach SupervisorAgent at {SUPERVISOR_URL}. Is the service running?",
@@ -144,6 +152,7 @@ async def chat_stream_endpoint(
       event: done   → {"agent_id": "...", "intent": "...", "skills_used": [...]}
       event: error  → {"error": "..."}
     """
+
     async def event_generator() -> AsyncIterator[dict[str, Any]]:
         client = _get_client()
         user_id = user.get("user_id", "")
@@ -177,21 +186,29 @@ async def chat_stream_endpoint(
 
             yield {
                 "event": "done",
-                "data": json.dumps({
-                    "event": "done",
-                    "agent_id": data.get("agent_id", ""),
-                    "intent": data.get("intent", ""),
-                    "skills_used": data.get("skills_used", []),
-                    "crisis_detected": data.get("crisis_detected", False),
-                }),
+                "data": json.dumps(
+                    {
+                        "event": "done",
+                        "agent_id": data.get("agent_id", ""),
+                        "intent": data.get("intent", ""),
+                        "skills_used": data.get("skills_used", []),
+                        "crisis_detected": data.get("crisis_detected", False),
+                    }
+                ),
             }
 
         except httpx.HTTPStatusError as e:
             logger.error("[chat_stream] HTTP error: %s", e)
-            yield {"event": "error", "data": json.dumps({"error": f"HTTP {e.response.status_code}"})}
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": f"HTTP {e.response.status_code}"}),
+            }
         except httpx.TransportError as e:
             logger.error("[chat_stream] Transport error: %s", e)
-            yield {"event": "error", "data": json.dumps({"error": f"Cannot reach SupervisorAgent: {e}"})}
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": f"Cannot reach SupervisorAgent: {e}"}),
+            }
         except Exception as e:
             logger.error("[chat_stream] Unexpected: %s", e)
             yield {"event": "error", "data": json.dumps({"error": str(e)})}
@@ -208,6 +225,7 @@ async def chat_stream_endpoint(
 
 
 # ─── Health / Supervision ─────────────────────────────────────────────────────
+
 
 @router.get("/supervisor/health")
 async def supervisor_health() -> dict[str, Any]:

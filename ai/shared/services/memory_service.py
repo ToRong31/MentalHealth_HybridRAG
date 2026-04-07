@@ -9,6 +9,7 @@ Communication: direct method call, NOT via MessageBus.
   L2: Redis (async, session cache, fast read/write)
   L3: PostgreSQL (durable, long-term storage)
 """
+
 from __future__ import annotations
 
 import json
@@ -23,8 +24,8 @@ from ai.shared.agent_based.constants import (
 logger = logging.getLogger(__name__)
 
 # Default config
-DEFAULT_MAX_BUFFER = 3        # Max Q&A pairs in L1 working buffer
-DEFAULT_CACHE_TTL = 3600     # Redis TTL = 1 hour
+DEFAULT_MAX_BUFFER = 3  # Max Q&A pairs in L1 working buffer
+DEFAULT_CACHE_TTL = 3600  # Redis TTL = 1 hour
 DEFAULT_SUMMARY_MAX_TOKENS = 256
 
 
@@ -137,13 +138,17 @@ class MemoryService:
 
         # Prune if needed (keep only last N)
         if len(self._working_buffers[conv_id]) > self._max_buffer:
-            self._working_buffers[conv_id] = self._working_buffers[conv_id][-self._max_buffer:]
+            self._working_buffers[conv_id] = self._working_buffers[conv_id][
+                -self._max_buffer :
+            ]
 
         # L2: persist to Redis
         redis_key = self._redis_key(conv_id, "buffer")
         await self._redis_set(redis_key, self._working_buffers[conv_id])
 
-        logger.debug(f"[MemoryService] save_buffer conv={conv_id} role={role} len={len(content)}")
+        logger.debug(
+            f"[MemoryService] save_buffer conv={conv_id} role={role} len={len(content)}"
+        )
 
     async def get_buffer(self, conv_id: str) -> list[dict[str, Any]]:
         """Read L1 working buffer. Falls back to Redis L2 if empty."""
@@ -183,7 +188,9 @@ class MemoryService:
             parts.append(f"[Recent conversation]\n{buffer_lines}")
 
         if slots:
-            slot_lines = "\n".join(f"  {k}: {v}" for k, v in slots.items() if v is not None)
+            slot_lines = "\n".join(
+                f"  {k}: {v}" for k, v in slots.items() if v is not None
+            )
             parts.append(f"[Collected slots]\n{slot_lines}")
 
         if crisis.get("is_high_risk"):
@@ -198,7 +205,9 @@ class MemoryService:
         redis_key = self._redis_key(conv_id, "slots")
         return await self._redis_get(redis_key) or {}
 
-    async def merge_slots(self, conv_id: str, new_slots: dict[str, Any]) -> dict[str, Any]:
+    async def merge_slots(
+        self, conv_id: str, new_slots: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Merge new slots into existing accumulated slots.
         Returns the merged result.
@@ -209,7 +218,9 @@ class MemoryService:
         redis_key = self._redis_key(conv_id, "slots")
         await self._redis_set(redis_key, merged)
 
-        logger.debug(f"[MemoryService] merge_slots conv={conv_id} new={list(new_slots.keys())}")
+        logger.debug(
+            f"[MemoryService] merge_slots conv={conv_id} new={list(new_slots.keys())}"
+        )
         return merged
 
     async def get_slot_sufficiency(self, conv_id: str) -> dict[str, Any]:
@@ -297,6 +308,7 @@ class MemoryService:
             crisis = await self.get_crisis_state(conv_id)
 
             from datetime import datetime, timezone
+
             now = datetime.now(timezone.utc).isoformat()
 
             # Upsert into ConversationMemory
@@ -313,7 +325,9 @@ class MemoryService:
             async with self._db() as session:
                 # Try to upsert
                 from sqlalchemy import text
-                stmt = text("""
+
+                stmt = text(
+                    """
                     INSERT INTO conversation_memory
                         (conversation_id, buffer, summary, slots, crisis_state, updated_at)
                     VALUES
@@ -325,7 +339,8 @@ class MemoryService:
                         slots = EXCLUDED.slots,
                         crisis_state = EXCLUDED.crisis_state,
                         updated_at = EXCLUDED.updated_at
-                """)
+                """
+                )
                 await session.execute(stmt, record)
                 await session.commit()
 
@@ -348,16 +363,21 @@ class MemoryService:
         try:
             async with self._db() as session:
                 from sqlalchemy import text
-                stmt = text("""
+
+                stmt = text(
+                    """
                     SELECT buffer, summary, slots, crisis_state
                     FROM conversation_memory
                     WHERE conversation_id = :conv_id
-                """)
+                """
+                )
                 result = await session.execute(stmt, {"conv_id": conv_id})
                 row = result.fetchone()
 
                 if not row:
-                    logger.debug(f"[MemoryService] No checkpoint found for conv={conv_id}")
+                    logger.debug(
+                        f"[MemoryService] No checkpoint found for conv={conv_id}"
+                    )
                     return {}
 
                 buffer_json, summary, slots_json, crisis_json = row
@@ -405,8 +425,11 @@ class MemoryService:
             try:
                 async with self._db() as session:
                     from sqlalchemy import text
+
                     await session.execute(
-                        text("DELETE FROM conversation_memory WHERE conversation_id = :conv_id"),
+                        text(
+                            "DELETE FROM conversation_memory WHERE conversation_id = :conv_id"
+                        ),
                         {"conv_id": conv_id},
                     )
                     await session.commit()

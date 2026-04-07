@@ -28,9 +28,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install uv for faster package management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # Install Python dependencies
 COPY backend/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN uv pip install --system --no-cache --retries 20 -r /tmp/requirements.txt
 
 # Copy agent code
 COPY ai/ /app/ai/

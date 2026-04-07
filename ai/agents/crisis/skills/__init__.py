@@ -1,6 +1,7 @@
 """
 CrisisAgent skills package.
 """
+
 from .crisis_detection import CrisisDetection
 from .immediate_response import ImmediateResponse
 from .professional_escalation import ProfessionalEscalation

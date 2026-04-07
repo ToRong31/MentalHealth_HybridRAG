@@ -1,6 +1,7 @@
 """
 PsychoEducation skill — provides mental health knowledge and psychoeducation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,7 +21,6 @@ Có 2 loại:
 
 **Khi nào stress cần được chú ý?**
 Nếu stress kéo dài >2 tuần, ảnh hưởng đến giấc ngủ, ăn uống, công việc — hãy tìm kiếm hỗ trợ.""",
-
     "lo_au": """**Rối loạn lo âu (Anxiety) là gì?**
 Lo âu là cảm giác lo lắng, bất an, sợ hãi xảy ra quá mức so với mức độ nguy hiểm thực tế.
 Lo âu có thể biểu hiện:
@@ -30,7 +30,6 @@ Lo âu có thể biểu hiện:
 
 **Tự giúp:**
 Thở bụng, thiền định, và liệu pháp nhận thức (CBT) đều được chứng minh hiệu quả.""",
-
     "buồn": """**Trầm cảm (Depression) là gì?**
 Trầm cảm là rối loạn tâm trạng kéo dài, ảnh hưởng đến cảm xúc, suy nghĩ và hành vi.
 Triệu chứng cần chú ý kéo dài >2 tuần:
@@ -41,7 +40,6 @@ Triệu chứng cần chú ý kéo dài >2 tuần:
 
 **Lưu ý quan trọng:**
 Nếu bạn có ý nghĩ tự hại — xin hãy gọi ngay đường dây hỗ trợ tâm thần.""",
-
     "default": """**Sức khỏe tâm thần là gì?**
 Sức khỏe tâm thần bao gồm cảm xúc, tâm lý và xã hội. Nó ảnh hưởng đến cách chúng ta nghĩ, cảm nhận và hành động.
 Giống như thể chất, tâm lý cũng cần được chăm sóc và nuôi dưỡng.

@@ -8,6 +8,7 @@ Handles:
   - Error normalization
   - Circuit breaker pattern (optional)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,21 +27,23 @@ logger = logging.getLogger(__name__)
 # Maps AgentID → default URL (can be overridden by env vars)
 DEFAULT_AGENT_URLS: dict[str, str] = {
     "agent-diagnostic": "http://agent-diagnostic:8101",
-    "agent-theory":     "http://agent-theory:8102",
-    "agent-treatment":  "http://agent-treatment:8103",
-    "agent-support":    "http://agent-support:8104",
-    "agent-crisis":    "http://agent-crisis:8105",
+    "agent-theory": "http://agent-theory:8102",
+    "agent-treatment": "http://agent-treatment:8103",
+    "agent-support": "http://agent-support:8104",
+    "agent-crisis": "http://agent-crisis:8105",
 }
 
 
 def _resolve_url(agent_id: str) -> str:
     """Resolve agent URL from env var or fallback to default."""
     import os
-    env_key = f"AGENT_{agent_id.upper().replace('-', '_')}_URL"
+
+    env_key = f"{agent_id.upper().replace('-', '_')}_URL"
     return os.getenv(env_key, DEFAULT_AGENT_URLS.get(agent_id, ""))
 
 
 # ─── AgentHTTPClient ──────────────────────────────────────────────────────────
+
 
 class AgentHTTPClient:
     """
@@ -132,7 +135,9 @@ class AgentHTTPClient:
                     language=data.get("language", request.language),
                     skills_used=data.get("skills_used", []),
                     crisis_detected=data.get("crisis_detected", False),
-                    conversation_id=data.get("conversation_id", request.conversation_id),
+                    conversation_id=data.get(
+                        "conversation_id", request.conversation_id
+                    ),
                     turn=data.get("turn", 0),
                     metadata=data.get("metadata", {}),
                 )
@@ -144,10 +149,13 @@ class AgentHTTPClient:
                 last_error = e
                 logger.warning(
                     "[AgentHTTP] attempt %d/%d %s failed: %s",
-                    attempt + 1, self.max_retries, endpoint, e,
+                    attempt + 1,
+                    self.max_retries,
+                    endpoint,
+                    e,
                 )
                 if attempt < self.max_retries - 1:
-                    await asyncio.sleep(self.retry_backoff ** attempt)
+                    await asyncio.sleep(self.retry_backoff**attempt)
                 continue
 
         raise RuntimeError(
@@ -167,14 +175,19 @@ class AgentHTTPClient:
         Useful for crisis broadcast or enrichment patterns.
         """
         tasks = {
-            agent_id: asyncio.create_task(self.call_agent(agent_id, request, retry=False))
+            agent_id: asyncio.create_task(
+                self.call_agent(agent_id, request, retry=False)
+            )
             for agent_id in agents
         }
         results: dict[str, AgentResponse] = {}
         errors: dict[str, str] = {}
 
         done, pending = await asyncio.wait(
-            [self._call_catch(agent_id, tasks[agent_id]) for agent_id in agents],
+            [
+                asyncio.create_task(self._call_catch(agent_id, tasks[agent_id]))
+                for agent_id in agents
+            ],
             return_when=asyncio.ALL_COMPLETED,
         )
 

@@ -1,6 +1,7 @@
 """
 ImmediateResponse skill — generates immediate crisis response.
 """
+
 from __future__ import annotations
 
 import logging

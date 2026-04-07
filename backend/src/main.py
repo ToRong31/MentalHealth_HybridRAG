@@ -1,6 +1,7 @@
 """
 FastAPI Application Factory.
 """
+
 from __future__ import annotations
 
 import logging

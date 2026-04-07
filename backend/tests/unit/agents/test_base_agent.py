@@ -1,6 +1,7 @@
 """
 Unit tests for BaseAgent — initialization, tools, skills, and interrupt handling.
 """
+
 from __future__ import annotations
 
 import asyncio

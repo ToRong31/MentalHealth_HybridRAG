@@ -43,7 +43,6 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy app source
 COPY backend/src/ ./backend/src/
 COPY ai/ ./ai/
-COPY backend/.env.example ./
 
 EXPOSE 8000
 

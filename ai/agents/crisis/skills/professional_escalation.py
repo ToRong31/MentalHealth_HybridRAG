@@ -1,6 +1,7 @@
 """
 ProfessionalEscalation skill — provides hotline numbers and professional resources.
 """
+
 from __future__ import annotations
 
 import logging

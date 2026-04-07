@@ -1,4 +1,5 @@
 """Tool functions for Theory retrieval skill."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -9,6 +10,7 @@ from ai.shared.agent_based.tooling import tool
 @tool(name="embed_query", description="Encode query text into vector embedding")
 def embed_query(agent_state: dict, query: str) -> list[float]:
     from ai.shared.rag.vectors.embeddings import encode_text
+
     agent_state["step"] = "embedding"
     return encode_text(query)
 
@@ -34,7 +36,10 @@ def neo4j_node_names(
     return neo4j_client.get_node_names(node_ids)
 
 
-@tool(name="rerank_candidates", description="Rerank retrieved concept candidates semantically")
+@tool(
+    name="rerank_candidates",
+    description="Rerank retrieved concept candidates semantically",
+)
 def rerank_candidates(
     agent_state: dict,
     reranker: Any,

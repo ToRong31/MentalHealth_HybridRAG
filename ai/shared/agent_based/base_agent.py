@@ -1,6 +1,7 @@
 """
 BaseAgent — Abstract base class for all domain agents.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -53,15 +54,21 @@ class BaseAgent(ABC):
         for tool_name in self._tools:
             self._circuit_breakers[tool_name] = CircuitBreaker(
                 name=f"{self.agent_id}.{tool_name}",
-                threshold=self.config.get("circuit_breaker_threshold", AgentConfig.circuit_breaker_threshold),
-                timeout=self.config.get("circuit_breaker_timeout", AgentConfig.circuit_breaker_timeout),
+                threshold=self.config.get(
+                    "circuit_breaker_threshold", AgentConfig.circuit_breaker_threshold
+                ),
+                timeout=self.config.get(
+                    "circuit_breaker_timeout", AgentConfig.circuit_breaker_timeout
+                ),
             )
 
         # Interrupt flag (cross-service crisis interrupt via HTTP header/event)
         self._interrupted = asyncio.Event()
         self._interrupt_reason: Optional[str] = None
 
-        logger.info(f"[{self.agent_id}] Initialized with tools={list(self._tools.keys())}")
+        logger.info(
+            f"[{self.agent_id}] Initialized with tools={list(self._tools.keys())}"
+        )
 
     # ── Abstract methods ─────────────────────────────────────────────────
 
@@ -108,7 +115,10 @@ class BaseAgent(ABC):
     ) -> Any:
         """Execute a named tool with circuit breaker protection."""
         if tool_name not in self._tools:
-            raise AgentError(f"Tool '{tool_name}' not found on agent '{self.agent_id}'", agent_id=self.agent_id)
+            raise AgentError(
+                f"Tool '{tool_name}' not found on agent '{self.agent_id}'",
+                agent_id=self.agent_id,
+            )
 
         tool = self._tools[tool_name]
         handler: Callable[..., Coroutine] = tool["handler"]
@@ -203,10 +213,14 @@ class BaseAgent(ABC):
         # GeminiClient.generate() is also async
         if hasattr(self.llm, "generate_content"):
             import asyncio
+
             return await asyncio.to_thread(
                 lambda: self.llm.generate_content(
                     prompt,
-                    generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+                    generation_config={
+                        "temperature": temperature,
+                        "max_output_tokens": max_tokens,
+                    },
                 ).text.strip()
             )
 

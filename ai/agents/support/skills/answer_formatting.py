@@ -1,6 +1,7 @@
 """
 AnswerFormatting skill — combines skill outputs into final response.
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,7 +51,7 @@ class AnswerFormatting:
             for i, s in enumerate(coping_strategies, 1):
                 strategies_text += f"\n{i}. **{s.get('name', '')}**"
                 strategies_text += f"\n   {s.get('description', '')}"
-                if s.get('duration'):
+                if s.get("duration"):
                     strategies_text += f"\n   Thời gian: {s.get('duration')}"
             sections.append(strategies_text)
 
@@ -61,7 +62,9 @@ class AnswerFormatting:
                 steps_text = "\n".join(
                     f"   {j+1}. {step}" for j, step in enumerate(ex.get("steps", []))
                 )
-                exercises_text += f"\n{i}. **{ex.get('name', '')}** ({ex.get('duration', '')})"
+                exercises_text += (
+                    f"\n{i}. **{ex.get('name', '')}** ({ex.get('duration', '')})"
+                )
                 exercises_text += f"\n{steps_text}"
                 if ex.get("tip"):
                     exercises_text += f"\n   💡 {ex.get('tip')}"
@@ -94,5 +97,11 @@ Response:
 
         return {
             "response": response,
-            "sections": ["emotional_support", "psychoeducation", "coping", "exercises", "closing"],
+            "sections": [
+                "emotional_support",
+                "psychoeducation",
+                "coping",
+                "exercises",
+                "closing",
+            ],
         }

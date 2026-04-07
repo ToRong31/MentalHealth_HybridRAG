@@ -1,6 +1,7 @@
 """
 Application settings — loaded from environment variables.
 """
+
 from __future__ import annotations
 
 import os

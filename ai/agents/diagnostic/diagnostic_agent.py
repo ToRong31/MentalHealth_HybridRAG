@@ -1,6 +1,7 @@
 """
 DiagnosticAgent — DSM-5 based mental health symptom assessment.
 """
+
 from __future__ import annotations
 
 import logging
@@ -65,14 +66,16 @@ class DiagnosticAgent(BaseAgent):
         reranker = (config or {}).get("reranker")
 
         self._skills = {
-            "SymptomExtraction":   SymptomExtraction(llm=llm),
+            "SymptomExtraction": SymptomExtraction(llm=llm),
             "DiagnosticRetrieval": DiagnosticRetrieval(
                 llm=llm,
                 milvus=milvus,
                 neo4j=neo4j,
                 reranker=reranker,
             ),
-            "ClinicalReasoning":   ClinicalReasoning(llm=llm, memory_service=memory_service),
+            "ClinicalReasoning": ClinicalReasoning(
+                llm=llm, memory_service=memory_service
+            ),
         }
         self._shared_tools = create_shared_memory_tools(memory_service)
 
@@ -191,7 +194,9 @@ class DiagnosticAgent(BaseAgent):
             gs["diagnostic_differential"] = diagnosis.get("differential", [])
             gs["diagnostic_recommendation"] = diagnosis.get("recommendation", "")
 
-            emitter.emit_agent_finished(self.agent_id, output_summary=f"has_disorder={has_disorder}")
+            emitter.emit_agent_finished(
+                self.agent_id, output_summary=f"has_disorder={has_disorder}"
+            )
 
             # ── 9. Return binary result to Supervisor ─────────────────────────
             return {

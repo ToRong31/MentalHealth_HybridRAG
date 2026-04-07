@@ -9,6 +9,7 @@ Communication:
   - Incoming: Backend → POST /engine/route
   - Outgoing: Supervisor → POST /agent/{name} (domain agents via HTTP)
 """
+
 from __future__ import annotations
 
 import os
@@ -24,10 +25,17 @@ from ai.shared.agent_based.constants import AgentID
 from ai.shared.agent_based.state import GlobalState
 from ai.shared.services.memory_service import MemoryService
 from ai.shared.rag import MilvusClient, Neo4jClient, OpenAIClient
-from ai.shared.communication import AgentHTTPClient, AgentRequest, AgentResponse, HealthResponse
+from ai.shared.communication import (
+    AgentHTTPClient,
+    AgentRequest,
+    AgentResponse,
+    HealthResponse,
+)
 from ai.agents.supervisor.supervisor_agent import SupervisorAgent
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -36,6 +44,7 @@ HTTP_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
 
 
 # ─── App factory ───────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,6 +66,7 @@ def _build_agent() -> SupervisorAgent:
     redis_client = None
     if redis_url := os.getenv("REDIS_URL"):
         import redis.asyncio as redis_async
+
         redis_client = redis_async.from_url(redis_url, decode_responses=True)
 
     milvus: MilvusClient | None = None
@@ -113,7 +123,10 @@ def _build_llm():
     if api_key := os.getenv("GEMINI_API_KEY"):
         try:
             from ai.shared.rag import GeminiClient
-            return GeminiClient(api_key=api_key, model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
+
+            return GeminiClient(
+                api_key=api_key, model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            )
         except Exception as e:
             logger.warning("[Supervisor] Gemini init failed: %s", e)
 
@@ -134,9 +147,12 @@ app.add_middleware(
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
+
 @app.get("/health", response_model=HealthResponse)
 async def health():
-    return HealthResponse(status="ok", agent="supervisor", port=int(os.getenv("AGENT_PORT", "8001")))
+    return HealthResponse(
+        status="ok", agent="supervisor", port=int(os.getenv("AGENT_PORT", "8001"))
+    )
 
 
 @app.post("/engine/route", response_model=AgentResponse)
@@ -157,11 +173,11 @@ async def route_and_dispatch(req: AgentRequest):
         # Step 1: Supervisor classifies and routes
         routing = await agent.run(
             input={
-                "message":         req.message,
-                "conv_id":         req.conversation_id,
-                "user_id":         req.user_id,
-                "language":        req.language,
-                "metadata":        req.metadata,
+                "message": req.message,
+                "conv_id": req.conversation_id,
+                "user_id": req.user_id,
+                "language": req.language,
+                "metadata": req.metadata,
             },
             gs=gs,
         )
@@ -177,10 +193,10 @@ async def route_and_dispatch(req: AgentRequest):
             language=req.language,
             intent=context.get("intent", req.intent),
             context={
-                "original_message":   req.message,
-                "translated_message":  context.get("translated_message", req.message),
-                "preliminary_slots":   context.get("preliminary_slots", {}),
-                "language":            req.language,
+                "original_message": req.message,
+                "translated_message": context.get("translated_message", req.message),
+                "preliminary_slots": context.get("preliminary_slots", {}),
+                "language": req.language,
             },
             metadata=req.metadata,
             crisis_detected=(target_agent == AgentID.CRISIS),
@@ -228,11 +244,11 @@ async def classify_only(req: AgentRequest):
     try:
         routing = await agent.run(
             input={
-                "message":    req.message,
-                "conv_id":     req.conversation_id,
-                "user_id":     req.user_id,
-                "language":    req.language,
-                "metadata":    req.metadata,
+                "message": req.message,
+                "conv_id": req.conversation_id,
+                "user_id": req.user_id,
+                "language": req.language,
+                "metadata": req.metadata,
             },
             gs=gs,
         )
@@ -278,4 +294,6 @@ async def call_domain_agent(name: str, req: AgentRequest):
 
 if __name__ == "__main__":
     port = int(os.getenv("AGENT_PORT", "8001"))
-    uvicorn.run("ai.agents.supervisor.main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(
+        "ai.agents.supervisor.main:app", host="0.0.0.0", port=port, reload=False
+    )

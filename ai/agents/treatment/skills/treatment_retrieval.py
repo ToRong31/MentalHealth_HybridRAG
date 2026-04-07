@@ -2,6 +2,7 @@
 TreatmentRetrieval skill — external-only retrieval.
 No local KB fallback.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -87,7 +88,9 @@ class TreatmentRetrieval:
 
         if self._reranker is not None:
             try:
-                candidates = rerank_treatments(state, self._reranker, condition, candidates)
+                candidates = rerank_treatments(
+                    state, self._reranker, condition, candidates
+                )
             except Exception:
                 pass
 

@@ -1,6 +1,7 @@
 """
 Documentation skill — logs crisis events for audit and follow-up.
 """
+
 from __future__ import annotations
 
 import logging

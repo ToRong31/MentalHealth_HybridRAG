@@ -2,6 +2,7 @@
 IntentClassification skill — classifies user message into one of 5 intents.
 Uses keyword heuristics + LLM as fallback.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,36 +17,96 @@ logger = logging.getLogger(__name__)
 _INTENT_KEYWORDS: dict[str, list[str]] = {
     Intent.DIAGNOSTIC: [
         # Vietnamese
-        "bệnh", "triệu chứng", "chẩn đoán", "mắc gì", "có phải bệnh",
-        "cảm thấy", "đau", "khó chịu", "rối loạn", "biểu hiện",
+        "bệnh",
+        "triệu chứng",
+        "chẩn đoán",
+        "mắc gì",
+        "có phải bệnh",
+        "cảm thấy",
+        "đau",
+        "khó chịu",
+        "rối loạn",
+        "biểu hiện",
         # English
-        "disease", "symptom", "diagnostic", "disorder", "condition",
-        "am i", "do i have", "what's wrong with me",
+        "disease",
+        "symptom",
+        "diagnostic",
+        "disorder",
+        "condition",
+        "am i",
+        "do i have",
+        "what's wrong with me",
     ],
     Intent.TREATMENT: [
         # Vietnamese
-        "điều trị", "thuốc", "uống thuốc", "liệu pháp", "chữa trị",
-        "biện pháp", "cách chữa", "tôi nên làm gì", "phác đồ",
+        "điều trị",
+        "thuốc",
+        "uống thuốc",
+        "liệu pháp",
+        "chữa trị",
+        "biện pháp",
+        "cách chữa",
+        "tôi nên làm gì",
+        "phác đồ",
         # English
-        "treatment", "therapy", "medication", "medicine", "how to treat",
-        "cure", "prescription", "should i take",
+        "treatment",
+        "therapy",
+        "medication",
+        "medicine",
+        "how to treat",
+        "cure",
+        "prescription",
+        "should i take",
     ],
     Intent.THEORY: [
         # Vietnamese
-        "tại sao", "vì sao", "giải thích", "là gì", "nghĩa là gì",
-        "tâm lý", "cơ chế", "nguyên nhân", "tại sao lại", "học thuyết",
+        "tại sao",
+        "vì sao",
+        "giải thích",
+        "là gì",
+        "nghĩa là gì",
+        "tâm lý",
+        "cơ chế",
+        "nguyên nhân",
+        "tại sao lại",
+        "học thuyết",
         # English
-        "why", "what is", "how does", "explain", "theory", "psychology",
-        "mechanism", "cause", "reason",
+        "why",
+        "what is",
+        "how does",
+        "explain",
+        "theory",
+        "psychology",
+        "mechanism",
+        "cause",
+        "reason",
     ],
     Intent.SUPPORT: [
         # Vietnamese
-        "buồn", "stress", "lo âu", "sợ", "khó chịu", "mệt mỏi",
-        "cần giúp", "cần ai đó", "tôi không ổn", "giã tôi",
-        "đau lòng", "thất vọng", "cô đơn", "bế tắc",
+        "buồn",
+        "stress",
+        "lo âu",
+        "sợ",
+        "khó chịu",
+        "mệt mỏi",
+        "cần giúp",
+        "cần ai đó",
+        "tôi không ổn",
+        "giã tôi",
+        "đau lòng",
+        "thất vọng",
+        "cô đơn",
+        "bế tắc",
         # English
-        "sad", "anxious", "stressed", "depressed", "lonely",
-        "hopeless", "overwhelmed", "i need help", "i'm not okay",
+        "sad",
+        "anxious",
+        "stressed",
+        "depressed",
+        "lonely",
+        "hopeless",
+        "overwhelmed",
+        "i need help",
+        "i'm not okay",
     ],
 }
 
@@ -68,7 +129,9 @@ class IntentClassification:
     def __init__(self, llm: Any = None):
         self._llm = llm
 
-    async def classify(self, message: str, language: str = "vi") -> IntentClassificationResult:
+    async def classify(
+        self, message: str, language: str = "vi"
+    ) -> IntentClassificationResult:
         """
         Classify message intent.
 
@@ -93,7 +156,12 @@ class IntentClassification:
         # Keyword scoring
         scores = {
             intent: _score_intent(message, intent)
-            for intent in [Intent.DIAGNOSTIC, Intent.TREATMENT, Intent.THEORY, Intent.SUPPORT]
+            for intent in [
+                Intent.DIAGNOSTIC,
+                Intent.TREATMENT,
+                Intent.THEORY,
+                Intent.SUPPORT,
+            ]
         }
 
         # Pick highest score
@@ -154,7 +222,12 @@ Respond with only the intent name."""
             response = await self._llm.generate(prompt)
             response = response.strip().lower()
 
-            for intent in [Intent.DIAGNOSTIC, Intent.THEORY, Intent.TREATMENT, Intent.SUPPORT]:
+            for intent in [
+                Intent.DIAGNOSTIC,
+                Intent.THEORY,
+                Intent.TREATMENT,
+                Intent.SUPPORT,
+            ]:
                 if intent in response:
                     return IntentClassificationResult(
                         intent=intent,

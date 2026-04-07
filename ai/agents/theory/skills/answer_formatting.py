@@ -1,6 +1,7 @@
 """
 AnswerFormatting skill for TheoryAgent.
 """
+
 from __future__ import annotations
 
 import logging

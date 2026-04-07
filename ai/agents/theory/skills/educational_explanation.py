@@ -1,6 +1,7 @@
 """
 EducationalExplanation skill — generates clear, educational explanations.
 """
+
 from __future__ import annotations
 
 import logging

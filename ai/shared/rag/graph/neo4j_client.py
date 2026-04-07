@@ -1,6 +1,7 @@
 """
 Neo4jClient — graph database wrapper.
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,7 +42,10 @@ class Neo4jClient:
 
         try:
             from neo4j import GraphDatabase
-            self._driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+
+            self._driver = GraphDatabase.driver(
+                self.uri, auth=(self.user, self.password)
+            )
             _driver = self._driver
             logger.info("[Neo4jClient] Connected to %s", self.uri)
             return self._driver
@@ -115,23 +119,31 @@ class Neo4jClient:
 
                 nodes = []
                 for n in raw_nodes:
-                    nodes.append({
-                        "id": n.get("id"),
-                        "labels": list(n.labels),
-                        "name": n.get("name", ""),
-                        "type": n.get("type", ""),
-                        "description": n.get("description", ""),
-                    })
+                    nodes.append(
+                        {
+                            "id": n.get("id"),
+                            "labels": list(n.labels),
+                            "name": n.get("name", ""),
+                            "type": n.get("type", ""),
+                            "description": n.get("description", ""),
+                        }
+                    )
 
                 rels = []
                 for r in raw_rels:
-                    rels.append({
-                        "type": r.type,
-                        "start_node": r.start_node.get("id"),
-                        "end_node": r.end_node.get("id"),
-                    })
+                    rels.append(
+                        {
+                            "type": r.type,
+                            "start_node": r.start_node.get("id"),
+                            "end_node": r.end_node.get("id"),
+                        }
+                    )
 
-                logger.info("[Neo4jClient] expand_subgraph: %d nodes, %d rels", len(nodes), len(rels))
+                logger.info(
+                    "[Neo4jClient] expand_subgraph: %d nodes, %d rels",
+                    len(nodes),
+                    len(rels),
+                )
                 return nodes, rels
 
         except Exception as e:
@@ -180,7 +192,9 @@ class Neo4jClient:
 
     # ── Simple query ─────────────────────────────────────────────────────────────
 
-    def run_query(self, cypher: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    def run_query(
+        self, cypher: str, params: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Run a raw Cypher query. Returns list of result dicts."""
         driver = self._ensure_driver()
         if driver is None:

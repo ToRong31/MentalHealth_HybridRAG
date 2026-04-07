@@ -1,6 +1,7 @@
 """
 CopingRetrieval skill — find relevant coping strategies for user's emotional state.
 """
+
 from __future__ import annotations
 
 import logging
@@ -112,7 +113,9 @@ Message: {context[:200]}"""
                 strategies = _COPING_BY_EMOTION.get(emotion, [])
 
                 if strategies:
-                    logger.debug(f"[CopingRetrieval] LLM emotion={emotion}, found {len(strategies)} strategies")
+                    logger.debug(
+                        f"[CopingRetrieval] LLM emotion={emotion}, found {len(strategies)} strategies"
+                    )
             except Exception as e:
                 logger.warning(f"[CopingRetrieval] LLM failed: {e}")
 

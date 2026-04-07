@@ -1,6 +1,7 @@
 """
 CrisisDetection skill — confirms crisis and determines crisis level.
 """
+
 from __future__ import annotations
 
 import logging
@@ -11,11 +12,25 @@ logger = logging.getLogger(__name__)
 # Crisis level indicators
 CRISIS_LEVELS: dict[str, dict[str, Any]] = {
     "critical": {
-        "keywords": ["tự tử", "tự sát", "kill myself", "end my life", "overdose", "hang myself", "poison"],
+        "keywords": [
+            "tự tử",
+            "tự sát",
+            "kill myself",
+            "end my life",
+            "overdose",
+            "hang myself",
+            "poison",
+        ],
         "description": "Nguy cơ tự hại nghiêm trọng, cần can thiệp ngay",
     },
     "high": {
-        "keywords": ["muốn chết", "muốn tự tử", "no reason to live", "don't want to live", "nhảy cầu"],
+        "keywords": [
+            "muốn chết",
+            "muốn tự tử",
+            "no reason to live",
+            "don't want to live",
+            "nhảy cầu",
+        ],
         "description": "Nguy cơ cao, cần theo dõi sát và hỗ trợ chuyên môn",
     },
     "medium": {

@@ -3,6 +3,7 @@ Shared Pydantic schemas for inter-agent HTTP communication.
 
 All agent services use these schemas to talk to each other over HTTP.
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -11,8 +12,10 @@ from pydantic import BaseModel, Field
 
 # ─── Common ──────────────────────────────────────────────────────────────────
 
+
 class HealthResponse(BaseModel):
     """Standard health check response for all agent services."""
+
     status: str = "ok"
     agent: str
     port: int
@@ -20,12 +23,14 @@ class HealthResponse(BaseModel):
 
 # ─── Request ─────────────────────────────────────────────────────────────────
 
+
 class AgentRequest(BaseModel):
     """
     Unified request schema for all domain agents.
 
     Sent by: SupervisorAgent → DomainAgent
     """
+
     message: str = Field(..., min_length=1, max_length=5000)
     conversation_id: str
     user_id: str
@@ -43,12 +48,14 @@ class AgentRequest(BaseModel):
 
 # ─── Response ────────────────────────────────────────────────────────────────
 
+
 class AgentResponse(BaseModel):
     """
     Unified response schema for all domain agents.
 
     Returned by: DomainAgent → SupervisorAgent / Backend
     """
+
     response: str = ""
     agent_id: str
     intent: str = "unknown"
@@ -64,12 +71,14 @@ class AgentResponse(BaseModel):
 
 # ─── Routing ─────────────────────────────────────────────────────────────────
 
+
 class RoutingDecision(BaseModel):
     """
     Routing decision returned by SupervisorAgent.
 
     Sent by: SupervisorAgent → Backend / ChatService
     """
+
     target_agent: str
     intent: str
     confidence: float = 0.5
@@ -80,6 +89,7 @@ class RoutingDecision(BaseModel):
 
 class RoutingRequest(BaseModel):
     """Request for supervisor to classify and route a message."""
+
     message: str = Field(..., min_length=1, max_length=5000)
     conversation_id: str
     user_id: str
@@ -89,6 +99,7 @@ class RoutingRequest(BaseModel):
 
 class RoutingResponse(BaseModel):
     """Response from supervisor routing endpoint."""
+
     target_agent: str
     intent: str
     confidence: float

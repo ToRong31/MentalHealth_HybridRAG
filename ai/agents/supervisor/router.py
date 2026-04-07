@@ -1,6 +1,7 @@
 """
 SupervisorAgent routing logic — maps intent → domain agent.
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,8 +24,7 @@ logger = logging.getLogger(__name__)
 def _remove_diacritics(text: str) -> str:
     """Remove Vietnamese diacritics for fuzzy matching."""
     return "".join(
-        c for c in unicodedata.normalize("NFD", text)
-        if unicodedata.category(c) != "Mn"
+        c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
     )
 
 
@@ -77,13 +77,63 @@ def classify_intent(message: str, language: str = "vi") -> IntentClassificationR
     lower = message.lower()
 
     # Simple keyword-based fallback (replace with skill)
-    if any(kw in lower for kw in ["bệnh", "triệu chứng", "chẩn đoán", "mắc gì", "có phải", "disease", "symptom", "diagnostic"]):
+    if any(
+        kw in lower
+        for kw in [
+            "bệnh",
+            "triệu chứng",
+            "chẩn đoán",
+            "mắc gì",
+            "có phải",
+            "disease",
+            "symptom",
+            "diagnostic",
+        ]
+    ):
         intent = "diagnostic"
-    elif any(kw in lower for kw in ["điều trị", "thuốc", "liệu pháp", "uống", "treatment", "therapy", "medication"]):
+    elif any(
+        kw in lower
+        for kw in [
+            "điều trị",
+            "thuốc",
+            "liệu pháp",
+            "uống",
+            "treatment",
+            "therapy",
+            "medication",
+        ]
+    ):
         intent = "treatment"
-    elif any(kw in lower for kw in ["tại sao", "vì sao", "giải thích", "là gì", "what is", "why", "theory", "psychology"]):
+    elif any(
+        kw in lower
+        for kw in [
+            "tại sao",
+            "vì sao",
+            "giải thích",
+            "là gì",
+            "what is",
+            "why",
+            "theory",
+            "psychology",
+        ]
+    ):
         intent = "theory"
-    elif any(kw in lower for kw in ["buồn", "stress", "lo âu", "sợ", "khó chịu", "sad", "anxious", "stressed", "help", "cần", "cần giúp"]):
+    elif any(
+        kw in lower
+        for kw in [
+            "buồn",
+            "stress",
+            "lo âu",
+            "sợ",
+            "khó chịu",
+            "sad",
+            "anxious",
+            "stressed",
+            "help",
+            "cần",
+            "cần giúp",
+        ]
+    ):
         intent = "support"
     else:
         intent = "support"  # fallback

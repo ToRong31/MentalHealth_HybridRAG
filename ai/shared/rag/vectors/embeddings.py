@@ -3,6 +3,7 @@ Embeddings utilities for RAG retrieval.
 
 Provides lazy-loaded sentence-transformers encoder with graceful fallback.
 """
+
 from __future__ import annotations
 
 import hashlib

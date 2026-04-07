@@ -3,6 +3,7 @@ CrisisAgent — psychological crisis intervention.
 
 Priority: CRITICAL — can interrupt all other agents.
 """
+
 from __future__ import annotations
 
 import logging
@@ -45,11 +46,11 @@ class CrisisAgent(BaseAgent):
         config: dict | None = None,
     ):
         self._skills = {
-            "CrisisDetection":       CrisisDetection(llm=llm),
-            "ImmediateResponse":     ImmediateResponse(llm=llm),
+            "CrisisDetection": CrisisDetection(llm=llm),
+            "ImmediateResponse": ImmediateResponse(llm=llm),
             "ProfessionalEscalation": ProfessionalEscalation(llm=llm),
-            "FollowUpSupport":       FollowUpSupport(llm=llm),
-            "Documentation":         Documentation(llm=llm),
+            "FollowUpSupport": FollowUpSupport(llm=llm),
+            "Documentation": Documentation(llm=llm),
         }
         self._shared_tools = create_shared_memory_tools(memory_service)
 
@@ -249,4 +250,5 @@ class CrisisAgent(BaseAgent):
 
 def _utc_now() -> str:
     from datetime import datetime, timezone
+
     return datetime.now(timezone.utc).isoformat()

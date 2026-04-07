@@ -1,6 +1,7 @@
 """
 AnswerFormatting skill for TreatmentAgent.
 """
+
 from __future__ import annotations
 
 import logging
@@ -38,7 +39,9 @@ class AnswerFormatting:
         for i, treatment in enumerate(treatments, 1):
             parts = []
             parts.append(f"### {i}. {treatment.get('name', '')}")
-            parts.append(f"**Mức độ bằng chứng:** {treatment.get('evidence_level', '')}")
+            parts.append(
+                f"**Mức độ bằng chứng:** {treatment.get('evidence_level', '')}"
+            )
             parts.append(f"\n{treatment.get('description', '')}")
 
             if treatment.get("duration"):

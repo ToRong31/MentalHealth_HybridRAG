@@ -4,6 +4,7 @@ AgentState — per-request private state for an agent instance.
 Each agent call gets its own AgentState, isolated from other concurrent calls.
 Replaces the unused `local_memory` in BaseAgent.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -18,6 +19,7 @@ class AgentState:
     Each call to agent.run() receives a fresh AgentState instance.
     This is NOT shared across agents — only the agent that owns it can read/write.
     """
+
     # Conversation identity
     conversation_id: str = ""
     user_id: str = ""

@@ -1,6 +1,7 @@
 """
 GeminiClient — LLM wrapper with Gemini API.
 """
+
 from __future__ import annotations
 
 import os
@@ -41,6 +42,7 @@ class GeminiClient:
 
         try:
             import google.generativeai as genai
+
             genai.configure(api_key=self.api_key)
             self._client = genai
             logger.info("[GeminiClient] Configured with model: %s", self.model)
@@ -84,14 +86,23 @@ class GeminiClient:
                     )
                 )
                 text = response.text.strip()
-                logger.debug("[GeminiClient] generate success (attempt %d)", attempt + 1)
+                logger.debug(
+                    "[GeminiClient] generate success (attempt %d)", attempt + 1
+                )
                 return text
 
             except Exception as e:
                 last_error = e
-                logger.warning("[GeminiClient] Attempt %d/%d failed: %s", attempt + 1, self.max_retries, e)
+                logger.warning(
+                    "[GeminiClient] Attempt %d/%d failed: %s",
+                    attempt + 1,
+                    self.max_retries,
+                    e,
+                )
 
-        raise RuntimeError(f"[GeminiClient] All {self.max_retries} retries failed: {last_error}")
+        raise RuntimeError(
+            f"[GeminiClient] All {self.max_retries} retries failed: {last_error}"
+        )
 
     async def generate_structured(
         self,
@@ -115,10 +126,9 @@ class GeminiClient:
                     "response_schema": response_schema,
                 },
             )
-            response = await asyncio.to_thread(
-                lambda: model.generate_content(prompt)
-            )
+            response = await asyncio.to_thread(lambda: model.generate_content(prompt))
             import json
+
             return json.loads(response.text)
 
         except Exception as e:

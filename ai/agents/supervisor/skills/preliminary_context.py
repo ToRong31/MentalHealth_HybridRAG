@@ -2,6 +2,7 @@
 PreliminaryContext skill — extracts basic context from user message BEFORE routing.
 Language detection, crisis keywords, and preliminary slot hints.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,34 +16,81 @@ logger = logging.getLogger(__name__)
 # ─── Intensity words ───────────────────────────────────────────────────────────
 
 INTENSITY_HINTS: dict[str, int] = {
-    "rất": 7, "cực kỳ": 9, "vô cùng": 9,
-    "hơi": 3, "hơi hơi": 2, "ít": 2,
-    "không": 0, "hoàn toàn không": 0,
-    "rõ rệt": 7, "đáng kể": 6,
-    "nhẹ": 3, "vừa": 5, "nặng": 8,
-    "mạnh": 7, "yếu": 2,
+    "rất": 7,
+    "cực kỳ": 9,
+    "vô cùng": 9,
+    "hơi": 3,
+    "hơi hơi": 2,
+    "ít": 2,
+    "không": 0,
+    "hoàn toàn không": 0,
+    "rõ rệt": 7,
+    "đáng kể": 6,
+    "nhẹ": 3,
+    "vừa": 5,
+    "nặng": 8,
+    "mạnh": 7,
+    "yếu": 2,
 }
 
 DURATION_HINTS: dict[str, str] = {
-    "hôm nay": "today", "hôm qua": "yesterday", "mấy ngày": "few_days",
-    "tuần": "week", "tháng": "month", "năm": "year",
-    "lâu rồi": "long_time", "từ lâu": "long_time",
-    "vừa mới": "recent", "mới": "recent",
-    "thường xuyên": "frequent", "luôn luôn": "always",
+    "hôm nay": "today",
+    "hôm qua": "yesterday",
+    "mấy ngày": "few_days",
+    "tuần": "week",
+    "tháng": "month",
+    "năm": "year",
+    "lâu rồi": "long_time",
+    "từ lâu": "long_time",
+    "vừa mới": "recent",
+    "mới": "recent",
+    "thường xuyên": "frequent",
+    "luôn luôn": "always",
 }
 
 TRIGGER_HINTS: list[str] = [
-    "vì", "do", "bởi vì", "khi", "sau khi",
-    "mỗi khi", "bắt đầu từ", "từ khi",
-    "because", "due to", "after", "when", "since",
+    "vì",
+    "do",
+    "bởi vì",
+    "khi",
+    "sau khi",
+    "mỗi khi",
+    "bắt đầu từ",
+    "từ khi",
+    "because",
+    "due to",
+    "after",
+    "when",
+    "since",
 ]
 
 EMOTION_WORDS: list[str] = [
-    "buồn", "vui", "sợ", "lo", "giận", "tức", "chán",
-    "mệt", "mệt mỏi", "cô đơn", "bế tắc", "hoảng",
-    "lo âu", "trầm cảm", " căng thẳng", "stress",
-    "sad", "happy", "angry", "anxious", "scared", "depressed",
-    "stressed", "lonely", "hopeless", "frustrated",
+    "buồn",
+    "vui",
+    "sợ",
+    "lo",
+    "giận",
+    "tức",
+    "chán",
+    "mệt",
+    "mệt mỏi",
+    "cô đơn",
+    "bế tắc",
+    "hoảng",
+    "lo âu",
+    "trầm cảm",
+    " căng thẳng",
+    "stress",
+    "sad",
+    "happy",
+    "angry",
+    "anxious",
+    "scared",
+    "depressed",
+    "stressed",
+    "lonely",
+    "hopeless",
+    "frustrated",
 ]
 
 
@@ -133,7 +181,9 @@ class PreliminaryContextSkill:
             language=language,
             has_crisis_keywords=has_crisis,
             crisis_keywords_found=crisis_keywords,
-            preliminary_slots={k: v for k, v in preliminary_slots.items() if v is not None},
+            preliminary_slots={
+                k: v for k, v in preliminary_slots.items() if v is not None
+            },
         )
 
         logger.debug(

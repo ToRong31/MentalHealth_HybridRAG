@@ -1,6 +1,7 @@
 """
 EmotionalSupport skill — generates empathetic, validating responses.
 """
+
 from __future__ import annotations
 
 import logging

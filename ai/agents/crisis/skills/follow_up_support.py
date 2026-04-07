@@ -1,6 +1,7 @@
 """
 FollowUpSupport skill — generates follow-up guidance and ongoing support.
 """
+
 from __future__ import annotations
 
 import logging
